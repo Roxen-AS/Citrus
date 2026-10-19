@@ -10,6 +10,8 @@ internal static class LifecycleHost
     public static int Main(string[] args)
     {
         if (args.Length == 1 && args[0] == "--glass-projection-smoke") return GlassProjectionSmoke.Run();
+        if (args.Length == 1 && args[0] == "--avif-handle-holder") return AvifHandleInheritanceHost.Hold();
+        if (args.Length == 3 && args[0] == "--avif-handle-reader") return AvifHandleInheritanceHost.Read(args[1], args[2]);
         if (args.Length < 3 || args[0] != "--resident-test") return 2;
         FileActions? actions = null;
         if (args.Contains("--owned-move"))
