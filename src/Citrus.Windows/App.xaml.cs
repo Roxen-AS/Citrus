@@ -1,4 +1,7 @@
 using System.ComponentModel;
+using System.Collections.Immutable;
+using Citrus.Core.Editing;
+using Citrus.Windows.Editors;
 using System.Windows.Threading;
 using Citrus.Conversion;
 using Citrus.Core;
@@ -33,6 +36,8 @@ public partial class App : Application
     private Task<EngineRegistry>? discovery;
     private JobQueue? queue;
     private SubmissionService? submissions;
+    private ImageEditorServices? imageEditors;
+    private EditorSubmissionService? editorSubmissions;
     private FileActions? actions;
     private Task activeAction = Task.CompletedTask;
     private readonly CancellationTokenSource lifetime = new();
@@ -87,10 +92,12 @@ public partial class App : Application
             SetGestures(settings.GesturesEnabled, persist: false);
             discovery = EngineRegistry.Create(new OutputWriter(), Path.Combine(AppContext.BaseDirectory, "media"), lifetime.Token);
             var registry = await discovery;
-            if (IsQuitting) return;
+            if (IsQuitting) { registry.ImageEditors?.Dispose(); return; }
             queue = new(registry.Engines);
             queue.JobChanged += JobChanged;
             submissions = new(queue, registry.Inspector.InspectAsync);
+            imageEditors = registry.ImageEditors;
+            if (imageEditors is not null) editorSubmissions = new(queue, imageEditors.Routes, imageEditors.Inspector);
             // Native actions participate in discovery only; the worker queue owns conversion engines exclusively.
             var catalog = new OperationCatalog(registry.Engines.Concat([new NativeActionCatalog()]));
             wheel = new(catalog, feedbackAudio);
@@ -195,11 +202,28 @@ public partial class App : Application
         finally { updatingGestures = false; }
     }
     private async void SubmitDrop(OperationDrop drop) => await SubmitAsync(drop, origin: SubmissionOrigin.Wheel);
-    internal Task RetryAsync(ConversionJob job, string? destination) => SubmitAsync(new(job.Request.Operation, job.Request.Inputs), job.Request.Options, destination, SubmissionOrigin.Retry);
+    internal async Task RetryAsync(ConversionJob job, string? destination)
+    {
+        if (job.Request.Editor is null) { await SubmitAsync(new(job.Request.Operation, job.Request.Inputs), job.Request.Options, destination, SubmissionOrigin.Retry); return; }
+        if (IsQuitting || home is null) return;
+        if (preparing) { home.Report("Finish the current editor before retrying."); return; }
+        if (editorSubmissions is null) { home.Report("The image editor renderer is unavailable. Restore the bundled image tools before retrying this recipe."); return; }
+        preparing = true; home.SetBusy(true);
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously); activeAction = completed.Task;
+        try
+        {
+            var retried = await editorSubmissions.RetryAsync(job.Request, destination, lifetime.Token);
+            TrackSubmitted([retried], SubmissionOrigin.Retry);
+        }
+        catch (OperationCanceledException) { home.Report("Retry canceled. No new work was submitted."); }
+        catch (Exception error) { home.AddSubmissionFailure("Could not retry the frozen recipe: " + error.Message, () => RetryAsync(job, destination)); }
+        finally { preparing = false; home.SetBusy(false); completed.TrySetResult(); }
+    }
     internal async Task SubmitAsync(OperationDrop drop, OperationOptions? options = null, string? destination = null, SubmissionOrigin origin = SubmissionOrigin.Home)
     {
         if (IsQuitting || submissions is null || home is null) return;
         if (preparing) { ReportSubmission("Finish the current action or options dialog before starting another submission.", origin); return; }
+        drop = new(drop.Operation, Array.AsReadOnly(drop.Paths.ToArray())); // Freeze the actual incoming payload before any await/modal pump.
         preparing = true;
         home.SetBusy(true);
         // Origin affects feedback only. All routes still use one authoritative submission service.
@@ -219,12 +243,18 @@ public partial class App : Application
             }
             else
             {
-                var submitted = await submissions.SubmitAsync(drop.Operation, drop.Paths, ConfirmAsync, options, destination, lifetime.Token);
-                jobs.AddRange(submitted);
-                if (origin == SubmissionOrigin.Wheel) foreach (var job in submitted) quietJobs.Add(job);
-                home.AddJobs(submitted);
-                if (submitted.Count == 0) { home.Report("Canceled. No work was submitted."); if (origin == SubmissionOrigin.Wheel) toast?.Close(); }
-                else ReportSubmission($"Submitted {submitted.Count} job(s). Your originals stay safe.", origin, pending: true);
+                IReadOnlyList<ConversionJob> submitted;
+                if (imageEditors?.Routes.TryGet(drop.Operation.Id, out var route) == true)
+                {
+                    var request = new EditorOpenRequest(drop.Operation, [.. drop.Paths], route.EntryTool, options ?? new(), destination, origin);
+                    var editor = new EditorHostWindow(imageEditors);
+                    if (home.IsVisible) editor.Owner = home;
+                    else editor.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+                    var batch = await editor.ShowEditorAsync(request, lifetime.Token);
+                    submitted = batch is null ? [] : await editorSubmissions!.SubmitAsync(batch, lifetime.Token);
+                }
+                else submitted = await submissions.SubmitAsync(drop.Operation, drop.Paths, ConfirmAsync, options, destination, lifetime.Token);
+                TrackSubmitted(submitted, origin);
             }
         }
         catch (OperationCanceledException) { home.Report("Canceled. No new work was submitted."); if (origin == SubmissionOrigin.Wheel) toast?.Close(); }
@@ -235,6 +265,14 @@ public partial class App : Application
             ReportSubmission(message, origin);
         }
         finally { preparing = false; home.SetBusy(false); completed.TrySetResult(); }
+    }
+    private void TrackSubmitted(IReadOnlyList<ConversionJob> submitted, SubmissionOrigin origin)
+    {
+        jobs.AddRange(submitted);
+        if (origin == SubmissionOrigin.Wheel) foreach (var job in submitted) quietJobs.Add(job);
+        home?.AddJobs(submitted);
+        if (submitted.Count == 0) { home?.Report("Canceled. No work was submitted."); if (origin == SubmissionOrigin.Wheel) toast?.Close(); }
+        else ReportSubmission($"Submitted {submitted.Count} job(s). Your originals stay safe.", origin, pending: true);
     }
     private void BeginQuietSubmission()
     {
@@ -302,7 +340,7 @@ public partial class App : Application
         toast?.Close();
         home?.Dispose();
         settingsWindow?.Close();
-        foreach (Window dialog in Windows.Cast<Window>().Where(window => window is ToolOptionsWindow).ToArray()) dialog.Close();
+        foreach (Window dialog in Windows.Cast<Window>().Where(window => window is ToolOptionsWindow or EditorHostWindow).ToArray()) dialog.Close();
         if (tray is not null) tray.Visible = false;
         foreach (var job in jobs) job.Cancel();
         await activeAction; // A native Move is never abandoned midway through its filesystem work.
@@ -323,6 +361,7 @@ public partial class App : Application
         shelf?.Dispose();
         toast?.Dispose();
         home?.Dispose();
+        imageEditors?.Dispose();
         presentation?.Dispose();
         themes?.Dispose();
         feedbackAudio?.Dispose();

@@ -13,7 +13,10 @@ public sealed class InterfaceIntegrationTests : IDisposable
     public async Task Missing_media_preserves_other_engines_with_reinstall_message()
     {
         var registry = await EngineRegistry.Create(new OutputWriter(), root);
-        Assert.Equal(4, registry.Engines.Count);
+        using var images = Assert.IsType<ImageEditorServices>(registry.ImageEditors);
+        Assert.Equal(5, registry.Engines.Count);
+        Assert.Contains(images.Engine, registry.Engines);
+        Assert.True(images.Routes.TryGet("image.crop", out _));
         Assert.Contains("reinstall", Assert.Single(registry.Warnings), StringComparison.OrdinalIgnoreCase);
         string input = Path.Combine(root, "hello.srt");
         await File.WriteAllTextAsync(input, "1\n00:00:00,000 --> 00:00:01,000\nHello\n");
