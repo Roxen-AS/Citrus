@@ -7,7 +7,11 @@ permissions:
   contents: read
 jobs:
   avif-lifetime:
-    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, windows-2025]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +30,12 @@ jobs:
           if ($LASTEXITCODE) { throw 'Core restore failed' }
           dotnet restore tests/Citrus.Conversion.Tests --locked-mode
           if ($LASTEXITCODE) { throw 'Conversion restore failed' }
+          dotnet restore tests/Citrus.Windows.Tests --locked-mode
+          if ($LASTEXITCODE) { throw 'Windows test host restore failed' }
+      - name: Deterministic native AVIF handle inheritance regression
+        run: dotnet test tests/Citrus.Windows.Tests -c Release --no-restore --filter FullyQualifiedName~AvifHandleInheritanceTests --logger "console;verbosity=detailed" --logger trx --results-directory TestResults/avif-inheritance
       - name: Original exception and Windows sharing regressions
+        if: ${{ !cancelled() }}
         run: dotnet test tests/Citrus.Core.Tests -c Release --no-restore --filter FullyQualifiedName~OutputWriterTests --logger trx --results-directory TestResults/avif-core
       - name: AVIF production path and phase ownership A-B diagnostics
         if: ${{ !cancelled() }}
@@ -37,6 +46,6 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: windows-avif-lifetime-diagnostics
+          name: windows-avif-lifetime-diagnostics-${{ matrix.os }}
           path: TestResults/**
           if-no-files-found: error
