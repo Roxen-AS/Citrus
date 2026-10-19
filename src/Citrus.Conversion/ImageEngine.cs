@@ -96,13 +96,14 @@ public sealed class ImageEngine : IConversionEngine
             if (document.DescendantNodes().OfType<XProcessingInstruction>().Any()) throw new NotSupportedException(message);
             foreach (var element in document.Descendants())
             {
-                if (element.Name.LocalName is "script" or "foreignObject" or "style" or "animate" or "animateTransform" or "animateMotion" or "set")
+                // MSVG compares SVG keywords without case sensitivity, unlike XML names. Match its interpretation.
+                if (element.Name.LocalName.ToLowerInvariant() is "script" or "foreignobject" or "style" or "animate" or "animatetransform" or "animatemotion" or "set")
                     throw new NotSupportedException(message);
                 foreach (var attribute in element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration))
                 {
                     string value = attribute.Value.Trim();
-                    if (attribute.Name.LocalName == "href" && !value.StartsWith('#')) throw new NotSupportedException(message);
-                    if (attribute.Name == XNamespace.Xml + "base") throw new NotSupportedException(message);
+                    if (attribute.Name.LocalName.Equals("href", StringComparison.OrdinalIgnoreCase) && !value.StartsWith('#')) throw new NotSupportedException(message);
+                    if (attribute.Name.Namespace == XNamespace.Xml && attribute.Name.LocalName.Equals("base", StringComparison.OrdinalIgnoreCase)) throw new NotSupportedException(message);
                     // Keep local paint-server references (gradients/clips), disallow external CSS url/import tricks.
                     string withoutFragments = Regex.Replace(value, "url\\(\\s*['\"]?#[A-Za-z_][A-Za-z0-9_.:-]*['\"]?\\s*\\)", "", RegexOptions.IgnoreCase);
                     if (withoutFragments.Contains("url", StringComparison.OrdinalIgnoreCase) || value.Contains('\\') || value.Contains('@'))

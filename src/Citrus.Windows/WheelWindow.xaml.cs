@@ -17,12 +17,11 @@ public partial class WheelWindow : Window
     private readonly DispatcherTimer timer;
     private WheelPaging paging = new();
     private IReadOnlyList<OperationDescriptor> operations = [];
-    private string[] paths = [];
-    private OperationMode mode;
+    private IReadOnlyList<string> paths => session.Paths;
+    private OperationMode mode => session.Mode;
     private long generation;
     private int selected = -1, navigation;
     private bool armed;
-    private NativeMethods.Point anchor;
     private nint handle;
     public event Action<OperationDrop>? OperationDropped;
 
@@ -48,29 +47,40 @@ public partial class WheelWindow : Window
     public void ShowAtPointer(OperationMode requestedMode)
     {
         Dispatcher.VerifyAccess();
-        mode = requestedMode;
-        paths = [];
-        operations = [];
+        NativeMethods.GetCursorPos(out var pointer);
+        bool newSession = session.RequestMode(Environment.TickCount64, requestedMode, pointer.X, pointer.Y);
+        generation = session.Generation;
         paging = new();
         selected = -1;
         navigation = 0;
         armed = false;
-        NativeMethods.GetCursorPos(out anchor);
-        new WindowInteropHelper(this).EnsureHandle();
-        Place(NativeMethods.MonitorScale(anchor));
-        Show(); // ShowActivated=false; no Focus, Activate or mouse capture.
-        Place(Math.Max(96, NativeMethods.GetDpiForWindow(handle)) / 96.0);
-        var initial = Surface.PointFromScreen(new Point(anchor.X, anchor.Y));
-        generation = session.Begin(Environment.TickCount64, initial.X, initial.Y);
+        if (newSession)
+        {
+            new WindowInteropHelper(this).EnsureHandle();
+            Place(NativeMethods.MonitorScale(pointer));
+            Show(); // ShowActivated=false; no Focus, Activate or mouse capture.
+            Place(Math.Max(96, NativeMethods.GetDpiForWindow(handle)) / 96.0);
+        }
+        // A mode change keeps native placement and OLE payload ownership; only selection is rearmed.
+        var initial = Surface.PointFromScreen(new Point(pointer.X, pointer.Y));
+        session.ResetPointer(initial.X, initial.Y);
+        operations = catalog.GetOperations(paths, mode);
         ModeLabel.Text = mode.ToString().ToUpperInvariant();
-        Badge.Text = "Drag a file here";
-        Hint.Text = "Hold · glide · release";
+        UpdatePayloadLabel();
         RenderSectors();
         timer.Start();
     }
 
+    private void UpdatePayloadLabel()
+    {
+        Badge.Text = paths.Count == 0 ? "Drag a file here" : operations.Count == 0 ? "No supported operations" :
+            paths.Count == 1 ? Path.GetFileName(paths[0]) : $"{paths.Count} files";
+        Hint.Text = paths.Count > 0 && operations.Count == 0 ? "Release to cancel" : "Hold · glide · release";
+    }
+
     private void Place(double scale)
     {
+        var anchor = new NativeMethods.Point { X = (int)session.Anchor.X, Y = (int)session.Anchor.Y };
         var bounds = WheelGeometry.Place(anchor.X, anchor.Y, NativeMethods.WorkArea(anchor), scale);
         NativeMethods.SetWindowPos(handle, new nint(-1), (int)bounds.Left, (int)bounds.Top,
             (int)bounds.Width, (int)bounds.Height, 0x10); // SWP_NOACTIVATE
@@ -84,10 +94,20 @@ public partial class WheelWindow : Window
         return 0;
     }
 
+    /// <summary>Called by the mouse observer: capture identity now, then schedule only unconfirmed cleanup.</summary>
+    public void ObserveGlobalRelease()
+    {
+        long releasedGeneration = generation;
+        Dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+        {
+            if (session.GlobalRelease(releasedGeneration)) Dismiss();
+        }));
+    }
+
     public void Dismiss()
     {
+        session.Cancel(generation);
         timer.Stop();
-        paths = [];
         operations = [];
         selected = -1;
         navigation = 0;
@@ -115,12 +135,11 @@ public partial class WheelWindow : Window
         if (!ReadPayload(e, out var payload)) { Dismiss(); return; }
         if (!payload.SequenceEqual(paths, StringComparer.OrdinalIgnoreCase))
         {
-            paths = payload;
+            // Any validated physical FileDrop establishes OLE ownership, even in a mode with no targets.
+            session.ConfirmPayload(payload);
             operations = catalog.GetOperations(paths, mode);
             paging = new();
-            if (operations.Count == 0) { Badge.Text = "No supported operations"; Hint.Text = "Release to cancel"; RenderSectors(); return; }
-            session.ConfirmPayload();
-            Badge.Text = paths.Length == 1 ? Path.GetFileName(paths[0]) : $"{paths.Length} files";
+            UpdatePayloadLabel();
             RenderSectors();
         }
         var point = e.GetPosition(Surface);
@@ -148,7 +167,7 @@ public partial class WheelWindow : Window
         {
             var point = e.GetPosition(Surface);
             int index = armed && NavigationAt(point) == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(8, operations.Count - paging.Page * 8)) : -1;
-            if (index >= 0)
+            if (index >= 0 && session.TryCompleteDrop(generation))
             {
                 var operation = operations[paging.Page * 8 + index];
                 accepted = new(operation, Array.AsReadOnly(payload));

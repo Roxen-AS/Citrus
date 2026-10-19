@@ -49,7 +49,7 @@ public partial class App : Application
             monitor = new(Dispatcher);
             monitor.ModeRequested += wheel.ShowAtPointer;
             monitor.EscapePressed += wheel.Dismiss;
-            monitor.DragReleased += wheel.Dismiss;
+            monitor.DragReleased += wheel.ObserveGlobalRelease;
         }
         catch (Win32Exception)
         {

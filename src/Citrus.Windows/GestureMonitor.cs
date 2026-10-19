@@ -12,11 +12,11 @@ public sealed class GestureMonitor : IDisposable
     private readonly NativeMethods.HookProc keyboardCallback, mouseCallback;
     private readonly GestureState state;
     private readonly ModifierObserver modifiers;
-    private long dragGeneration;
     private nint keyboardHook, mouseHook;
     private bool disposed;
     public event Action<OperationMode>? ModeRequested;
     public event Action? EscapePressed;
+    /// <summary>Observer notification on the hook thread; handlers only snapshot session identity and queue work.</summary>
     public event Action? DragReleased;
     public bool Enabled { get; private set; } = true;
 
@@ -77,14 +77,14 @@ public sealed class GestureMonitor : IDisposable
         if (code >= 0 && !disposed && Enabled)
         {
             var input = Marshal.PtrToStructure<NativeMethods.MouseData>(data);
-            if (message == 0x201) { dragGeneration++; state.ButtonDown(input.Point.X, input.Point.Y); }
+            if (message == 0x201) state.ButtonDown(input.Point.X, input.Point.Y);
             else if (message == 0x200) Dispatch(state.Move(input.Point.X, input.Point.Y));
             else if (message == 0x202)
             {
                 state.ButtonUp();
-                // ContextIdle leaves OLE's pending Drop callback time to copy its plain paths first.
-                long releasedGeneration = dragGeneration;
-                dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() => { if (releasedGeneration == dragGeneration) DragReleased?.Invoke(); }));
+                // Snapshot the wheel's session before returning; dispatcher priority cannot order Explorer's OLE call.
+                // The subscriber queues unconfirmed cleanup only. Confirmed OLE sessions retain target ownership.
+                DragReleased?.Invoke();
             }
         }
         return NativeMethods.CallNextHookEx(mouseHook, code, message, data);

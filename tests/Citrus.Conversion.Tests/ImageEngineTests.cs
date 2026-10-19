@@ -135,14 +135,34 @@ public sealed class ImageEngineTests : IDisposable
         Assert.True(File.Exists(path));
     }
 
-    [Fact]
-    public async Task Svg_external_resources_are_rejected_before_rendering()
+    [Theory]
+    [InlineData("xlink:href")]
+    [InlineData("HREF")]
+    [InlineData("HrEf")]
+    [InlineData("xlink:HREF")]
+    [InlineData("xlink:HrEf")]
+    public async Task Svg_external_resources_are_rejected_before_rendering(string attributeName)
     {
         var referenced = Fixture();
         string path = Path.Combine(directory, "external.svg");
-        File.WriteAllText(path, $"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"80\" height=\"40\"><image xlink:href=\"{referenced}\" width=\"80\" height=\"40\"/></svg>");
+        File.WriteAllText(path, $"<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"80\" height=\"40\"><image {attributeName}=\"{referenced}\" width=\"80\" height=\"40\"/></svg>");
         var exception = await Assert.ThrowsAsync<NotSupportedException>(() => engine.ExecuteAsync(Request("image.convert.png", path), null, default));
         Assert.Contains("self-contained", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(2, Directory.GetFiles(directory).Length);
+    }
+
+    [Theory]
+    [InlineData("STYLE")]
+    [InlineData("StYlE")]
+    public async Task Svg_resource_bearing_stylesheets_are_rejected_regardless_of_case(string elementName)
+    {
+        var referenced = Fixture();
+        string path = Path.Combine(directory, "stylesheet.svg");
+        File.WriteAllText(path, $"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"80\" height=\"40\"><{elementName} type=\"text/css\">rect {{ fill: url('{referenced}'); }}</{elementName}><rect width=\"80\" height=\"40\"/></svg>");
+        var original = File.ReadAllBytes(referenced);
+        var exception = await Assert.ThrowsAsync<NotSupportedException>(() => engine.ExecuteAsync(Request("image.convert.png", path), null, default));
+        Assert.Contains("self-contained", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(original, File.ReadAllBytes(referenced));
         Assert.Equal(2, Directory.GetFiles(directory).Length);
     }
 
