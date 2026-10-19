@@ -215,6 +215,15 @@ public sealed class PdfEngineTests : IDisposable
         File.WriteAllText(svg, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"96\" height=\"48\"><rect width=\"96\" height=\"48\" fill=\"red\"/></svg>");
         string output = Assert.Single((await Execute("images.pdf", svg)).Outputs);
         using (var pdf = PigDocument.Open(output)) Assert.Equal(72d, pdf.GetPage(1).Width, 2);
+        string raster = Assert.Single((await Execute("pdf.images", output)).Outputs);
+        using (var image = new MagickImage(raster))
+        using (var pixels = image.GetPixels())
+        {
+            var red = pixels.GetPixel(20, 20).ToArray();
+            Assert.Equal((byte)255, red[0]);
+            Assert.Equal((byte)0, red[1]);
+            Assert.Equal((byte)0, red[2]);
+        }
         File.WriteAllText(svg, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"96\" height=\"48\"><image HREF=\"file:///private.png\"/></svg>");
         string fake = Path.Combine(directory, "fake.png");
         File.Copy(output, fake);

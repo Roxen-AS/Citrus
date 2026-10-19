@@ -201,4 +201,101 @@ public sealed class ImageEngineTests : IDisposable
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => engine.ExecuteAsync(Request("image.convert.jpeg", source), null, cancellation.Token));
         Assert.Equal(2, Directory.GetFiles(directory).Length);
     }
+
+    [Theory]
+    [InlineData("mvg")]
+    [InlineData("svg")]
+    [InlineData("png")]
+    [InlineData("jpeg")]
+    [InlineData("webp")]
+    [InlineData("tiff")]
+    [InlineData("bmp")]
+    [InlineData("gif")]
+    [InlineData("avif")]
+    public async Task Raw_mvg_cannot_enter_image_or_pdf_conversion_even_with_an_allowed_extension(string extension)
+    {
+        string path = Path.Combine(directory, "drawing." + extension);
+        const string mvg = "push graphic-context\nviewbox 0 0 60 30\nfill red\nrectangle 0,0 60,30\npop graphic-context";
+        File.WriteAllText(path, mvg);
+        var pdf = new PdfEngine();
+        var pdfRequest = new OperationRequest(pdf.Operations.Single(o => o.Id == "images.pdf"), [path], new(), null);
+        if (extension is "mvg" or "svg")
+        {
+            await Assert.ThrowsAsync<NotSupportedException>(() => engine.ExecuteAsync(Request("image.convert.png", path), null, default));
+            await Assert.ThrowsAsync<NotSupportedException>(() => pdf.ExecuteAsync(pdfRequest, null, default));
+        }
+        else
+        {
+            await Assert.ThrowsAnyAsync<MagickException>(() => engine.ExecuteAsync(Request("image.convert.png", path), null, default));
+            await Assert.ThrowsAnyAsync<MagickException>(() => pdf.ExecuteAsync(pdfRequest, null, default));
+        }
+        Assert.Equal(mvg, File.ReadAllText(path));
+        Assert.Single(Directory.GetFiles(directory));
+    }
+
+    [Theory]
+    [InlineData(MagickFormat.Pdf, "%PDF-1.7\n")]
+    [InlineData(MagickFormat.Ps, "%!PS-Adobe-3.0\nshowpage")]
+    [InlineData(MagickFormat.Msl, "<image size=\"1x1\"><read filename=\"xc:red\"/></image>")]
+    public async Task Image_runtime_denies_document_and_script_coders(MagickFormat format, string contents)
+    {
+        // Exercise the application first, then the native policy itself (not its XML spelling).
+        await engine.ExecuteAsync(Request("image.convert.png", Fixture()), null, default);
+        using var input = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(contents));
+        Assert.Throws<MagickPolicyErrorException>(() => new MagickImage(input, new MagickReadSettings { Format = format }));
+    }
+
+    [Fact]
+    public async Task Internal_vector_coders_remain_read_only()
+    {
+        var result = await engine.ExecuteAsync(Request("image.convert.png", Fixture()), null, default);
+        using var image = new MagickImage(Assert.Single(result.Outputs));
+        using var output = new MemoryStream();
+        Assert.Throws<MagickPolicyErrorException>(() => image.Write(output, MagickFormat.Mvg));
+        Assert.Throws<MagickPolicyErrorException>(() => image.Write(output, MagickFormat.Msvg));
+        Assert.Equal(0, output.Length);
+    }
+
+    [Theory]
+    [InlineData("<svg/>")]
+    [InlineData("<!DOCTYPE svg [<!ENTITY external SYSTEM 'file:///private.txt'>]><svg xmlns='http://www.w3.org/2000/svg'>&external;</svg>")]
+    [InlineData("<?xml-stylesheet href='https://example.invalid/style.css'?><svg xmlns='http://www.w3.org/2000/svg'/>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><script>1</script></svg>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><foreignObject/></svg>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><animate attributeName='x'/></svg>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg' xml:base='file:///private/'/>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><rect fill='url(https://example.invalid/paint.svg)'/></svg>")]
+    [InlineData("<svg xmlns='http://www.w3.org/2000/svg'><image href='data:image/png;base64,AAAA'/></svg>")]
+    public async Task Svg_validation_still_blocks_resources_and_active_content_for_both_entrypoints(string contents)
+    {
+        string path = Path.Combine(directory, "unsafe.svg");
+        File.WriteAllText(path, contents);
+        var pdf = new PdfEngine();
+        var pdfRequest = new OperationRequest(pdf.Operations.Single(o => o.Id == "images.pdf"), [path], new(), null);
+        await Assert.ThrowsAsync<NotSupportedException>(() => engine.ExecuteAsync(Request("image.convert.png", path), null, default));
+        await Assert.ThrowsAsync<NotSupportedException>(() => pdf.ExecuteAsync(pdfRequest, null, default));
+        Assert.Equal(contents, File.ReadAllText(path));
+        Assert.Single(Directory.GetFiles(directory));
+    }
+
+    [Fact]
+    public async Task Self_contained_svg_text_still_renders()
+    {
+        string path = Path.Combine(directory, "text.svg");
+        string font = OperatingSystem.IsWindows() ? "Arial" : "DejaVu Sans";
+        File.WriteAllText(path, $"""
+            <svg xmlns="http://www.w3.org/2000/svg" width="100" height="40">
+              <rect width="100" height="40" fill="red"/>
+              <text x="5" y="28" font-family="{font}" font-size="24" fill="black">Citrus</text>
+            </svg>
+            """);
+        var result = await engine.ExecuteAsync(Request("image.convert.png", path), null, default);
+        using var image = new MagickImage(Assert.Single(result.Outputs));
+        using var pixels = image.GetPixels();
+        var background = pixels.GetPixel(95, 35).ToArray();
+        Assert.Equal((byte)255, background[0]);
+        Assert.Equal((byte)0, background[1]);
+        Assert.Equal((byte)0, background[2]);
+        Assert.True(Enumerable.Range(5, 85).Any(x => Enumerable.Range(5, 25).Any(y => pixels.GetPixel(x, y).ToArray()[0] < 100)), "The SVG text must produce visible ink over the red background.");
+    }
 }

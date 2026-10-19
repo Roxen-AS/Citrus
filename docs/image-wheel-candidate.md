@@ -22,6 +22,25 @@ The adapter accepts single-frame images only. Animated GIF/WebP and multipage TI
 
 Input extensions: `.png`, `.jpg`, `.jpeg`, `.webp`, `.tif`, `.tiff`, `.bmp`, `.gif`, `.avif`, plus `.svg` as conversion input only. SVG uses the bundled internal MSVG renderer; a real shapes-to-PNG fixture verifies dimensions and pixels on Linux. Self-contained shapes/text and local paint-server references are supported; external resources, CSS stylesheets, scripts, DTDs and animation are rejected. SVG has no output format or image-tool targets. Decoders are explicitly selected; PDF, HEIC and external/delegate formats remain unavailable. HEIC requires a verified bundled decoder before enabling.
 
+The pinned Windows native library's default policy denies MVG, which MSVG needs
+for its internally generated drawing commands. `ImageRuntimePolicy` initializes
+Magick.NET when the conversion assembly starts, before its native policy cache
+is populated. It retains the bundled policy's indirect-path restrictions, denies
+all external delegates and unneeded coders, allows the seven raster coders, and
+allows only reads for MSVG/MVG and the internal XC solid-color canvas. MVG is not
+a public input: `.mvg` is rejected, `.svg` must pass XML validation, and raster
+extensions force their own decoder even when the file contains MVG or PDF bytes.
+Both image conversion and images-to-PDF use this boundary.
+
+Magick.NET 15's supported configuration API writes XML into an application-owned,
+unique temporary directory and sets its native process configuration path; it has
+no public in-memory policy setter. Citrus removes that directory on normal exit
+and never edits an installed ImageMagick configuration. Hosts embedding the
+conversion assembly must load it before using Magick.NET independently: changing
+configuration after native initialization does not reset the cached policy.
+The Windows SVG regression has a recorded native failure; the repair still needs
+the Windows conversion suite. Host tests alone do not establish native acceptance.
+
 Original files remain unchanged. Outputs go beside each original with collision numbering; tools add an operation suffix. A unique temporary sibling is fully encoded and decoded for dimension validation before a non-replacing commit. Errors and cancellation clean staging. Encoding runs on workers through a queue with at most two active requests. Cancellation is cooperative; native work can finish its current step before observing cancellation.
 
 ## Reproduce the Linux verification and Windows candidate
