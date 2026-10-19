@@ -9,7 +9,7 @@ Explorer, accessibility and clean-machine checks.
 ## Highest-risk interaction
 
 - [ ] Explorer physical image drag → tap Shift → real wheel → PNG drop → valid new copy; source hash and location unchanged.
-- [ ] Escape, neutral center, outside drop, navigation-target drop, canceled dialog: no outputs. Unsupported text/window/virtual/cloud-placeholder drags never enqueue. Unconfirmed capture times out in 750 ms.
+- [ ] Escape, neutral center, outside drop, navigation-target drop, canceled dialog: no outputs. Unsupported text/window/virtual/offline-or-recall-cloud drags never enqueue. Unconfirmed capture times out in 750 ms.
 - [ ] Shift held before drag, tapped during drag, released after opening; Alt/Control mode switching; latest key wins and tap-and-latch persists.
 - [ ] More than eight choices: arrows switch after 400 ms hover. Wheel remains anchored and hit-testable at all screen corners.
 - [ ] Desktop and Explorer multiple files; folders Actions only; 100/150/200% DPI, mixed-DPI monitors and negative monitor coordinates.
@@ -20,6 +20,8 @@ Explorer, accessibility and clean-machine checks.
 - [ ] Every enabled output in operations.md produces decodable copies offline on a clean machine. Real bundled image/PDF/media libraries load without development tools or separate .NET.
 - [ ] Optional H.264 positive probe and Windows N/unavailable-MFT fallback; MP4 default is MPEG-4. Animated GIF retains frames in video operations.
 - [ ] PDF merge, selected split/pages/text, image group order and mixed-folder destination; encrypted/bad inputs reject. PDF text has no OCR.
+- [ ] Actually downloaded/pinned cloud files: record provider, hydration/pin state and observed `FileAttributes` (including ReparsePoint, Offline, RecallOnOpen and RecallOnDataAccess). With no unavailable bits, archive creation (including a mixed group), extraction of a cloud-hosted outer archive and SRT/VTT conversion read local bytes and preserve sources. Record whether the ready file exposes ReparsePoint; a file lacking that bit does not exercise the conditional regression. Online-only/recall inputs stay ineligible without reading/hydrating their data. Linux source-symlink fixtures are not this Cloud Files acceptance.
+- [ ] ZIP/TAR groups use the first confirmed stem plus `-archive` even for one input; reordering changes that stem, existing output bytes survive collision numbering, and GZIP remains `first.txt.gz`. A legal 220-character stem succeeds for both file output and extraction directory, preserves contents/extension, and leaves no staging.
 - [ ] ZIP/TAR/GZIP creation, RAR extraction, `.tar.gz` two-stage extraction, traversal/link/junction rejection and both extraction limits; cancellation cleanup on NTFS.
 - [ ] Two-job concurrency, actual progress, cancel during encode/render, accurate partial batch failure; read-only/locked/missing/corrupt inputs; spaces/Unicode, long filenames and repeated names.
 - [ ] Full-selection clipboard Copy/files/paths, Move originals cancellation/conflicts/late collisions and cross-volume folders; explicit partial errors. Use CITRUS_TEST_SECOND_VOLUME on a second actual volume for the gated integration case.

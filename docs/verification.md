@@ -16,11 +16,11 @@ Checks executed on 2026-10-19. Native Windows items remain pending:
 
 | Check | Status |
 | --- | --- |
-| Locked solution build, all six projects | PASS: six projects, zero warnings/errors |
-| Portable core suite | PASS: 65 passed, zero failures/skips |
-| Complete conversion suite on Linux native libraries / host FFmpeg | PASS: 160 passed, zero failures/skips; entire suite used the no-lavfi fixture-contract wrapper |
+| Locked solution build, all six projects | PASS: clean, locked restore, six projects, zero warnings/errors |
+| Portable core suite | PASS: 70 passed, zero failures/skips |
+| Complete conversion suite on Linux native libraries / host FFmpeg | PASS: 166 passed, zero failures/skips; entire suite used the no-lavfi fixture-contract wrapper |
 | Managed fixture regression | Red observed: prior lavfi initializer fails under a host wrapper enforcing shipped CONFIG_LAVFI_INDEV=0. Replacement uses generated PCM WAV/raw YUV; all 160 conversion cases subsequently pass with that same wrapper. This is a fixture-contract simulation, not Windows PE execution. |
-| Package negative and ownership checks | PASS: five tests, including 12 missing-asset subcases. Empty/missing app, runtime, image/PDF/archive/media native, license and source assets reject. Literal owned-file deletes preserve unknown root and nested outputs; unsafe paths/links reject. Initial interface red preceded implementation. |
+| Package negative and ownership checks | PASS: five tests, including 12 missing-asset subcases (prior Task 8 evidence; packaging code unchanged in the final source/naming fix). Empty/missing app, runtime, image/PDF/archive/media native, license and source assets reject. Literal owned-file deletes preserve unknown root and nested outputs; unsafe paths/links reject. Initial interface red preceded implementation. |
 | Self-contained Windows publish / NSIS compile | PASS: 579 payload files inventoried; NSIS 3.11 x86-unicode installer and uninstaller compiled |
 | Native payload hashes, source provenance and notices | PASS: image/PDF/archive/media native hashes, every bundled notice and media source provenance verified; archive-only reconstruction matches all recipe inputs |
 | Windows CI / actual shipped PE smoke / Windows tests | Configured, not executed here |
@@ -89,3 +89,50 @@ Windows. The full Windows workflow invokes it. Native execution and bootstrap
 failure scenarios remain unchecked in windows-acceptance.md. The actual ordinary
 installer is rebuilt and its payload/checksums verified after the fix; no Windows
 success is inferred from that compilation.
+
+## Final source and output naming correction (F-I1, M1, M3)
+
+Fresh verification after these product changes: clean solution build and locked
+restore succeed with zero warnings/errors; all **70 core** and **166 conversion**
+cases pass with zero failures/skips on Linux. The full conversion suite uses the
+same `/tmp/citrus-no-devices-ffmpeg` host wrapper described above. These suite runs
+include archive-entry traversal/link/duplicate/budget checks and shared writer
+concurrent-collision/cancellation behavior. The five package negatives and two
+portable recovery checks retain their prior passing evidence; neither packaging
+logic nor those contracts changed, so those suites were not repeated.
+
+Focused regression evidence:
+
+- M1: actual writes to a 220-character file stem plus `.png` and a 220-character
+  directory name first failed with `PathTooLongException`. Both now pass, retain
+  exact final bytes/nested contents and file extension, and leave no staging.
+  Staging uses a short `.citrus-` prefix plus GUID and the requested file extension;
+  final collision numbering and atomic nonreplacement are unchanged.
+- M3: four ZIP/TAR single/group naming cases first failed for missing `-archive`.
+  They now pass with first-input naming, explicit reordering, preserved preexisting
+  collision bytes, numbered returned paths and archive entry order. GZIP remains
+  `first.txt.gz` and its round-trip case passes unchanged.
+- F-I1: six actual source-link cases first failed eligibility for three archive
+  formats and three subtitle conversions. After removing source exclusions,
+  archive creation still failed because its name validator interpreted adjacent
+  selected sources as extraction paths. Creation now validates logical names under
+  its unique temporary archive path; extraction still validates beneath its real
+  staging directory with all original guards intact. All six cases now read actual
+  selected bytes, produce normal ZIP/regular TAR entries or converted subtitles,
+  and extract a linked outer archive. Three shared attribute cases confirm ready
+  reparse inputs are accepted in each mode, each Offline/Recall bit still rejects,
+  and directories remain Actions-only. Shared availability code is unchanged.
+
+The six file-symlink cases are explicitly Linux-only host surrogates and skip on
+other operating systems. They are **not Cloud Files runtime tests**. Pending native
+Windows acceptance records actual downloaded/pinned cloud attributes, archive
+creation, cloud-hosted outer-archive extraction, subtitle conversion, and rejection
+of online-only/recall files without data access. Windows long-component behavior,
+actual shipped PE/native loading, Explorer and installer execution also remain
+pending. No Wine attempt or Windows CI success is claimed.
+
+This verification text is finalized before the corrected candidate's single
+`packaging/publish.sh` run, which rebuilds the actual self-contained app and NSIS
+installer and generates SHA256SUMS. Artifact-specific identities remain in that
+manifest and the delivery report, outside the embedded documentation. The media
+recipe, notices, binary assets and corresponding source archive are unchanged.

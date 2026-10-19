@@ -109,6 +109,19 @@ public class GestureTests
     public void Cloud_offline_or_recall_attributes_are_rejected_without_opening(FileAttributes attributes) =>
         Assert.False(DropValidation.AttributesAllowed(attributes, OperationMode.Convert));
 
+    [Theory]
+    [InlineData(OperationMode.Convert)]
+    [InlineData(OperationMode.Tools)]
+    [InlineData(OperationMode.Actions)]
+    public void Ready_reparse_files_follow_shared_availability_and_directory_policy(OperationMode mode)
+    {
+        const FileAttributes ready = FileAttributes.ReparsePoint | FileAttributes.Archive;
+        Assert.True(DropValidation.AttributesAllowed(ready, mode));
+        foreach (var unavailable in new[] { FileAttributes.Offline, (FileAttributes)0x40000, (FileAttributes)0x400000 })
+            Assert.False(DropValidation.AttributesAllowed(ready | unavailable, mode));
+        Assert.Equal(mode == OperationMode.Actions, DropValidation.AttributesAllowed(ready | FileAttributes.Directory, mode));
+    }
+
     [Fact]
     public void Directory_missing_and_non_file_payloads_cannot_convert()
     {

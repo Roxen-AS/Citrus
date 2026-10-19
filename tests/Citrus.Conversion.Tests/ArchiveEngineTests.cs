@@ -49,6 +49,7 @@ public sealed class ArchiveEngineTests : IDisposable
         string input = Input("first.txt");
         byte[] original = File.ReadAllBytes(input);
         string archive = Assert.Single((await Run(engine, "archive." + format, [input])).Outputs);
+        Assert.Equal(format == "gzip" ? "first.txt.gz" : "first-archive." + format, Path.GetFileName(archive));
         byte[] archiveBytes = File.ReadAllBytes(archive);
         string extracted = Assert.Single((await Run(engine, "archive.extract", [archive])).Outputs);
         Assert.Equal(original, File.ReadAllBytes(Assert.Single(Directory.GetFiles(extracted))));
@@ -65,11 +66,67 @@ public sealed class ArchiveEngineTests : IDisposable
     {
         var engine = new ArchiveEngine();
         string a = Input("a.txt", "A"), b = Input("b.txt", "B");
+        string forward = Assert.Single((await Run(engine, "archive." + format, [a, b])).Outputs);
+        Assert.Equal("a-archive." + format, Path.GetFileName(forward));
+        string occupied = Input("b-archive." + format, "existing archive bytes");
         string archive = Assert.Single((await Run(engine, "archive." + format, [b, a])).Outputs);
+        Assert.Equal("b-archive (1)." + format, Path.GetFileName(archive));
+        Assert.Equal("existing archive bytes", File.ReadAllText(occupied));
         string extracted = Assert.Single((await Run(engine, "archive.extract", [archive])).Outputs);
         Assert.Equal("A", File.ReadAllText(Path.Combine(extracted, "a.txt")));
         Assert.Equal("B", File.ReadAllText(Path.Combine(extracted, "b.txt")));
         if (format == "zip") { using var zip = ZipFile.OpenRead(archive); Assert.Equal(new[] { "b.txt", "a.txt" }, zip.Entries.Select(e => e.FullName)); }
+        else
+        {
+            using var file = File.OpenRead(archive);
+            using var tar = new TarReader(file);
+            Assert.Equal("b.txt", tar.GetNextEntry()!.Name);
+            Assert.Equal("a.txt", tar.GetNextEntry()!.Name);
+            Assert.Null(tar.GetNextEntry());
+        }
+    }
+
+    [LinuxFileLinkTheory]
+    [InlineData("zip")]
+    [InlineData("tar")]
+    [InlineData("gzip")]
+    public async Task Ready_source_link_copies_bytes_and_linked_outer_archive_extracts(string format)
+    {
+        var engine = new ArchiveEngine();
+        string target = Input("target.txt", "Readable source ü");
+        string selected = Path.Combine(directory, "selected.txt");
+        File.CreateSymbolicLink(selected, target);
+        Assert.True(File.GetAttributes(selected).HasFlag(FileAttributes.ReparsePoint));
+        string[] inputs = format == "gzip" ? [selected] : [selected, Input("other.txt", "other")];
+        var request = new OperationRequest(engine.Operations.Single(o => o.Id == "archive." + format), inputs, new(), null);
+        Assert.True(DropValidation.Accepts(inputs, OperationMode.Convert));
+        Assert.True(engine.CanExecute(request));
+        string archive = Assert.Single((await engine.ExecuteAsync(request, null, default)).Outputs);
+        if (format == "zip")
+        {
+            using var zip = ZipFile.OpenRead(archive);
+            var entry = zip.Entries[0];
+            Assert.Equal("selected.txt", entry.FullName);
+            Assert.NotEqual(0xA000, (entry.ExternalAttributes >> 16) & 0xF000);
+            Assert.Equal(0, entry.ExternalAttributes & (int)FileAttributes.ReparsePoint);
+        }
+        else if (format == "tar")
+        {
+            using var file = File.OpenRead(archive);
+            using var tar = new TarReader(file);
+            var entry = tar.GetNextEntry()!;
+            Assert.Equal("selected.txt", entry.Name);
+            Assert.Equal(TarEntryType.RegularFile, entry.EntryType);
+        }
+        string outer = Path.Combine(directory, "linked" + Path.GetExtension(archive));
+        File.CreateSymbolicLink(outer, archive);
+        Assert.True(File.GetAttributes(outer).HasFlag(FileAttributes.ReparsePoint));
+        var extract = new OperationRequest(engine.Operations.Single(o => o.Id == "archive.extract"), [outer], new(), null);
+        Assert.True(engine.CanExecute(extract));
+        string output = Assert.Single((await engine.ExecuteAsync(extract, null, default)).Outputs);
+        Assert.Equal(File.ReadAllBytes(target), File.ReadAllBytes(Path.Combine(output, format == "gzip" ? "linked" : "selected.txt")));
+        Assert.Equal("Readable source ü", File.ReadAllText(target));
+        Assert.DoesNotContain(Directory.GetFileSystemEntries(directory), p => Path.GetFileName(p).StartsWith('.'));
     }
 
     [Theory]

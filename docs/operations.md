@@ -1,8 +1,9 @@
 # Enabled operations
 
 Availability is the intersection for the selected files. Unsupported, offline
-cloud placeholders and virtual drag payloads are rejected without hydration.
-Folders offer Actions only. Actual decoder errors report per file; extension
+cloud placeholders, recall-marked files and virtual drag payloads are rejected
+without hydration. Locally ready files remain eligible when they retain reparse
+metadata. Folders offer Actions only. Actual decoder errors report per file; extension
 recognition is not a promise that every codec in a container is supported.
 Windows native fixture and Explorer acceptance are still pending.
 
@@ -19,8 +20,11 @@ Windows native fixture and Explorer acceptance are still pending.
 Ordinary batches run independently and show partial successes. PDF merge,
 image-to-PDF and ZIP/TAR show an ordered list with Move up/down. Mixed-parent
 groups require an explicit destination. The UI displays actual returned output
-paths; collision suffixes are chosen atomically. Tool names use operation
-suffixes. Source bytes and locations remain unchanged by conversion/tools.
+paths; collision suffixes are chosen atomically. ZIP/TAR use the first confirmed
+input's stem plus `-archive.zip` / `-archive.tar`, even for a one-file group;
+reordering changes the first stem. An existing `first-archive.zip` yields
+`first-archive (1).zip`. GZIP retains the whole source filename (`first.txt.gz`).
+Tool names use operation suffixes. Source bytes and locations remain unchanged by conversion/tools.
 
 Quality accepts 1–100 (default 85); speed 0.25–4 times (default 1). Resize needs
 positive dimensions and preserves aspect ratio by default. Trims need a

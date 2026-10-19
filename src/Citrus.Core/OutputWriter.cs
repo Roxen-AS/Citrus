@@ -21,7 +21,7 @@ public sealed class OutputWriter
         var parent = Path.GetDirectoryName(destination)!;
         var extension = directory ? "" : Path.GetExtension(destination);
         var stem = directory ? Path.GetFileName(destination) : Path.GetFileNameWithoutExtension(destination);
-        var staging = Path.Combine(parent, $".{stem}.citrus-{Guid.NewGuid():N}{extension}");
+        var staging = Path.Combine(parent, $".citrus-{Guid.NewGuid():N}{extension}");
         try
         {
             if (directory) Directory.CreateDirectory(staging);

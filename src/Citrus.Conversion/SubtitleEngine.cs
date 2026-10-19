@@ -21,8 +21,7 @@ public sealed class SubtitleEngine(OutputWriter? outputWriter = null) : IConvers
     public bool CanExecute(OperationRequest request) =>
         Operations.Any(o => o.Id == request.Operation.Id) && request.Inputs.Count == 1 &&
         DropValidation.Accepts(request.Inputs, OperationMode.Convert) &&
-        new[] { ".srt", ".vtt" }.Contains(Path.GetExtension(request.Inputs[0]), StringComparer.OrdinalIgnoreCase) &&
-        !File.GetAttributes(request.Inputs[0]).HasFlag(FileAttributes.ReparsePoint);
+        new[] { ".srt", ".vtt" }.Contains(Path.GetExtension(request.Inputs[0]), StringComparer.OrdinalIgnoreCase);
 
     public Task<ConversionResult> ExecuteAsync(OperationRequest request, IProgress<ConversionProgress>? progress, CancellationToken cancellationToken) =>
         Task.Run(async () =>

@@ -9,6 +9,34 @@ public sealed class OutputWriterTests : IDisposable
     public void Dispose() => Directory.Delete(root, true);
 
     [Fact]
+    public async Task Long_legal_file_name_preserves_extension_bytes_and_leaves_no_staging()
+    {
+        string desired = Path.Combine(root, new string('a', 220) + ".png");
+        string output = await new OutputWriter().WriteFileAsync(desired, async (temporary, token) =>
+        {
+            Assert.Equal(".png", Path.GetExtension(temporary));
+            await File.WriteAllBytesAsync(temporary, [1, 2, 3, 255], token);
+        }, default);
+        Assert.Equal(desired, output);
+        Assert.Equal(new byte[] { 1, 2, 3, 255 }, await File.ReadAllBytesAsync(output));
+        Assert.Equal(new[] { desired }, Directory.GetFileSystemEntries(root));
+    }
+
+    [Fact]
+    public async Task Long_legal_directory_name_preserves_contents_and_leaves_no_staging()
+    {
+        string desired = Path.Combine(root, new string('a', 220));
+        string output = await new OutputWriter().WriteDirectoryAsync(desired, async (temporary, token) =>
+        {
+            Directory.CreateDirectory(Path.Combine(temporary, "nested"));
+            await File.WriteAllTextAsync(Path.Combine(temporary, "nested", "entry.txt"), "complete", token);
+        }, default);
+        Assert.Equal(desired, output);
+        Assert.Equal("complete", await File.ReadAllTextAsync(Path.Combine(output, "nested", "entry.txt")));
+        Assert.Equal(new[] { desired }, Directory.GetFileSystemEntries(root));
+    }
+
+    [Fact]
     public async Task Concurrent_writes_preserve_existing_bytes_and_each_new_output()
     {
         var desired = Path.Combine(root, "photo.png");

@@ -39,7 +39,6 @@ public sealed class ArchiveEngine : IConversionEngine
         var operation = Operations.FirstOrDefault(o => o.Id == request.Operation.Id);
         if (operation is null || (!operation.IsGroup && request.Inputs.Count != 1) ||
             !DropValidation.Accepts(request.Inputs, operation.Mode)) return false;
-        if (request.Inputs.Any(p => File.GetAttributes(p).HasFlag(FileAttributes.ReparsePoint))) return false;
         return operation.Id != "archive.extract" || new[] { ".zip", ".tar", ".gz", ".gzip", ".rar" }
             .Contains(Path.GetExtension(request.Inputs[0]), StringComparer.OrdinalIgnoreCase);
     }
@@ -64,7 +63,7 @@ public sealed class ArchiveEngine : IConversionEngine
             else
             {
                 var operation = Operations.Single(o => o.Id == request.Operation.Id);
-                string name = operation.Id == "archive.gzip" ? Path.GetFileName(input) : Path.GetFileNameWithoutExtension(input);
+                string name = operation.Id == "archive.gzip" ? Path.GetFileName(input) : Path.GetFileNameWithoutExtension(input) + "-archive";
                 string desired = Path.Combine(destination, name + operation.OutputExtension);
                 output = await writer.WriteFileAsync(desired, (temporary, token) => CreateAsync(request, temporary, token), cancellationToken).ConfigureAwait(false);
             }
@@ -74,8 +73,9 @@ public sealed class ArchiveEngine : IConversionEngine
 
     private static async Task CreateAsync(OperationRequest request, string temporary, CancellationToken token)
     {
-        // Use the same portable name/collision rules as extraction before creating an archive.
-        var names = new SafeArchivePath(Path.GetDirectoryName(temporary)!);
+        // Validate logical archive names beneath the unique archive path, not beside it:
+        // adjacent selected sources may be ready reparse files, not extraction entries.
+        var names = new SafeArchivePath(temporary);
         foreach (string input in request.Inputs) names.Claim(Path.GetFileName(input), false);
         await using var output = new FileStream(temporary, FileMode.CreateNew, FileAccess.Write, FileShare.None);
         switch (request.Operation.Id)

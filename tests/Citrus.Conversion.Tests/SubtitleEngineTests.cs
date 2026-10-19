@@ -19,6 +19,27 @@ public sealed class SubtitleEngineTests : IDisposable
         return await File.ReadAllTextAsync(output);
     }
 
+    [LinuxFileLinkTheory]
+    [InlineData(".srt", "subtitle.vtt", "1\n00:00:01,000 --> 00:00:02,000\nHello ü\n", "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHello ü\n\n")]
+    [InlineData(".vtt", "subtitle.srt", "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHello ü\n", "1\n00:00:01,000 --> 00:00:02,000\nHello ü\n\n")]
+    [InlineData(".srt", "subtitle.txt", "1\n00:00:01,000 --> 00:00:02,000\nHello ü\n", "Hello ü\n")]
+    public async Task Ready_source_link_reads_and_converts_actual_subtitle_bytes(string extension, string operation, string content, string expected)
+    {
+        string target = Path.Combine(directory, "target" + extension);
+        await File.WriteAllTextAsync(target, content);
+        byte[] original = await File.ReadAllBytesAsync(target);
+        string selected = Path.Combine(directory, "selected" + extension);
+        File.CreateSymbolicLink(selected, target);
+        Assert.True(File.GetAttributes(selected).HasFlag(FileAttributes.ReparsePoint));
+        var request = new OperationRequest(engine.Operations.Single(o => o.Id == operation), [selected], new(), null);
+        Assert.True(DropValidation.Accepts([selected], OperationMode.Convert));
+        Assert.True(engine.CanExecute(request));
+        string output = Assert.Single((await engine.ExecuteAsync(request, null, default)).Outputs);
+        Assert.Equal(expected, await File.ReadAllTextAsync(output));
+        Assert.Equal(original, await File.ReadAllBytesAsync(target));
+        Assert.Equal(3, Directory.GetFileSystemEntries(directory).Length);
+    }
+
     [Fact]
     public async Task Srt_bom_crlf_multiline_large_hours_translate_only_timestamps()
     {

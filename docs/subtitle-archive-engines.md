@@ -2,7 +2,11 @@
 
 Register `new SubtitleEngine()` and `new ArchiveEngine()` with the shared
 operation catalog/engine registry. Both implement `IConversionEngine` and run
-outside the calling UI thread. The job queue controls concurrency.
+outside the calling UI thread. The job queue controls concurrency. Selected source
+files use the shared availability policy: ready reparse files are eligible;
+Offline, RecallOnOpen and RecallOnDataAccess inputs remain ineligible without
+opening their data. Reading a selected ready source copies its bytes; it does not
+store a source link in an archive. Source directories remain ineligible.
 
 - `subtitle.vtt`, `subtitle.srt`, `subtitle.txt` convert one SRT or WebVTT input.
   Ordinary batches should dispatch one request per file. Output is UTF-8 without
@@ -17,7 +21,11 @@ outside the calling UI thread. The job queue controls concurrency.
 - `archive.zip` and `archive.tar` are explicit group conversions of selected regular
   files, stored by basename in selection order. Duplicate basenames are rejected.
   Directory selection and recursive folder creation are not supported. Inputs from
-  different directories require an explicit destination.
+  different directories require an explicit destination. The first confirmed
+  input's stem names the output `<first stem>-archive.zip` or
+  `<first stem>-archive.tar`, including a one-file group. Reordering changes that
+  first stem; existing names receive collision numbering, such as
+  `first-archive (1).zip`, without replacing existing bytes.
 - `archive.gzip` compresses one file, retaining its basename (`file.txt.gz`).
 - `archive.extract` is a Tools operation taking one `.zip`, `.tar`, `.gz`, `.gzip`
   or `.rar` input. It returns a directory named `<archive stem>-extracted`, adding
@@ -57,8 +65,14 @@ The extraction root's parent is assumed to be controlled by the current user.
 Path checks reject existing reparse ancestors but do not provide an OS-handle
 sandbox against another local process racing filesystem mutations.
 
-The Linux tests cover actual engine output and cleanup. They do not establish
-Windows Explorer/tray behavior or Windows junction and filesystem semantics.
+The Linux tests cover actual engine output and cleanup, including selected file
+symlinks as a host surrogate for available reparse metadata. Those fixtures read
+real source bytes, emit normal ZIP/regular TAR entries, extract a linked outer
+archive, and convert linked subtitles. They are not Cloud Files runtime tests.
+Real downloaded/pinned cloud input acceptance, with observed attributes recorded,
+remains pending for archive creation, outer-archive extraction and subtitles.
+These host tests do not establish Windows Explorer/tray behavior or Windows
+junction and filesystem semantics.
 Windows acceptance must repeat extraction, cancellation, collision and reparse
 checks on NTFS. SharpCompress is pinned at 0.50.5 with a managed offline publish
 asset and MIT notice; see `packaging/archive-backend.lock.json`.
