@@ -103,6 +103,47 @@ public sealed class JobQueueTests
     }
 
     [Fact]
+    public async Task Cancellation_after_output_commit_preserves_success_and_output_path()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "citrus-tests-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(root);
+        var desired = Path.Combine(root, "photo.png");
+        var committed = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var allowReturn = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var writer = new OutputWriter();
+        var engine = new TestEngine([Operation], _ => true, async (_, _, token) =>
+        {
+            var output = await writer.WriteFileAsync(desired,
+                (temporary, cancellation) => File.WriteAllTextAsync(temporary, "complete", cancellation), token);
+            committed.SetResult(output);
+            // The committed file is already a user output; allow cancellation before returning it.
+            await allowReturn.Task;
+            return new([output]);
+        });
+        var job = new JobQueue([engine]).Enqueue(Request("source"));
+        try
+        {
+            var output = await committed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Assert.Equal("complete", await File.ReadAllTextAsync(output));
+            job.Cancel();
+            allowReturn.SetResult();
+            await job.Completion.WaitAsync(TimeSpan.FromSeconds(10));
+
+            Assert.Equal(ConversionJobState.Succeeded, job.State);
+            Assert.Null(job.Error);
+            Assert.Equal([output], job.Outputs);
+            Assert.Equal("complete", await File.ReadAllTextAsync(output));
+            Assert.Equal([output], Directory.GetFileSystemEntries(root));
+        }
+        finally
+        {
+            allowReturn.TrySetResult();
+            await job.Completion.WaitAsync(TimeSpan.FromSeconds(10));
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task Failure_is_per_job_and_progress_and_results_are_notified()
     {
         var engine = new TestEngine([Operation], _ => true, (request, progress, _) =>

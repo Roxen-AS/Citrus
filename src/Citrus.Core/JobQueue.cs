@@ -84,7 +84,7 @@ public sealed class JobQueue
                 ?? throw new NotSupportedException($"No installed engine supports operation '{job.Request.Operation.Id}' for these inputs.");
             var progress = new JobProgress(value => { if (job.Report(value)) Notify(job); });
             var result = await engine.ExecuteAsync(job.Request, progress, job.Token).ConfigureAwait(false);
-            job.Token.ThrowIfCancellationRequested();
+            // Successful return owns the commit outcome; late cancellation must not hide user outputs.
             job.SetState(ConversionJobState.Succeeded, results: result.Outputs);
         }
         catch (OperationCanceledException) when (job.Token.IsCancellationRequested)
