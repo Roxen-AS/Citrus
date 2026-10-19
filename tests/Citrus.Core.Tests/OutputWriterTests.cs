@@ -75,6 +75,58 @@ public sealed class OutputWriterTests : IDisposable
         Assert.Empty(Directory.GetFileSystemEntries(root));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Cleanup_failure_preserves_original_write_exception_and_cancellation(bool cancel)
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        Exception original = cancel ? new OperationCanceledException(cancellation.Token) : new InvalidDataException("encoder failure");
+        string? staging = null;
+        var actual = await Record.ExceptionAsync(() => new OutputWriter().WriteFileAsync(Path.Combine(root, "photo.avif"), (path, _) =>
+        {
+            staging = path;
+            // A directory in a file slot deterministically makes File.Delete fail on both platforms.
+            Directory.CreateDirectory(path);
+            return Task.FromException(original);
+        }, default));
+
+        Assert.Same(original, actual);
+        var cleanup = Assert.IsAssignableFrom<Exception>(actual.Data["Citrus.OutputWriter.CleanupFailure"]);
+        Assert.True(cleanup is IOException or UnauthorizedAccessException);
+        Assert.True(Directory.Exists(staging));
+        Assert.False(File.Exists(Path.Combine(root, "photo.avif")));
+    }
+
+    [WindowsFileSharingFact]
+    public async Task Locked_staging_preserves_original_failure_and_records_cleanup_sharing_violation()
+    {
+        FileStream? locked = null;
+        var original = new InvalidDataException("AVIF verification failed");
+        try
+        {
+            var actual = await Record.ExceptionAsync(() => new OutputWriter().WriteFileAsync(Path.Combine(root, "photo.avif"), (path, _) =>
+            {
+                locked = new FileStream(path, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
+                return Task.FromException(original);
+            }, default));
+            Assert.Same(original, actual);
+            var cleanup = Assert.IsType<IOException>(actual.Data["Citrus.OutputWriter.CleanupFailure"]);
+            Assert.Equal(32, cleanup.HResult & 0xffff); // ERROR_SHARING_VIOLATION
+            Assert.False(File.Exists(Path.Combine(root, "photo.avif")));
+        }
+        finally { locked?.Dispose(); }
+    }
+
+    private sealed class WindowsFileSharingFactAttribute : FactAttribute
+    {
+        public WindowsFileSharingFactAttribute()
+        {
+            if (!OperatingSystem.IsWindows()) Skip = "Requires native Windows delete-sharing enforcement.";
+        }
+    }
+
     [Fact]
     public async Task Cancellation_after_callback_returns_still_prevents_commit()
     {
