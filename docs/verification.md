@@ -12,12 +12,12 @@ could not start the shipped runtime; no further Wine attempt is used as evidence
 
 ## Current source checks — 0.3 preview
 
-The combined editor and presentation source at `5f1ab80` passed a locked Release
-solution build with zero warnings/errors. Core: **164 passed, one Windows-only
-sharing-violation case skipped**. Conversion: **454 passed, zero failures/skips**.
+The combined editor and presentation source at `c1ec51c` passed a locked Release
+solution build with zero warnings/errors. Core: **170 passed, one Windows-only
+sharing-violation case skipped**. Conversion: **492 passed, zero failures/skips**.
 These ran on Linux with host FFmpeg 7.1.5; they do not establish Windows rendering,
-physical Explorer behavior, device audio or compositor appearance. The subsequent
-version-only change to 0.3.0-preview.1 also passed the solution build.
+physical Explorer behavior, device audio or compositor appearance. The application
+version is 0.3.0-preview.1 (assembly/file version 0.3.0.0).
 
 The exact native media correction at `aa032b8` passed **49/49** tests on Windows
 using the bundled FFmpeg/FFprobe 9.0.2 executables in run
@@ -40,11 +40,31 @@ The neutral Light/Dark visual rework replaces the earlier brown palette, keeps
 the workspace action footer pinned, and adapts wheel metadata to enlarged text.
 The standard Light/Dark minimum-size and enlarged-text WPF images have been
 inspected. Actual full-name wheel UI Automation regressions passed twice on
-Windows. The repeated populated-history/warnings stress case still stalls at
-its first idle continuation; later Desktop tests are explicitly quarantined.
-The whole interface suite therefore remains unaccepted. The diagnostic at
-`c797f73` records original dispatcher exits and live-thread state; it does not
-claim a product fix.
+Windows. At `7c29284`, both populated-history/warnings stress cases passed,
+including 200% text, with all eight Light/Dark screenshots inspected. The actual
+failure was a TwoWay ProgressBar binding to the read-only job Percent property;
+the production binding now explicitly uses OneWay. The pinned action, reachable
+retry controls and full warning text remain visible through scrolling.
+
+That run then exposed a separate late media-control Unloaded event cancelling
+an already disposed CancellationTokenSource. The reviewed correction at
+`c1ec51c` makes disposal joinable and late Stop/Pause idempotent, with four causal
+portable regressions. Real paused/playing unload/reload/replacement cases are
+included in the next native run. This source also integrates the reviewed image
+annotation/manual-mask host, exact text geometry and readable installed-font
+catalog. Windows run
+[39230998084](https://github.com/Skytuhua/Citrus/actions/runs/39230998084)
+completed without a fatal dispatcher exit or quarantine: **265 passed, four
+failed, four skipped**. All eight annotation tests, four media teardown tests,
+the real job template, six image-editor window tests and both history stress
+cases passed. The four remaining failures were obsolete route and immutable-array
+comparison assertions; their reviewed test-only corrections preserve the source
+identity and real capability contracts. The actual editor images exposed an
+unreadable native ComboBox face in Dark mode. A reviewed control/material polish
+now supplies consistent dropdown, checkbox and scrollbar surfaces, plus opaque
+directional wheel shading and a recessed hub. Corrected native execution and
+fresh visual acceptance remain pending. The whole interface suite is not yet
+accepted.
 
 Native glass run
 [39226665695](https://github.com/Skytuhua/Citrus/actions/runs/39226665695)
@@ -55,6 +75,14 @@ injection. There are zero optical glass proof images. The wheel's production
 native-backdrop gate remains disabled; WPF images and DWM return codes are not
 optical blur evidence. Actual device audio, physical Explorer drag behavior and
 mixed-monitor transitions also remain unobserved.
+
+The later `c1ec51c` x64 desktop run produced 22 owned compositor frames as well as
+103 WPF renders. Those raw frames have not established optical eligibility:
+the measured live-background difference is zero and the production companion
+gate stays false. The separate ARM workflow still refused its seven captures
+and real-pointer action before reading/injecting. The compositor test's fixed
+Host description mentions ARM even when executed by the x64 desktop workflow;
+the recorded runtime architecture and workflow identify the actual environment.
 
 The older installer and test counts below are retained baseline evidence. They do
 not identify a rebuilt 0.3 installer or establish acceptance of the current UI.
