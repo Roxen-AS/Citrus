@@ -22,6 +22,7 @@ public sealed class OutputWriter
         var extension = directory ? "" : Path.GetExtension(destination);
         var stem = directory ? Path.GetFileName(destination) : Path.GetFileNameWithoutExtension(destination);
         var staging = Path.Combine(parent, $".citrus-{Guid.NewGuid():N}{extension}");
+        Exception? primaryFailure = null;
         try
         {
             if (directory) Directory.CreateDirectory(staging);
@@ -44,13 +45,27 @@ public sealed class OutputWriter
                 }
             }
         }
+        catch (Exception failure)
+        {
+            primaryFailure = failure;
+            throw;
+        }
         finally
         {
-            if (directory)
+            try
             {
-                if (Directory.Exists(staging)) Directory.Delete(staging, recursive: true);
+                if (directory)
+                {
+                    if (Directory.Exists(staging)) Directory.Delete(staging, recursive: true);
+                }
+                else File.Delete(staging);
             }
-            else File.Delete(staging);
+            catch (Exception cleanupFailure) when (primaryFailure is not null && cleanupFailure is IOException or UnauthorizedAccessException)
+            {
+                // Keep the original codec/commit failure (and cancellation semantics) visible.
+                // Retain cleanup evidence without replacing its exception or stack trace.
+                primaryFailure.Data["Citrus.OutputWriter.CleanupFailure"] = cleanupFailure;
+            }
         }
     }
 

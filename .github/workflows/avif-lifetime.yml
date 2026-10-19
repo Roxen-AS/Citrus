@@ -1,0 +1,42 @@
+name: Windows AVIF lifetime diagnosis
+on:
+  push:
+    branches: [citrus/avif-lifetime]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  avif-lifetime:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+      - name: Record exact source and native environment
+        shell: pwsh
+        run: |
+          git rev-parse HEAD
+          dotnet --info
+          Get-CimInstance Win32_OperatingSystem | Select-Object Caption, Version, BuildNumber
+      - name: Restore locked test dependencies
+        run: |
+          dotnet restore tests/Citrus.Core.Tests --locked-mode
+          if ($LASTEXITCODE) { throw 'Core restore failed' }
+          dotnet restore tests/Citrus.Conversion.Tests --locked-mode
+          if ($LASTEXITCODE) { throw 'Conversion restore failed' }
+      - name: Original exception and Windows sharing regressions
+        run: dotnet test tests/Citrus.Core.Tests -c Release --no-restore --filter FullyQualifiedName~OutputWriterTests --logger trx --results-directory TestResults/avif-core
+      - name: AVIF production path and phase ownership A-B diagnostics
+        if: ${{ !cancelled() }}
+        run: dotnet test tests/Citrus.Conversion.Tests -c Release --no-restore --filter FullyQualifiedName~AvifStagingLifetimeTests --logger "console;verbosity=detailed" --logger trx --results-directory TestResults/avif-lifetime
+      - name: Existing image contracts with original production codec path
+        if: ${{ !cancelled() }}
+        run: dotnet test tests/Citrus.Conversion.Tests -c Release --no-restore --filter FullyQualifiedName~ImageEngineTests --logger trx --results-directory TestResults/avif-images
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-avif-lifetime-diagnostics
+          path: TestResults/**
+          if-no-files-found: error
