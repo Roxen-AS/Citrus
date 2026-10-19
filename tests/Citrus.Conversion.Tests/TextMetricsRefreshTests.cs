@@ -16,7 +16,9 @@ public sealed class TextMetricsRefreshTests
         Assert.Null(cache.GetBounds(layer,document.Fonts));Assert.True(await cache.UpdateAsync(document,default));Assert.Equal(60,cache.GetBounds(layer,document.Fonts)!.Value.Height);
         layer=layer with {Style=layer.Style with {Font=font with {LineHeight=30}}};document=With(initial,artifact,layer);
         Assert.True(await cache.UpdateAsync(document,default));Assert.Equal(80,cache.GetBounds(layer,document.Fonts)!.Value.Height);
-        layer=layer with {Style=layer.Style with {Font=font with {SizePixels=10,LineHeight=10}}};document=With(initial,artifact,layer);
+        layer=layer with {Style=layer.Style with {Font=font with {SizePixels=10}}};document=With(initial,artifact,layer);
+        Assert.True(await cache.UpdateAsync(document,default));Assert.Equal(20,layer.Style.Font!.LineHeight);Assert.Equal(30,cache.GetBounds(layer,document.Fonts)!.Value.Height);
+        layer=layer with {Style=layer.Style with {Font=layer.Style.Font! with {LineHeight=10}}};document=With(initial,artifact,layer);
         Assert.True(await cache.UpdateAsync(document,default));Assert.Equal(20,cache.GetBounds(layer,document.Fonts)!.Value.Height);
         layer=layer with {Style=layer.Style with {Font=font},Geometry=((TextGeometry)layer.Geometry) with {WrapWidth=200}};document=With(initial,artifact,layer);
         Assert.True(await cache.UpdateAsync(document,default));Assert.Equal(40,cache.GetBounds(layer,document.Fonts)!.Value.Height);

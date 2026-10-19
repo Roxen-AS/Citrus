@@ -90,7 +90,8 @@ public sealed class AnnotationInteractionTests(DesktopFixture desktop)
             var content=Field("Text");content.Text=new string('A',15);
             Descendants(window).OfType<Button>().Single(b=>b.Content is TextBlock text&&text.Text=="Apply text").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             await Ready(60);Assert.Equal(layer.Id,overlay.SelectedId);
-            var size=Field("Font size · output pixels");size.Text="10";SendKey(size,window,Key.Enter);await Ready(20);
+            // Font size and leading are independent: two lines retain 20px leading plus 10px glyph metrics.
+            var size=Field("Font size · output pixels");size.Text="10";SendKey(size,window,Key.Enter);await Ready(30);
             var wrap=Field("Local wrap width · output pixels");wrap.Text="200";SendKey(wrap,window,Key.Enter);await Ready(10);
             size.Text="20";SendKey(size,window,Key.Enter);await Ready(40);
             var rotation=Field("Rotation · degrees");rotation.Text="90";SendKey(rotation,window,Key.Enter);
