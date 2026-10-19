@@ -16,7 +16,7 @@ namespace Citrus.Windows.Tests;
 [Collection("Desktop")]
 public sealed class WheelMotionTests(DesktopFixture desktop, ITestOutputHelper output)
 {
-    [Fact]
+    [NativeAnimationFact]
     public Task Disabling_motion_during_dismissal_hides_canceled_wheel_and_rejects_drop() => desktop.RunAsync(async () =>
     {
         output.WriteLine($"Native motion prerequisites: ClientAreaAnimation={SystemParameters.ClientAreaAnimation}; HighContrast={SystemParameters.HighContrast}");
@@ -66,5 +66,15 @@ public sealed class WheelMotionTests(DesktopFixture desktop, ITestOutputHelper o
         public bool CanExecute(OperationRequest request) => true;
         public Task<ConversionResult> ExecuteAsync(OperationRequest request, IProgress<ConversionProgress>? progress, CancellationToken cancellationToken) =>
             throw new InvalidOperationException("Motion tests must never execute an operation.");
+    }
+}
+
+/// <summary>Discovery records a real capability skip; no OS preferences or product motion flags are overridden.</summary>
+public sealed class NativeAnimationFactAttribute : FactAttribute
+{
+    public NativeAnimationFactAttribute()
+    {
+        if (!SystemParameters.ClientAreaAnimation || SystemParameters.HighContrast)
+            Skip = $"Native animation regression unverified: ClientAreaAnimation={SystemParameters.ClientAreaAnimation}, HighContrast={SystemParameters.HighContrast}. Requires an animation-capable Windows desktop; no OS preferences changed.";
     }
 }

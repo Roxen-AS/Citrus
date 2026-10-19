@@ -10,6 +10,7 @@ namespace Citrus.Windows;
 public sealed class WheelPetal : Canvas
 {
     private readonly ShapePath selectedSurface, icon;
+    private readonly StreamGeometry outline;
     private readonly TextBlock label;
     public WheelPetal(OperationDescriptor operation, int index, int count)
     {
@@ -23,6 +24,7 @@ public sealed class WheelPetal : Canvas
             context.PolyLineTo(points.Skip(1).Select(p => new Point(p.X,p.Y)).ToArray(),true,false);
         }
         shape.Freeze();
+        outline = shape;
         var background = new ShapePath { Data = shape, StrokeThickness = 1 };
         background.SetResourceReference(ShapePath.FillProperty,"PetalBackground");
         background.SetResourceReference(ShapePath.StrokeProperty,"BorderBrush");
@@ -41,6 +43,9 @@ public sealed class WheelPetal : Canvas
         System.Windows.Automation.AutomationProperties.SetName(this,operation.Label);
         SetSelected(false,false);
     }
+    /// <summary>The filled rounded outline owns native boundaries; its decorative stroke is not a target.</summary>
+    public bool ContainsPoint(Point point) => outline.FillContains(point, .001, ToleranceType.Absolute);
+
     public void SetSelected(bool selected, bool motion)
     {
         double from = selectedSurface.Opacity;

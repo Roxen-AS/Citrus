@@ -19,7 +19,7 @@ public partial class WheelWindow : Window
     private readonly bool ownsAudio;
     private CancellationTokenSource? presentationWork;
     private readonly List<WheelPetal> petals = [];
-    private bool preparing, reduceMotion, acceptsEntry;
+    private bool preparing, reduceMotion, acceptsEntry, dismissing;
     private long presentationEpoch;
     private bool Motion => !reduceMotion && SystemParameters.ClientAreaAnimation && !SystemParameters.HighContrast;
     private readonly Dictionary<OperationMode, IReadOnlyList<OperationDescriptor>> availableOperations = [];
@@ -62,7 +62,17 @@ public partial class WheelWindow : Window
     {
         reduceMotion = settings.ReduceMotion;
         audio.Enabled = settings.SoundEnabled;
-        if (!Motion) { StopPresentationAnimation(); if (session.IsConfirmed) Presentation.Opacity = 1; }
+        if (!Motion)
+        {
+            // The dismissal clock owns cleanup. Removing it must finish cleanup synchronously.
+            if (dismissing) FinishDismiss();
+            else
+            {
+                StopPresentationAnimation();
+                if (session.IsConfirmed) Presentation.Opacity = 1;
+                for (int i = 0; i < petals.Count; i++) petals[i].SetSelected(i == selected, false);
+            }
+        }
     }
 
     public void ShowAtPointer(OperationMode requestedMode)
@@ -78,6 +88,7 @@ public partial class WheelWindow : Window
         armed = false;
         if (newSession)
         {
+            dismissing = false;
             CancelWork();
             presentationEpoch++;
             preparing = false;
@@ -165,6 +176,7 @@ public partial class WheelWindow : Window
         navigation = 0;
         long dismissEpoch = ++presentationEpoch;
         StopPresentationAnimation();
+        dismissing = animate;
         if (animate)
         {
             // Ownership is already canceled. This tail is presentation only; callbacks cannot submit.
@@ -177,6 +189,7 @@ public partial class WheelWindow : Window
 
     private void FinishDismiss()
     {
+        dismissing = false;
         SetPresentationVisible(false);
         Sectors.Children.Clear(); petals.Clear(); Preview.Source = null;
         Hide();
@@ -319,9 +332,16 @@ public partial class WheelWindow : Window
         var point = e.GetPosition(Surface);
         armed = session.ObservePointer(point.X, point.Y);
         navigation = armed ? NavigationAt(point) : 0;
-        int next = armed && navigation == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(WheelGeometry.MaxTargetsPerPage, operations.Count - paging.Page * WheelGeometry.MaxTargetsPerPage)) : -1;
+        int next = armed && navigation == 0 ? HitTarget(point) : -1;
         if (next != selected) Select(next);
         if (selected >= 0 || navigation != 0) e.Effects = DragDropEffects.Copy;
+    }
+
+    private int HitTarget(Point point)
+    {
+        // Use the retained renderer's exact fill convention, including rounded edges. No rebuilt paths.
+        for (int i = 0; i < petals.Count; i++) if (petals[i].ContainsPoint(point)) return i;
+        return -1;
     }
 
     private int NavigationAt(Point point)
@@ -342,7 +362,7 @@ public partial class WheelWindow : Window
             attributes.All(value => DropValidation.AttributesAllowed(value, mode)))
         {
             var point = e.GetPosition(Surface);
-            int index = armed && NavigationAt(point) == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(WheelGeometry.MaxTargetsPerPage, operations.Count - paging.Page * WheelGeometry.MaxTargetsPerPage)) : -1;
+            int index = armed && NavigationAt(point) == 0 ? HitTarget(point) : -1;
             if (index >= 0 && session.TryCompleteDrop(generation))
             {
                 var operation = operations[paging.Page * WheelGeometry.MaxTargetsPerPage + index];
