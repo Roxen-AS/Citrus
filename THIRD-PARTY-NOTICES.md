@@ -24,3 +24,9 @@ include the complete archive-only reconstruction. Reverse engineering for
 debugging modifications to LGPL libraries is permitted. See exact upstream
 notices for copyrights, terms and patent notices; this summary does not replace
 them. Build/test-only dependencies are pinned in repository NuGet lock files.
+
+## Windows presentation SDK projection
+
+The documented UISettings API uses the implicit SDK package Microsoft.Windows.SDK.NET.Ref **10.0.19041.57**, selected explicitly with .NET SDK **10.0.402**. Its app-local `Microsoft.Windows.SDK.NET.dll` and `WinRT.Runtime.dll` ship with Citrus; these are runtime dependencies. Exact package hashes, assembly versions/hashes and notice hashes are in `packaging/presentation-backend.lock.json` and are checked by `packaging/verify-presentation-publish.py`.
+
+See `packaging/notices/Presentation-Notice.txt` and the upstream nuspec for the Windows SDK's declared license, and the separately retained C#/WinRT MIT license for WinRT.Runtime. The declared SDK license endpoint returned HTTP 403 during this work. Windows CI collects an already-installed SDK license for redistribution review; that review is pending and must be completed before a package release. This is not a claim that the entire SDK projection is MIT-licensed.
