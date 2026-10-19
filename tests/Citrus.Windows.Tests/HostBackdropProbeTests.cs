@@ -38,29 +38,33 @@ public sealed class HostBackdropProbeTests(DesktopFixture desktop)
             Capture = "Unchanged GlassCompositorCapture and every desktop/session/full-crop ownership guard",
             NoOsPreferenceWrites = true, ProductionCompanionValidated = false, UniversalOpticalThresholdApplied = false
         });
-        Assert.Equal(BackdropState.Solid, scene.Wheel.MaterialState);
-        Assert.NotEqual(0, BackdropNativeMethods.GetWindowLongPtr(scene.WheelHandle, -20).ToInt64() & BackdropNativeMethods.WsExLayered);
-        var presentation = (Canvas)scene.Wheel.FindName("Presentation");
-        var hub = presentation.Children.OfType<System.Windows.Shapes.Ellipse>().Single();
-        Assert.Equal(255, Assert.IsType<SolidColorBrush>(hub.Fill).Color.A);
-        Assert.Equal(255, Assert.IsType<SolidColorBrush>(((Border)scene.Wheel.FindName("CaptionPlate")).Background).Color.A);
         var outcomes = new List<object>();
-        if (!monitor.Decision.RequestNativeAcrylic)
-        {
-            // Keep the stricter existing app policy, including build >=22621, despite host API floor22000.
-            GlassCompositorTests.Write(Path.Combine(root, "summary.json"), new
-            {
-                Outcome = "PolicyRefusedNoOpticalEvidence", monitor.Decision.Reason,
-                CaptureSkipped = true, ScreenReadPerformed = false, ProductionCompanionValidated = false
-            });
-            Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
-            return;
-        }
         var queueLease = new HostBackdropProbeQueue();
+        string outcome = "IncompleteExperimentNoOpticalAcceptance";
+        object? failure = null;
         try
         {
+            Assert.Equal(BackdropState.Solid, scene.Wheel.MaterialState);
+            Assert.NotEqual(0, BackdropNativeMethods.GetWindowLongPtr(scene.WheelHandle, -20).ToInt64() & BackdropNativeMethods.WsExLayered);
+            var presentation = (Canvas)scene.Wheel.FindName("Presentation");
+            var hub = presentation.Children.OfType<System.Windows.Shapes.Ellipse>().Single();
+            AssertOpaqueBacking(hub.Fill);
+            AssertOpaqueBacking(((Border)scene.Wheel.FindName("CaptionPlate")).Background);
+            if (!monitor.Decision.RequestNativeAcrylic)
+            {
+                // Keep the stricter existing app policy, including build >=22621, despite host API floor22000.
+                outcome = "PolicyRefusedNoOpticalEvidence";
+                Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
+                return;
+            }
             foreach (bool noRedirectionBitmap in new[] { false, true })
                 outcomes.Add(await RunVariant(scene, Path.Combine(root, noRedirectionBitmap ? "no-redirection-bitmap" : "standard-redirection"), noRedirectionBitmap, queueLease));
+            outcome = "RecordedExperimentResultsRequireReviewNotOpticalAcceptance";
+        }
+        catch (Exception error)
+        {
+            failure = new { Type = error.GetType().FullName, error.Message, error.HResult };
+            throw;
         }
         finally
         {
@@ -74,7 +78,10 @@ public sealed class HostBackdropProbeTests(DesktopFixture desktop)
             {
                 GlassCompositorTests.Write(Path.Combine(root, "summary.json"), new
                 {
-                    Outcome = outcomes.Count == 2 ? "RecordedExperimentResultsRequireReviewNotOpticalAcceptance" : "IncompleteExperimentNoOpticalAcceptance", Variants = outcomes,
+                    Outcome = outcome, Failure = failure, Variants = outcomes,
+                    PolicyRefusal = outcome == "PolicyRefusedNoOpticalEvidence" ? monitor.Decision.Reason : null,
+                    CaptureSkipped = outcome == "PolicyRefusedNoOpticalEvidence" ? true : (bool?)null,
+                    ScreenReadPerformed = outcome == "PolicyRefusedNoOpticalEvidence" ? false : (bool?)null,
                     Queue = new { queueLease.OwnsQueue, queueLease.CreateHResult, queueLease.ShutdownCompleted, SharedAcrossVariants = true },
                     ForegroundBefore = scene.ForegroundBefore.ToInt64(), ForegroundAfter = BackdropNativeMethods.GetForegroundWindow().ToInt64(),
                     FinalShellState = scene.Wheel.MaterialState.ToString(), ProductionCompanionValidated = false,
@@ -87,6 +94,18 @@ public sealed class HostBackdropProbeTests(DesktopFixture desktop)
         Assert.Equal(BackdropState.Solid, scene.Wheel.MaterialState);
         Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
     });
+
+    private static void AssertOpaqueBacking(System.Windows.Media.Brush brush)
+    {
+        Assert.NotNull(brush);
+        Assert.Equal(1, brush.Opacity);
+        if (brush is GradientBrush gradient)
+        {
+            Assert.NotEmpty(gradient.GradientStops);
+            Assert.All(gradient.GradientStops, stop => Assert.Equal(255, stop.Color.A));
+        }
+        else Assert.Equal(255, Assert.IsType<SolidColorBrush>(brush).Color.A);
+    }
 
     private static async Task<object> RunVariant(GlassOwnedScene scene, string root, bool noRedirectionBitmap, HostBackdropProbeQueue queueLease)
     {
