@@ -205,8 +205,12 @@ public partial class WheelWindow : Window
                 context.ArcTo(At(70, start), new Size(70, 70), 0, false, SweepDirection.Counterclockwise, true, false);
             }
             geometry.Freeze();
-            Sectors.Children.Add(new ShapePath { Data = geometry, Fill = Brush(i == selected ? "#F79545" : "#353A40"), Stroke = Brush(i == selected ? "#FFD1A3" : "#4B5157"), StrokeThickness = 1 });
-            var label = new TextBlock { Text = items[i].Label, Width = 73, FontSize = items[i].Label.Length > 9 ? 10 : 12, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = Brush(i == selected ? "#241A12" : "#F3EFE9") };
+            var sector = new ShapePath { Data = geometry, StrokeThickness = i == selected ? 3 : 1 };
+            sector.SetResourceReference(ShapePath.FillProperty, i == selected ? "Accent" : "PanelBackground");
+            sector.SetResourceReference(ShapePath.StrokeProperty, "PrimaryText");
+            Sectors.Children.Add(sector);
+            var label = new TextBlock { Text = items[i].Label, Width = 73, FontSize = items[i].Label.Length > 9 ? 10 : 12, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource(i == selected ? "AccentText" : "PrimaryText") };
+            label.SetResourceReference(TextBlock.ForegroundProperty, i == selected ? "AccentText" : "PrimaryText");
             var center = At(108, i * 45);
             Canvas.SetLeft(label, center.X - 36.5);
             Canvas.SetTop(label, center.Y - 8);
@@ -218,5 +222,4 @@ public partial class WheelWindow : Window
         if (operations.Count > 8) Hint.Text = $"{paging.Page + 1} / {(operations.Count + 7) / 8} · hover arrows";
     }
 
-    private static SolidColorBrush Brush(string value) => new((Color)ColorConverter.ConvertFromString(value));
 }

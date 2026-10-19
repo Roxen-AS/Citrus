@@ -1,6 +1,5 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Windows.Controls;
 using Citrus.Core;
 using Microsoft.Win32;
@@ -34,17 +33,23 @@ public partial class MainWindow : Window
         var picker = new OpenFileDialog { Title = "Choose local files", CheckFileExists = true, Multiselect = true, Filter = "All files|*.*" };
         if (picker.ShowDialog(this) == true) AddFiles(picker.FileNames);
     }
+    private void ChooseFolder(object sender, RoutedEventArgs e)
+    {
+        var picker = new OpenFolderDialog { Title = "Choose physical folders for Actions", Multiselect = true };
+        if (picker.ShowDialog(this) == true) AddFiles(picker.FolderNames);
+    }
     private void AddFiles(IReadOnlyList<string> paths)
     {
-        if (!DropValidation.Accepts(paths, OperationMode.Convert)) { Report("Choose physical local files. Folders and unavailable cloud files cannot be converted."); return; }
+        if (!DropValidation.Accepts(paths, OperationMode.Actions)) { Report("Choose existing physical files or folders. Unavailable cloud placeholders cannot be used."); return; }
         foreach (string path in paths)
             if (!inputs.Any(i => string.Equals(i.Path, path, StringComparison.OrdinalIgnoreCase))) inputs.Add(new(path));
+        if (paths.Any(Directory.Exists)) Modes.SelectedIndex = 2;
         RefreshOperations();
     }
     private void FilesDragOver(object sender, DragEventArgs e)
     {
         e.Handled = true; e.Effects = DragDropEffects.None;
-        if (e.AllowedEffects.HasFlag(DragDropEffects.Copy) && e.Data.GetDataPresent(DataFormats.FileDrop, false) && e.Data.GetData(DataFormats.FileDrop, false) is string[] paths && DropValidation.Accepts(paths, OperationMode.Convert)) e.Effects = DragDropEffects.Copy;
+        if (e.AllowedEffects.HasFlag(DragDropEffects.Copy) && e.Data.GetDataPresent(DataFormats.FileDrop, false) && e.Data.GetData(DataFormats.FileDrop, false) is string[] paths && DropValidation.Accepts(paths, OperationMode.Actions)) e.Effects = DragDropEffects.Copy;
     }
     private void FilesDropped(object sender, DragEventArgs e)
     {
@@ -60,22 +65,23 @@ public partial class MainWindow : Window
         if (RunButton is null) return;
         var operation = Operations.SelectedItem as OperationDescriptor;
         RunButton.IsEnabled = !busy && operation is not null;
-        RunButton.Content = operation?.IsGroup == true ? "Create group…" : operation?.NeedsOptions == true ? "Set options…" : "Create copies";
+        RunButton.Content = operation?.Mode == OperationMode.Actions ? operation.Label : operation?.IsGroup == true ? "Create group…" : operation?.NeedsOptions == true ? "Set options…" : "Create copies";
         OperationHint.Text = operation?.Id.StartsWith("image.", StringComparison.Ordinal) == true || operation?.Id == "images.pdf"
             ? "Still-image route: single-frame images and SVG input. Animated and multipage images are rejected."
             : operation?.Id == "media.convert.gif" ? "Creates GIF animation through the media engine."
             : operation?.Id == "archive.extract" ? "Extraction stops at 100,000 entries or 20 GiB. GZIP yields one file; nested archives need a second extraction."
-            : "";
+            : operation?.Id == "action.move" ? "Moves the originals to an explicitly chosen folder. Existing items are never replaced."
+            : operation?.Mode == OperationMode.Actions ? "Applies to the entire physical selection." : "";
     }
     private void RefreshOperations()
     {
         string? previous = (Operations.SelectedItem as OperationDescriptor)?.Id;
-        var available = catalog?.GetOperations(inputs.Select(i => i.Path).ToArray(), Modes.SelectedIndex == 1 ? OperationMode.Tools : OperationMode.Convert) ?? [];
+        var available = catalog?.GetOperations(inputs.Select(i => i.Path).ToArray(), Modes.SelectedIndex == 2 ? OperationMode.Actions : Modes.SelectedIndex == 1 ? OperationMode.Tools : OperationMode.Convert) ?? [];
         Operations.ItemsSource = available;
         Operations.SelectedItem = available.FirstOrDefault(o => o.Id == previous) ?? available.FirstOrDefault();
         ClearButton.IsEnabled = inputs.Count > 0;
         SelectionStatus.Text = $"{inputs.Count} input(s) · drop order retained";
-        if (!busy) Report(catalog is null ? "Discovering installed engines…" : inputs.Count == 0 ? "Add files to see compatible operations." : available.Count == 0 ? "No compatible operations for this entire selection. Remove an input or switch mode." : "Only operations supported by every selected input are shown. Originals stay in place.");
+        if (!busy) Report(catalog is null ? "Discovering installed engines…" : inputs.Count == 0 ? "Add files to see compatible operations." : available.Count == 0 ? "No compatible operations for this entire selection. Remove an input or switch mode." : "Only operations supported by every selected input are shown. Move changes the original location; conversions create copies.");
         RunButton.IsEnabled = !busy && Operations.SelectedItem is OperationDescriptor;
     }
     private async void RunOperation(object sender, RoutedEventArgs e)
@@ -100,19 +106,18 @@ public partial class MainWindow : Window
         var picker = new OpenFolderDialog { Title = "Choose another folder and retry" };
         if (picker.ShowDialog(this) == true) await app.RetryAsync(model.Job, picker.FolderName);
     }
-    private void RevealOutput(object sender, RoutedEventArgs e)
+    private async void RevealOutput(object sender, RoutedEventArgs e)
     {
-        if (((Button)sender).Tag is not string path) return;
-        try
-        {
-            if (!File.Exists(path) && !Directory.Exists(path)) { Report("That output no longer exists at its saved location."); return; }
-            var start = new ProcessStartInfo("explorer.exe") { UseShellExecute = false };
-            start.ArgumentList.Add("/select,"); start.ArgumentList.Add(path);
-            Process.Start(start)?.Dispose();
-        }
-        catch (Exception error) when (error is Win32Exception or IOException or InvalidOperationException) { Report("Could not reveal the output: " + error.Message); }
+        if (((Button)sender).Tag is string path) await app.RevealAsync([path]);
     }
-    private void ToggleGestures(object sender, RoutedEventArgs e) => app.SetGestures(GesturesEnabled.IsChecked == true);
+    private void OpenSettings(object sender, RoutedEventArgs e) => app.OpenSettings();
+    private void ToggleGestures(object sender, RoutedEventArgs e) { if (IsLoaded) app.SetGestures(GesturesEnabled.IsChecked == true); }
+    public void RefreshSelection()
+    {
+        foreach (var input in inputs.ToArray()) if (!File.Exists(input.Path) && !Directory.Exists(input.Path)) inputs.Remove(input);
+        RefreshOperations();
+    }
+    public void UpdateGestureGuide(CitrusSettings settings) => GestureGuide.Text = $"Drag in Explorer. Tap Shift for {settings.ShiftMode}, Alt for {settings.AltMode}, or Control for {settings.ControlMode}.";
     public void SetGestureCheck(bool enabled) => GesturesEnabled.IsChecked = enabled;
     public void Report(string message) => Status.Text = message;
 }

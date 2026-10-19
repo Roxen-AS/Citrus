@@ -2,10 +2,10 @@
         Title="Citrus" Width="710" Height="800" MinWidth="540" MinHeight="620" Background="{DynamicResource WindowBackground}" Foreground="{DynamicResource PrimaryText}" FontFamily="Segoe UI" WindowStartupLocation="CenterScreen">
   <Grid Margin="24"><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <DockPanel><Image Source="{StaticResource CitrusMark}" Width="52" Height="52" Margin="0,0,14,0" DockPanel.Dock="Left"/><StackPanel><TextBlock Text="Citrus" FontSize="28" FontWeight="SemiBold"/><TextBlock Text="Local conversions. Fresh copies beside your originals." Foreground="{DynamicResource SecondaryText}"/></StackPanel></DockPanel>
-    <StackPanel Grid.Row="1" Margin="0,15,0,12"><TextBlock Text="Drag in Explorer. Tap Shift for Convert or Alt for Tools." TextWrapping="Wrap"/><TextBlock Text="Release the key, glide to a choice, then drop. Esc or the center cancels." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryText}" Margin="0,4,0,0"/><TextBlock x:Name="EngineStatus" Text="Discovering installed engines…" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryText}" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/></StackPanel>
-    <Border Grid.Row="2" Background="{DynamicResource PanelBackground}" CornerRadius="12" Padding="14" AllowDrop="True" PreviewDragOver="FilesDragOver" PreviewDrop="FilesDropped" AutomationProperties.Name="Drop local files here">
+    <StackPanel Grid.Row="1" Margin="0,15,0,12"><TextBlock x:Name="GestureGuide" Text="Drag in Explorer. Tap Shift for Convert, Alt for Tools, or Control for Actions." TextWrapping="Wrap"/><TextBlock Text="Release the key, glide to a choice, then drop. Esc or the center cancels." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryText}" Margin="0,4,0,0"/><TextBlock x:Name="EngineStatus" Text="Discovering installed engines…" TextWrapping="Wrap" Foreground="{DynamicResource SecondaryText}" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/></StackPanel>
+    <Border Grid.Row="2" Background="{DynamicResource PanelBackground}" CornerRadius="12" Padding="14" AllowDrop="True" PreviewDragOver="FilesDragOver" PreviewDrop="FilesDropped" AutomationProperties.Name="Drop physical files or folders here">
       <StackPanel>
-        <DockPanel Margin="0,0,0,8"><Button Content="Add files…" Click="ChooseFiles" DockPanel.Dock="Right"/><TextBlock Text="Drop files here" FontSize="18" VerticalAlignment="Center"/></DockPanel>
+        <DockPanel Margin="0,0,0,8"><StackPanel DockPanel.Dock="Right" Orientation="Horizontal"><Button Content="Add files…" Click="ChooseFiles"/><Button Content="Add folders…" Click="ChooseFolder" Margin="6,0,0,0"/></StackPanel><TextBlock Text="Drop files or folders" FontSize="18" VerticalAlignment="Center"/></DockPanel>
         <ListBox x:Name="SelectedFiles" Height="92" SelectionMode="Extended" SelectionChanged="FileSelectionChanged" AutomationProperties.Name="Selected input files">
           <ListBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Name}" ToolTip="{Binding Path}"/></DataTemplate></ListBox.ItemTemplate>
         </ListBox>
@@ -14,7 +14,7 @@
     </Border>
     <StackPanel Grid.Row="3" Margin="0,12,0,12">
       <Grid><Grid.ColumnDefinitions><ColumnDefinition Width="110"/><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
-        <ComboBox x:Name="Modes" SelectionChanged="ModeChanged" AutomationProperties.Name="Operation mode" Margin="0,0,8,0"><ComboBoxItem Content="Convert" IsSelected="True"/><ComboBoxItem Content="Tools"/></ComboBox>
+        <ComboBox x:Name="Modes" SelectionChanged="ModeChanged" AutomationProperties.Name="Operation mode" Margin="0,0,8,0"><ComboBoxItem Content="Convert" IsSelected="True"/><ComboBoxItem Content="Tools"/><ComboBoxItem Content="Actions"/></ComboBox>
         <ComboBox x:Name="Operations" Grid.Column="1" DisplayMemberPath="Label" SelectionChanged="OperationChanged" AutomationProperties.Name="Compatible operation"/>
         <Button x:Name="RunButton" Grid.Column="2" Content="Create copies" Click="RunOperation" IsEnabled="False" Margin="8,0,0,0"/>
       </Grid>
@@ -34,6 +34,6 @@
         </StackPanel></Border>
       </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></ScrollViewer>
     </Grid>
-    <DockPanel Grid.Row="5" Margin="0,12,0,0"><CheckBox x:Name="GesturesEnabled" Content="Enable drag gestures" IsChecked="True" Checked="ToggleGestures" Unchecked="ToggleGestures"/><TextBlock Text="Windows candidate · offline" Foreground="{DynamicResource SecondaryText}" FontSize="11" HorizontalAlignment="Right"/></DockPanel>
+    <DockPanel Grid.Row="5" Margin="0,12,0,0"><Button Content="Settings…" Click="OpenSettings" DockPanel.Dock="Right" Padding="10,5" Style="{DynamicResource SecondaryButton}"/><CheckBox x:Name="GesturesEnabled" Content="Enable drag gestures" IsChecked="True" Checked="ToggleGestures" Unchecked="ToggleGestures"/><TextBlock Text="Windows candidate · offline" Foreground="{DynamicResource SecondaryText}" FontSize="11" HorizontalAlignment="Right"/></DockPanel>
   </Grid>
 </Window>
