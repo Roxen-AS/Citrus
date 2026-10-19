@@ -22,19 +22,39 @@ version-only change to 0.3.0-preview.1 also passed the solution build.
 The exact native media correction at `aa032b8` passed **49/49** tests on Windows
 using the bundled FFmpeg/FFprobe 9.0.2 executables in run
 [39220122966](https://github.com/Skytuhua/Citrus/actions/runs/39220122966).
-That focused result is distinct from the combined Windows suite, which must run
-again on the current source.
+That focused result is distinct from the combined Windows checks below.
+
+At `db93897`, Windows run
+[39226665887](https://github.com/Skytuhua/Citrus/actions/runs/39226665887) passed
+**171 Core tests** and **447 Conversion tests, with three explicit Linux-only
+surrogate skips**. The 450 Windows total versus 454 Linux total is explained by
+two skipped theories not expanding into their six Linux data rows. All other
+case names and multiplicities match. All four image-policy tests, all 49 focused
+media cases, and all four native AVIF lifetime scenarios passed. The real
+self-contained payload, native hashes/notices, 586 owned files, media smoke,
+five package-negative cases and two portable recovery cases also passed. The
+official Chocolatey NSIS feed subsequently returned HTTP 503, so current Windows
+installer compilation and native installer recovery did not run.
 
 The neutral Light/Dark visual rework replaces the earlier brown palette, keeps
 the workspace action footer pinned, and adapts wheel metadata to enlarged text.
-Source review passed; actual new Windows images remain unaccepted. Desktop run
-[39221819285](https://github.com/Skytuhua/Citrus/actions/runs/39221819285)
-timed out during the native tests. Native glass run
-[39221819243](https://github.com/Skytuhua/Citrus/actions/runs/39221819243)
-passed 23 tests and refused two screen captures because the first pixel belonged
-to an unrelated foreground window. It produced no glass proof images. The wheel's
-production native-backdrop gate remains disabled; WPF images and DWM return codes
-are not optical blur evidence.
+The standard Light/Dark minimum-size and enlarged-text WPF images have been
+inspected. Actual full-name wheel UI Automation regressions passed twice on
+Windows. The repeated populated-history/warnings stress case still stalls at
+its first idle continuation; later Desktop tests are explicitly quarantined.
+The whole interface suite therefore remains unaccepted. The diagnostic at
+`c797f73` records original dispatcher exits and live-thread state; it does not
+claim a product fix.
+
+Native glass run
+[39226665695](https://github.com/Skytuhua/Citrus/actions/runs/39226665695)
+passed all six lifecycle tests, including actual Quit cleanup. Seven screen
+captures were refused because an unrelated foreground window owned the first
+pixel, and the real-pointer check explicitly refused unowned input before any
+injection. There are zero optical glass proof images. The wheel's production
+native-backdrop gate remains disabled; WPF images and DWM return codes are not
+optical blur evidence. Actual device audio, physical Explorer drag behavior and
+mixed-monitor transitions also remain unobserved.
 
 The older installer and test counts below are retained baseline evidence. They do
 not identify a rebuilt 0.3 installer or establish acceptance of the current UI.
