@@ -2,10 +2,10 @@
  <Style x:Key="FocusRing"><Setter Property="Control.Template"><Setter.Value><ControlTemplate><Border Margin="-3" BorderBrush="{DynamicResource PrimaryText}" BorderThickness="2" CornerRadius="10"/></ControlTemplate></Setter.Value></Setter></Style>
  <Style x:Key="CitrusButton" TargetType="Button">
   <Setter Property="presentation:PressFeedback.IsEnabled" Value="True"/><Setter Property="presentation:PressFeedback.MotionEnabled" Value="{DynamicResource MotionEnabled}"/>
-  <Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="16,8"/><Setter Property="FontFamily" Value="{DynamicResource AppFont}"/><Setter Property="FontSize" Value="{DynamicResource BodySize}"/>
-  <Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="{DynamicResource AccentText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+  <Setter Property="FontWeight" Value="SemiBold"/><Setter Property="MinHeight" Value="36"/><Setter Property="Padding" Value="14,7"/><Setter Property="FontFamily" Value="{DynamicResource AppFont}"/><Setter Property="FontSize" Value="{DynamicResource BodySize}"/>
+  <Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="{DynamicResource AccentText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
-   <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
+   <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="10">
     <Grid>
      <Border x:Name="PressedTint" Background="{TemplateBinding Foreground}" Opacity="0" CornerRadius="9" IsHitTestVisible="False"/>
      <Border x:Name="PressedEdge" BorderBrush="{TemplateBinding Foreground}" BorderThickness="1" Opacity="0" CornerRadius="9" IsHitTestVisible="False"/>
@@ -20,18 +20,25 @@
   </ControlTemplate></Setter.Value></Setter>
  </Style>
  <Style TargetType="Button" BasedOn="{StaticResource CitrusButton}"/>
- <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource CitrusButton}"><Setter Property="Background" Value="{DynamicResource PanelBackground}"/><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/></Style>
+ <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource CitrusButton}"><Setter Property="FontWeight" Value="Normal"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="Background" Value="{DynamicResource PanelBackground}"/><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/></Style>
+ <Style x:Key="TertiaryButton" TargetType="Button" BasedOn="{StaticResource SecondaryButton}"><Setter Property="BorderBrush" Value="Transparent"/><Setter Property="Background" Value="Transparent"/><Setter Property="Padding" Value="10,5"/></Style>
+ <Style x:Key="IconButton" TargetType="Button" BasedOn="{StaticResource TertiaryButton}"><Setter Property="MinWidth" Value="36"/><Setter Property="Padding" Value="8"/></Style>
+ <Style x:Key="MetadataText" TargetType="TextBlock"><Setter Property="Foreground" Value="{DynamicResource SecondaryText}"/><Setter Property="FontSize" Value="{DynamicResource MetadataSize}"/><Setter Property="LineHeight" Value="{DynamicResource MetadataLeading}"/><Setter Property="TextWrapping" Value="Wrap"/></Style>
  <Style TargetType="CheckBox"><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
- <Style x:Key="CitrusInput" TargetType="TextBox"><Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
+ <Style x:Key="CitrusInput" TargetType="TextBox"><Setter Property="MinHeight" Value="36"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
  <Style TargetType="TextBox" BasedOn="{StaticResource CitrusInput}"/>
- <Style TargetType="ComboBox"><Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
+ <Style TargetType="ComboBox"><Setter Property="MinHeight" Value="36"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
  <Style TargetType="ListBox"><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/></Style>
  <Style x:Key="WorkspaceListItem" TargetType="ListBoxItem">
   <Setter Property="Background" Value="{DynamicResource MaterialContentSurface}"/><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
   <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
-   <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="2" CornerRadius="10" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/></Border>
+   <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="1" CornerRadius="10" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/></Border>
    <ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource InsetBackground}"/><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource BorderBrush}"/></Trigger></ControlTemplate.Triggers>
   </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style x:Key="SegmentedItem" TargetType="ListBoxItem" BasedOn="{StaticResource WorkspaceListItem}">
+  <Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="Padding" Value="12,7"/><Setter Property="Background" Value="Transparent"/><Setter Property="FontWeight" Value="SemiBold"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem"><Border x:Name="Segment" CornerRadius="9" Padding="{TemplateBinding Padding}" Background="Transparent" BorderBrush="Transparent" BorderThickness="1"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Segment" Property="Background" Value="{DynamicResource PanelBackground}"/><Setter TargetName="Segment" Property="BorderBrush" Value="{DynamicResource BorderBrush}"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Segment" Property="BorderBrush" Value="{DynamicResource BorderBrush}"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
  </Style>
 </ResourceDictionary>

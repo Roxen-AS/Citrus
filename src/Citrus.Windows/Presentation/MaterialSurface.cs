@@ -34,7 +34,8 @@ internal sealed class MaterialSurface : Decorator
         if (ActualWidth <= 2 || ActualHeight <= 2) return;
         bool native = State == BackdropState.ConfiguredNativeAcrylic;
         Draw(dc, EffectiveTint, new Pen((Brush)GetValue(native ? OutlineProperty : SolidOutlineProperty), 1), .5);
-        if (!native) return;
+        // Static edge lighting also belongs to the honest opaque fallback.
+        if (SystemParameters.HighContrast) return;
         Draw(dc, null, new Pen((Brush)GetValue(SpecularProperty), 1), 1.5);
         Draw(dc, null, new Pen((Brush)GetValue(InnerProperty), .5), 2.5);
     }

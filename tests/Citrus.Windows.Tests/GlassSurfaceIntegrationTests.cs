@@ -105,22 +105,30 @@ public sealed class GlassSurfaceIntegrationTests(DesktopFixture desktop)
     [Fact]
     public Task Twice_text_scale_keeps_narrow_workspace_inspector_reachable() => desktop.RunAsync(async () =>
     {
+        using var files = new NativeFiles();
+        string path = System.IO.Path.Combine(files.Root, "citrus.png");
+        CitrusPreviewFixture.Save(path);
         using var theme = new ThemeManager(Application.Current);
         var window = new MainWindow((App)Application.Current) { Width = 860, Height = 640, ShowActivated = false };
         try
         {
+            window.Configure(new OperationCatalog([new Citrus.Conversion.ImageEngine()]), []);
+            window.AddFiles([path]);
             theme.ApplyTypography(2);
             window.ApplyTextScale(2);
             window.Show(); window.UpdateLayout();
             var run = (FrameworkElement)window.FindName("RunButton");
-            run.BringIntoView();
+            Assert.True(run.IsVisible);
             await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
             var scroll = (ScrollViewer)window.FindName("WorkspaceScroll");
             Assert.True(scroll.ScrollableHeight > 0);
-            Assert.Equal(2, Grid.GetRow((FrameworkElement)window.FindName("Inspector")));
-            var position = run.TransformToAncestor(scroll).Transform(new System.Windows.Point(0, 0));
-            Assert.InRange(position.Y, 0, scroll.ActualHeight - run.ActualHeight + 1);
-            Assert.True(run.ActualWidth <= scroll.ActualWidth);
+            var root = (FrameworkElement)window.Content;
+            VisualArtifacts.AssertInside(run, root);
+            var position = run.TransformToAncestor(root).Transform(new System.Windows.Point());
+            scroll.ScrollToEnd();
+            await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            Assert.Equal(position, run.TransformToAncestor(root).Transform(new System.Windows.Point()));
+            VisualArtifacts.AssertInside(run, root);
         }
         finally { window.Dispose(); window.Close(); theme.ApplyTypography(1); }
     });

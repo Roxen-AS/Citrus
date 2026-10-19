@@ -8,14 +8,14 @@
       <GeometryDrawing Brush="#6C9E62" Geometry="M32,10 C32,1 42,0 49,3 C46,12 37,15 32,10 Z" />
     </DrawingGroup></DrawingImage.Drawing>
   </DrawingImage>
-  <SolidColorBrush x:Key="WindowBackground" Color="#202428"/>
-  <SolidColorBrush x:Key="PanelBackground" Color="#2B3137"/>
-  <SolidColorBrush x:Key="PrimaryText" Color="#F3EFE9"/>
-  <SolidColorBrush x:Key="SecondaryText" Color="#BAC3CB"/>
+  <SolidColorBrush x:Key="WindowBackground" Color="#F5F7FA"/>
+  <SolidColorBrush x:Key="PanelBackground" Color="#FFFFFF"/>
+  <SolidColorBrush x:Key="PrimaryText" Color="#17212B"/>
+  <SolidColorBrush x:Key="SecondaryText" Color="#596574"/>
   <SolidColorBrush x:Key="ErrorText" Color="#FFB49C"/>
-  <SolidColorBrush x:Key="AccentText" Color="#22170E"/>
+  <SolidColorBrush x:Key="AccentText" Color="#17212B"/>
   <SolidColorBrush x:Key="ControlBackground" Color="#FFFFFF"/>
-  <SolidColorBrush x:Key="ControlText" Color="#202428"/>
+  <SolidColorBrush x:Key="ControlText" Color="#17212B"/>
   <Style TargetType="ProgressBar">
     <Setter Property="Tag" Value="{DynamicResource MotionEnabled}"/>
     <Style.Triggers><MultiTrigger><MultiTrigger.Conditions><Condition Property="Tag"><Condition.Value><system:Boolean>False</system:Boolean></Condition.Value></Condition><Condition Property="IsIndeterminate" Value="True"/></MultiTrigger.Conditions>
@@ -27,7 +27,7 @@
   <Style TargetType="TextBox"><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/></Style>
   <Style TargetType="ComboBox"><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="Padding" Value="8"/></Style>
   <Style TargetType="ListBox"><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/></Style>
-  <SolidColorBrush x:Key="Accent" Color="#F88C37" />
+  <SolidColorBrush x:Key="Accent" Color="#FF6B16" />
   <Style TargetType="Button">
     <Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="{DynamicResource AccentText}"/>
     <Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="18,10"/><Setter Property="FontWeight" Value="SemiBold"/>

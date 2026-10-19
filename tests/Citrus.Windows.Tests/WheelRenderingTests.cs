@@ -148,17 +148,7 @@ public sealed class WheelRenderingTests(DesktopFixture desktop)
         {
             Directory.CreateDirectory(Root);
             Sample = Path.Combine(Root, "citrus-sample.png"); Second = Path.Combine(Root, "second.png");
-            // A deterministic physical fixture, decoded by the real production FilePreviewService.
-            var drawing = new DrawingVisual();
-            using (var context = drawing.RenderOpen())
-            {
-                context.DrawRectangle(Brushes.CornflowerBlue,null,new Rect(0,0,128,96));
-                context.DrawEllipse(Brushes.Orange,null,new Point(64,48),32,32);
-                context.DrawEllipse(Brushes.ForestGreen,null,new Point(74,20),14,7);
-            }
-            var bitmap = new RenderTargetBitmap(128,96,96,96,PixelFormats.Pbgra32); bitmap.Render(drawing);
-            var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-            using (var stream = File.Create(Sample)) encoder.Save(stream);
+            CitrusPreviewFixture.Save(Sample);
             File.Copy(Sample, Second);
             Wheel = new WheelWindow(new OperationCatalog([new ImageEngine(), new ArchiveEngine(), new PdfEngine()]));
             Wheel.ApplySettings(new CitrusSettings { ReduceMotion = true, SoundEnabled = false });

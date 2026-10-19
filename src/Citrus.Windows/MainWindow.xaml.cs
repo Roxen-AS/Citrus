@@ -67,7 +67,8 @@ public partial class MainWindow : Window, IDisposable
     public void Configure(OperationCatalog available, IReadOnlyList<string> warnings)
     {
         catalog = available;
-        EngineStatus.Text = warnings.Count == 0 ? "Image, media, PDF, subtitle and archive engines ready. Formats depend on the selection." : string.Join("\n", warnings);
+        EngineStatus.Text = string.Join("\n", warnings);
+        EngineStatus.Visibility = warnings.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
         RefreshOperations();
     }
     private void OnClosing(object? sender, CancelEventArgs e) { if (!app.IsQuitting && !disposed) { e.Cancel = true; demo?.Close(); Hide(); } }
@@ -113,7 +114,7 @@ public partial class MainWindow : Window, IDisposable
         UpdatePreviewCaption();
     }
     private void UpdatePreviewCaption() => PreviewCaption.Text = selection.Active is { } active
-        ? active.Name + (active.IsIncluded ? " · included" : " · excluded from batch") : "Add a file to preview it here";
+        ? active.Name + (active.IsIncluded ? " · included" : " · excluded from batch") : "File preview";
     private async Task RefreshPreviewAsync()
     {
         previewCancellation?.Cancel(); previewCancellation?.Dispose();
@@ -123,7 +124,7 @@ public partial class MainWindow : Window, IDisposable
         PreviewImage.Source = null;
         PreviewFallback.Visibility = Visibility.Visible;
         UpdatePreviewCaption();
-        if (selection.Active is not { } active) { PreviewMessage.Text = "A little room for your next idea"; return; }
+        if (selection.Active is not { } active) { PreviewMessage.Text = "Drop files here"; return; }
         PreviewMessage.Text = "Loading preview…";
         try
         {
@@ -156,11 +157,12 @@ public partial class MainWindow : Window, IDisposable
         if (RunButton is null) return;
         var operation = (Operations.SelectedItem as OperationCard)?.Operation;
         RunButton.IsEnabled = !busy && operation is not null;
-        RunButton.Content = operation?.Mode == OperationMode.Actions ? operation.Label : operation?.IsGroup == true ? "Review group…" : operation?.NeedsOptions == true ? "Set options…" : $"Create {selection.IncludedPaths.Count} copies";
+        RunButton.Content = operation is null ? "Choose an operation" : operation.Mode == OperationMode.Actions ? operation.Label : operation.IsGroup ? "Review group…" : operation.NeedsOptions ? "Set options…" : selection.IncludedPaths.Count == 1 ? "Create copy" : $"Create {selection.IncludedPaths.Count} copies";
         InspectorTitle.Text = operation?.Label ?? "Choose files and an operation";
         OperationHint.Text = operation is null ? "Only compatible operations for every included file appear here." : OperationCard.Describe(operation);
         BatchSummary.Text = $"{selection.IncludedPaths.Count} included file(s)";
-        OutputSummary.Text = operation?.Mode == OperationMode.Actions ? "Applies to the included physical files and folders."
+        OutputSummary.Text = operation?.Id == "action.move" ? "Moves originals · choose a destination next"
+            : operation?.Mode == OperationMode.Actions ? $"{selection.IncludedPaths.Count} included file(s)"
             : operation?.IsGroup == true ? "One grouped output · review order and destination next"
             : $"{operation?.OutputExtension?.TrimStart('.').ToUpperInvariant() ?? "New"} copies · beside each original";
         SafetySummary.Text = operation?.Id == "action.move" ? "Moves originals to a folder you choose. Existing items are never replaced."
@@ -176,6 +178,9 @@ public partial class MainWindow : Window, IDisposable
         Operations.SelectedItem = cards.FirstOrDefault(card => card.Operation.Id == previous) ?? cards.FirstOrDefault();
         ClearButton.IsEnabled = selection.Items.Count > 0;
         SelectionStatus.Text = $"{paths.Count} of {selection.Items.Count} included";
+        bool hasFiles = selection.Items.Count > 0;
+        EmptyState.Visibility = hasFiles ? Visibility.Collapsed : Visibility.Visible;
+        FilesPanel.Visibility = CenterPanel.Visibility = Inspector.Visibility = hasFiles ? Visibility.Visible : Visibility.Collapsed;
         OperationsEmpty.Text = catalog is null ? "Discovering installed engines…" : selection.Items.Count == 0 ? "Add files to discover what you can create."
             : paths.Count == 0 ? "Check at least one file to see compatible operations."
             : available.Count == 0 ? "No compatible operations for all included files. Exclude an input or switch mode." : "";
@@ -190,6 +195,7 @@ public partial class MainWindow : Window, IDisposable
     public void AddJobs(IReadOnlyList<ConversionJob> submitted) { foreach (var job in submitted) jobs.Insert(0, new(job)); RefreshJobs(); if (IsVisible && submitted.Count > 0) JobsPanel.IsExpanded = true; }
     public void RefreshJobs()
     {
+        JobsPanel.Visibility = jobs.Count + failures.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         foreach (var job in jobs) job.Refresh();
         JobSummary.Text = $"Jobs · {jobs.Count(j => j.Job.State == ConversionJobState.Succeeded)} succeeded · {jobs.Count(j => j.Job.State == ConversionJobState.Failed) + failures.Count} failed · {jobs.Count(j => j.Job.State == ConversionJobState.Canceled)} canceled · {jobs.Count(j => j.CanCancel)} pending";
     }
@@ -216,7 +222,15 @@ public partial class MainWindow : Window, IDisposable
         SelectedFiles.SelectedItem = selection.Active;
         RefreshOperations();
     }
-    public void UpdateGestureGuide(CitrusSettings settings) => GestureGuide.Text = $"Start dragging in Explorer, then tap a key. Tap Shift for {settings.ShiftMode}, Alt for {settings.AltMode}, or Control for {settings.ControlMode}.";
+    public void UpdateGestureGuide(CitrusSettings settings)
+    {
+        ShiftModeLabel.Text = ModeName(settings.ShiftMode);
+        AltModeLabel.Text = ModeName(settings.AltMode);
+        ControlModeLabel.Text = ModeName(settings.ControlMode);
+        System.Windows.Automation.AutomationProperties.SetName(GestureGuide,
+            $"Drag a file, then tap Shift for {ShiftModeLabel.Text}, Alt for {AltModeLabel.Text}, or Control for {ControlModeLabel.Text}.");
+    }
+    private static string ModeName(OperationMode mode) => mode == OperationMode.Actions ? "Files" : mode.ToString();
     public void SetGestureCheck(bool enabled) => GesturesEnabled.IsChecked = enabled;
     public void AddSubmissionFailure(string message, Func<Task>? retry)
     {
@@ -236,29 +250,31 @@ public partial class MainWindow : Window, IDisposable
             RefreshJobs();
         }
     }
-    public void Report(string message) => Status.Text = message;
-    internal void ShowJobs() { JobsPanel.IsExpanded = true; JobsPanel.BringIntoView(); }
+    public void Report(string message) { Status.Text = message; Status.Visibility = string.IsNullOrWhiteSpace(message) ? Visibility.Collapsed : Visibility.Visible; }
+    internal void ShowJobs() { JobsPanel.Visibility = Visibility.Visible; JobsPanel.IsExpanded = true; JobsPanel.BringIntoView(); }
     private void WorkspaceResized(object sender, SizeChangedEventArgs e)
     {
-        if (InspectorColumn is null) return;
+        if (OperationColumn is null) return;
         ApplyTextScale(TryFindResource("TextScaleFactor") is double scale ? scale : 1);
     }
     internal void ApplyTextScale(double scale)
     {
-        if (InspectorColumn is null) return;
-        bool large = scale > 1.25, compact = ActualWidth < 1080 || large;
-        FileColumn.Width = new(large ? 0 : compact ? 220 : 240);
-        InspectorColumn.Width = new(compact ? 0 : 304);
-        var files = (FrameworkElement)WorkspaceGrid.Children[0];
-        Grid.SetColumn(files, large ? 1 : 0); Grid.SetRow(files, 0); Grid.SetRowSpan(files, large ? 1 : 2);
-        Grid.SetRow(CenterPanel, large ? 1 : 0);
-        Grid.SetColumn(Inspector, compact ? 1 : 2); Grid.SetRow(Inspector, large ? 2 : compact ? 1 : 0);
-        if (WorkspaceGrid.RowDefinitions.Count == 2) WorkspaceGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-        Inspector.Margin = compact ? new(0, 16, 0, 0) : new(0);
-        CenterPanel.Margin = large ? new(0, 16, 0, 0) : compact ? new(0) : new(0, 0, 16, 0);
+        if (OperationColumn is null) return;
+        bool large = scale > 1.25;
+        OperationColumn.Width = large ? new GridLength(0) : new GridLength(1, GridUnitType.Star);
+        Grid.SetColumn(CenterPanel, large ? 0 : 1); Grid.SetRow(CenterPanel, large ? 1 : 0);
+        FilesPanel.Margin = large ? new Thickness(0, 0, 0, 20) : new Thickness(0, 0, 24, 0);
+        FilesPanel.Height = large ? 420 * scale / 2 : double.NaN;
+        CenterPanel.Height = large ? 360 * scale / 2 : double.NaN;
+        EmptyState.MinHeight = large ? 360 : 0;
         Grid.SetRow(HeaderActions, large ? 1 : 0); Grid.SetColumn(HeaderActions, large ? 0 : 1);
         Grid.SetColumnSpan(HeaderActions, large ? 2 : 1);
-        HeaderActions.Margin = large ? new(0, 12, 0, 8) : new(0);
+        HeaderActions.Margin = large ? new Thickness(0, 8, 0, 0) : new Thickness(0);
+        Grid.SetRow(RunButton, large ? 1 : 0); Grid.SetColumn(RunButton, large ? 0 : 1);
+        Grid.SetColumnSpan(RunButton, large ? 2 : 1);
+        RunButton.HorizontalAlignment = HorizontalAlignment.Right;
+        RunButton.Margin = large ? new Thickness(0, 10, 0, 0) : new Thickness(0);
+        Grid.SetColumnSpan(DestinationSummary, large ? 2 : 1);
         WorkspaceScroll.VerticalScrollBarVisibility = large ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
     }
 

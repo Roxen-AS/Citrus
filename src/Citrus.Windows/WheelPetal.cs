@@ -14,6 +14,7 @@ public sealed class WheelPetal : Canvas
     private readonly ShapePath selectedSurface, icon, specular;
     private readonly StreamGeometry outline;
     private readonly TextBlock label;
+    private readonly bool formatLabel;
     public WheelPetal(OperationDescriptor operation, int index, int count)
     {
         Width = WheelGeometry.Width; Height = WheelGeometry.Width;
@@ -37,13 +38,15 @@ public sealed class WheelPetal : Canvas
         specular = new ShapePath { Data = shape, Stroke = Brushes.White, StrokeThickness = .75, Opacity = 0 };
         Children.Add(specular);
         Unloaded += (_, _) => CancelEmphasis();
+        formatLabel = operation.Mode == OperationMode.Convert && !string.IsNullOrEmpty(operation.OutputExtension);
         var center = WheelGeometry.At(122,index*360d/count);
         icon = new ShapePath { Data = (Geometry)Application.Current.FindResource(IconKey(operation)), Width=24, Height=24,
             Stretch=Stretch.Uniform, StrokeThickness=1.6, StrokeStartLineCap=PenLineCap.Round, StrokeEndLineCap=PenLineCap.Round, StrokeLineJoin=PenLineJoin.Round };
-        label = new TextBlock { Text=WheelDisplayLabels.Petal(operation), Width=68, FontSize=11, FontWeight=FontWeights.SemiBold, TextAlignment=TextAlignment.Center,
-            TextTrimming=TextTrimming.CharacterEllipsis, MaxHeight=16, TextWrapping=TextWrapping.NoWrap };
+        label = new TextBlock { Text=WheelDisplayLabels.Petal(operation), Width=72, FontSize=formatLabel ? 14 : 11, FontWeight=FontWeights.SemiBold, TextAlignment=TextAlignment.Center,
+            TextTrimming=TextTrimming.CharacterEllipsis, MaxHeight=formatLabel ? 38 : 30, TextWrapping=TextWrapping.NoWrap };
         SetLeft(icon,center.X-12); SetTop(icon,center.Y-23);
-        SetLeft(label,center.X-34); SetTop(label,center.Y+6);
+        SetLeft(label,center.X-36); SetTop(label,formatLabel ? center.Y-10 : center.Y+6);
+        icon.Visibility = formatLabel ? Visibility.Hidden : Visibility.Visible;
         Children.Add(icon); Children.Add(label);
         System.Windows.Automation.AutomationProperties.SetName(this,operation.Label);
         ToolTip = operation.Label;
@@ -67,11 +70,18 @@ public sealed class WheelPetal : Canvas
     private void ApplySpecular(double value) => specular.Opacity = Math.Clamp(value, 0, 1);
     internal void ApplyTextScale(double scale)
     {
-        label.FontSize = 11 * scale;
+        label.FontSize = (formatLabel ? 14 : 11) * scale;
         var measured = new FormattedText(label.Text, CultureInfo.CurrentUICulture, FlowDirection.LeftToRight,
             new Typeface(label.FontFamily, FontStyles.Normal, FontWeights.SemiBold, FontStretches.Normal), label.FontSize, Brushes.Black,
             VisualTreeHelper.GetDpi(this).PixelsPerDip);
-        label.Visibility = scale <= 1.25 || measured.Width <= label.Width && measured.Height <= label.MaxHeight ? Visibility.Visible : Visibility.Hidden;
+        if (formatLabel)
+        {
+            // Keep concise format targets useful at larger text sizes inside fixed hit geometry.
+            if (measured.Width > label.Width) label.FontSize *= label.Width / measured.Width;
+            SetTop(label, GetTop(icon) + 23 - label.FontSize * .7);
+            label.Visibility = Visibility.Visible;
+        }
+        else label.Visibility = scale <= 1.25 || measured.Width <= label.Width && measured.Height <= label.MaxHeight ? Visibility.Visible : Visibility.Hidden;
     }
     internal void CancelEmphasis()
     {
