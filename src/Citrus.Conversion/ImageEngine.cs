@@ -58,7 +58,10 @@ public sealed class ImageEngine(OutputWriter? outputWriter = null) : IConversion
                 progress?.Report(new(null, "Writing copy"));
                 await image.WriteAsync(temporary, format, token).ConfigureAwait(false);
                 token.ThrowIfCancellationRequested();
-                using var check = new MagickImage(temporary, new MagickReadSettings { Format = format, FrameCount = 1 });
+                // Keep the staging handle non-inheritable when another job starts a child process.
+                // AVIF filename decoding can reopen it through libheif with an inheritable handle.
+                using var verification = new FileStream(temporary, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var check = new MagickImage(verification, new MagickReadSettings { Format = format, FrameCount = 1 });
                 if (check.Width != image.Width || check.Height != image.Height) throw new IOException("Encoded image dimensions did not match.");
             }, cancellationToken).ConfigureAwait(false);
             progress?.Report(new(1, "Copy ready"));
