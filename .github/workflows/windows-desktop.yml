@@ -1,0 +1,28 @@
+name: Windows desktop regressions
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  desktop:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+      - name: Locked restore and build native desktop tests
+        run: |
+          dotnet restore tests/Citrus.Windows.Tests --locked-mode
+          if ($LASTEXITCODE) { throw 'Desktop restore failed' }
+          dotnet build tests/Citrus.Windows.Tests -c Release --no-restore
+          if ($LASTEXITCODE) { throw 'Desktop build failed' }
+      - name: Native Windows desktop regressions
+        run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/desktop
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-desktop-test-results
+          path: TestResults
