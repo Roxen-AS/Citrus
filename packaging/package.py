@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path, PurePosixPath
 import shutil
 import tarfile
@@ -102,6 +103,23 @@ def prepare(root, generated):
     (generated / 'identity.nsh').write_text('!define INVENTORY_HASH "' + files['install-inventory.json'] + '"\n')
     print('PASS generated embedded ownership for', len(files), 'files')
 
+def verify_prepared(root, generated):
+    """Read-only ownership closure; the CLI also runs full backend verification."""
+    files = inventory(root)
+    inventory_hash = files.pop('install-inventory.json')
+    if files != json.loads((root / 'install-inventory.json').read_text(encoding='utf-8')):
+        raise ValueError('Prepared payload changed after ownership inventory generation')
+    files['install-inventory.json'] = inventory_hash
+    install, delete, checks = instructions(files, root.resolve())
+    expected = {'install.nsh': install, 'uninstall.nsh': delete, 'paths.nsh': checks,
+                'identity.nsh': '!define INVENTORY_HASH "' + inventory_hash + '"\n'}
+    if generated.is_symlink(): raise ValueError('Linked generated include directory')
+    for name, text in expected.items():
+        path = generated / name
+        if path.is_symlink() or path.read_bytes() != text.replace('\n', os.linesep).encode('utf-8'):
+            raise ValueError('Changed generated ownership include: ' + name)
+    print('PASS unchanged prepared payload, inventory and generated ownership includes')
+
 def checksums(dist):
     files = [dist / 'Citrus-Setup.exe'] + sorted(p for p in (dist / 'Citrus-win-x64').rglob('*') if p.is_file())
     if not files[0].is_file(): raise ValueError('Missing installer')
@@ -110,10 +128,13 @@ def checksums(dist):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('command', choices=['verify','prepare','checksums'])
+    parser.add_argument('command', choices=['verify','prepare','verify-prepared','checksums'])
     parser.add_argument('directory', type=Path)
     parser.add_argument('--generated', type=Path, default=REPO / 'dist/nsis')
     args = parser.parse_args()
     if args.command == 'verify': verify(args.directory)
     elif args.command == 'prepare': prepare(args.directory, args.generated)
+    elif args.command == 'verify-prepared':
+        verify(args.directory)
+        verify_prepared(args.directory, args.generated)
     else: checksums(args.directory)

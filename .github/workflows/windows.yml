@@ -17,41 +17,37 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install pinned NSIS compiler
-        run: |
-          choco install nsis --version=3.11 -y --no-progress
-          if ($LASTEXITCODE) { throw 'NSIS acquisition failed' }
-          "MAKENSIS=${env:ProgramFiles(x86)}\NSIS\makensis.exe" >> $env:GITHUB_ENV
       - name: Restore and build all projects
         run: |
           dotnet restore Citrus.sln --locked-mode
           if ($LASTEXITCODE) { throw 'Restore failed' }
           dotnet build Citrus.sln -c Release --no-restore -m:1
           if ($LASTEXITCODE) { throw 'Build failed' }
-      - name: Publish verified payload and compile installer
-        id: publish
-        run: ./packaging/publish.ps1
+      - name: Publish verified payload independently of installer tooling
+        id: payload
+        run: ./packaging/publish.ps1 -Phase Payload
       - name: Exact shipped media executables and device-free fixture setup
+        id: media
         run: |
           "CITRUS_TEST_FFMPEG=$((Resolve-Path dist/Citrus-win-x64/media/ffmpeg.exe).Path)" >> $env:GITHUB_ENV
           "CITRUS_TEST_FFPROBE=$((Resolve-Path dist/Citrus-win-x64/media/ffprobe.exe).Path)" >> $env:GITHUB_ENV
           python packaging/verify-media.py --directory dist/Citrus-win-x64/media
           if ($LASTEXITCODE) { throw 'Shipped media smoke failed' }
       - name: Core behaviors
+        if: ${{ always() && steps.payload.outcome == 'success' && steps.media.outcome == 'success' }}
         run: dotnet test tests/Citrus.Core.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/core
       - name: Complete conversion suite including real Windows image and PDF backends
+        if: ${{ always() && steps.payload.outcome == 'success' && steps.media.outcome == 'success' }}
         run: dotnet test tests/Citrus.Conversion.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/conversion
       - name: Real Windows clipboard, Shell, tray and lifecycle integration
+        if: ${{ always() && steps.payload.outcome == 'success' && steps.media.outcome == 'success' }}
         run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/windows --blame-hang-timeout 2m --blame-hang-dump-type none
       - name: Negative packaging and preservation checks
-        if: ${{ always() && steps.publish.outcome == 'success' }}
+        if: ${{ always() && steps.payload.outcome == 'success' }}
         run: python packaging/test-package.py dist/Citrus-win-x64
       - name: Portable first-install recovery contract
-        if: ${{ always() && steps.publish.outcome == 'success' }}
+        if: ${{ always() && steps.payload.outcome == 'success' }}
         run: python packaging/test-install-recovery.py
-      - name: Native interrupted first-install recovery
-        if: ${{ always() && steps.publish.outcome == 'success' }}
-        run: ./packaging/test-install-recovery.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -60,7 +56,22 @@ jobs:
             TestResults/**
             **/TestResults/**
           if-no-files-found: warn
+      - name: Install pinned NSIS compiler
+        id: nsis
+        if: ${{ always() && steps.payload.outcome == 'success' }}
+        run: |
+          choco install nsis --version=3.11 -y --no-progress
+          if ($LASTEXITCODE) { throw 'NSIS acquisition failed' }
+          "MAKENSIS=${env:ProgramFiles(x86)}\NSIS\makensis.exe" >> $env:GITHUB_ENV
+      - name: Compile installer from the unchanged tested payload
+        id: publish
+        if: ${{ always() && steps.payload.outcome == 'success' && steps.nsis.outcome == 'success' }}
+        run: ./packaging/publish.ps1 -Phase Installer
+      - name: Native interrupted first-install recovery
+        if: ${{ always() && steps.publish.outcome == 'success' }}
+        run: ./packaging/test-install-recovery.ps1
       - uses: actions/upload-artifact@v4
+        if: ${{ success() && steps.publish.outcome == 'success' }}
         with:
           name: Citrus-unsigned-windows-candidate
           path: |
