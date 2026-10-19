@@ -267,15 +267,15 @@ public partial class MainWindow : Window, IDisposable
         FilesPanel.Height = large ? 420 * scale / 2 : double.NaN;
         CenterPanel.Height = large ? 360 * scale / 2 : double.NaN;
         EmptyState.MinHeight = large ? 360 : 0;
-        Grid.SetRow(HeaderActions, large ? 1 : 0); Grid.SetColumn(HeaderActions, large ? 0 : 1);
-        Grid.SetColumnSpan(HeaderActions, large ? 2 : 1);
-        HeaderActions.Margin = large ? new Thickness(0, 8, 0, 0) : new Thickness(0);
-        Grid.SetRow(RunButton, large ? 1 : 0); Grid.SetColumn(RunButton, large ? 0 : 1);
-        Grid.SetColumnSpan(RunButton, large ? 2 : 1);
-        RunButton.HorizontalAlignment = HorizontalAlignment.Right;
-        RunButton.Margin = large ? new Thickness(0, 10, 0, 0) : new Thickness(0);
-        Grid.SetColumnSpan(DestinationSummary, large ? 2 : 1);
-        WorkspaceScroll.VerticalScrollBarVisibility = large ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+        // Secondary content shares the body scroll; it cannot spend the footer's client area.
+        WorkspaceGrid.Height = large ? double.NaN : Math.Max(300, WorkspaceScroll.ActualHeight);
+        // At the supported minimum width these pairs still fit side by side at 200% text.
+        // Avoid adding extra Auto rows above and below the useful body viewport.
+        Grid.SetRow(HeaderActions, 0); Grid.SetColumn(HeaderActions, 1);
+        Grid.SetColumnSpan(HeaderActions, 1); HeaderActions.Margin = new Thickness(0);
+        Grid.SetRow(RunButton, 0); Grid.SetColumn(RunButton, 1); Grid.SetColumnSpan(RunButton, 1);
+        RunButton.HorizontalAlignment = HorizontalAlignment.Right; RunButton.Margin = new Thickness(0);
+        Grid.SetColumnSpan(DestinationSummary, 1);
     }
 
     private void ShowDemo(object sender, RoutedEventArgs e)
