@@ -20,24 +20,28 @@ internal static class VisualArtifacts
             JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    public static void Capture(FrameworkElement root, string name, double scale, ThemeChoice theme, object? context = null)
+    public static RenderTargetBitmap Capture(FrameworkElement root, string name, double scale, ThemeChoice theme, object? context = null)
     {
         root.UpdateLayout();
         int width = (int)Math.Ceiling(root.ActualWidth * scale), height = (int)Math.Ceiling(root.ActualHeight * scale);
         Assert.True(width > 0 && height > 0, "The actual production view must have layout before rendering.");
-        var bitmap = new RenderTargetBitmap(width, height, 96 * scale, 96 * scale, PixelFormats.Pbgra32);
-        bitmap.Render(root);
+        var bitmap = Render(root, scale);
         Directory.CreateDirectory(DirectoryPath);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using (var stream = File.Create(Path.Combine(DirectoryPath, name + ".png"))) encoder.Save(stream);
         var nativeDpi = VisualTreeHelper.GetDpi(root);
         var window = Window.GetWindow(root);
+        var rootOrigin = window is null ? new Point() : root.TransformToAncestor(window).Transform(new Point());
         var screen = window is null ? null : System.Windows.Forms.Screen.FromHandle(new System.Windows.Interop.WindowInteropHelper(window).Handle);
         Json(name, new
         {
             capturedUtc = DateTimeOffset.UtcNow, os = RuntimeInformation.OSDescription,
             runtime = RuntimeInformation.FrameworkDescription,
             context,
+            captureCoordinates = "Root-local content crop: (0,0) to root.RenderSize; ancestor window margin/chrome excluded",
+            rootOriginInWindowDip = new { x = rootOrigin.X, y = rootOrigin.Y },
+            windowBackground = window?.Background?.ToString(),
+            actualWindowLeftDip = window?.Left, actualWindowTopDip = window?.Top,
             actualWindowWidthDip = window?.ActualWidth, actualWindowHeightDip = window?.ActualHeight,
             monitor = screen?.DeviceName, monitorBoundsPixels = screen?.Bounds.ToString(), monitorWorkAreaPixels = screen?.WorkingArea.ToString(),
             requestedTheme = theme.ToString(), highContrast = SystemParameters.HighContrast,
@@ -52,6 +56,32 @@ internal static class VisualArtifacts
         // A blank/transparent image cannot masquerade as visual evidence.
         var pixels = new byte[width * height * 4]; bitmap.CopyPixels(pixels, width * 4, 0);
         Assert.True(Enumerable.Range(0, width * height).Any(i => pixels[i * 4 + 3] > 16), "Rendered view has no visible pixels.");
+        return bitmap;
+    }
+
+    public static RenderTargetBitmap Render(FrameworkElement root, double scale)
+    {
+        root.UpdateLayout();
+        var bounds = new Rect(new Point(), root.RenderSize);
+        var visual = new DrawingVisual();
+        using (var drawing = visual.RenderOpen())
+        {
+            // Render(root) retains the root's parent layout offset and omits its ancestor's background.
+            // An explicit local viewbox maps the existing visual into the crop without changing layout.
+            drawing.DrawRectangle(Window.GetWindow(root)?.Background, null, bounds);
+            var brush = new VisualBrush(root)
+            {
+                AutoLayoutContent = false,
+                ViewboxUnits = BrushMappingMode.Absolute, Viewbox = bounds,
+                ViewportUnits = BrushMappingMode.Absolute, Viewport = bounds,
+                Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top
+            };
+            drawing.DrawRectangle(brush, null, bounds);
+        }
+        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(bounds.Width * scale), (int)Math.Ceiling(bounds.Height * scale),
+            96 * scale, 96 * scale, PixelFormats.Pbgra32);
+        bitmap.Render(visual);
+        return bitmap;
     }
 
     public static void AssertInside(FrameworkElement element, FrameworkElement root)

@@ -49,7 +49,19 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
             var root = (FrameworkElement)window.Content;
             var requested = new { requestedWindowWidthDip = width, requestedWindowHeightDip = height };
             string artifact = $"workspace-requested-{width}x{height}-{theme}-{scale * 100:0}pct-raster";
-            VisualArtifacts.Capture(root, artifact, scale, theme, requested);
+            var capture = VisualArtifacts.Capture(root, artifact, scale, theme, requested);
+            // Every root-local pixel must retain the production window's opaque backdrop.
+            var pixels = new byte[capture.PixelWidth * capture.PixelHeight * 4];
+            capture.CopyPixels(pixels, capture.PixelWidth * 4, 0);
+            // Exclude only a fractional final raster row/column, whose coverage can be below one pixel.
+            Assert.True(Enumerable.Range(0, (int)Math.Floor(root.ActualHeight * scale)).All(y =>
+                Enumerable.Range(0, (int)Math.Floor(root.ActualWidth * scale)).All(x => pixels[(y * capture.PixelWidth + x) * 4 + 3] == 255)),
+                "Workspace capture lost the actual window background.");
+            var header = (System.Windows.Controls.DockPanel)((Grid)root).Children[0];
+            VisualArtifacts.AssertInside(header, root);
+            foreach (FrameworkElement child in header.Children) VisualArtifacts.AssertInside(child, root);
+            foreach (string name in new[] { "GesturesEnabled", "Status", "EngineStatus" })
+                VisualArtifacts.AssertInside((FrameworkElement)window.FindName(name), root);
             // HWND size may be clamped to the hosted desktop work area. Production adapts to ActualWidth.
             Assert.Equal(window.ActualWidth < 1080 ? 1 : 2, Grid.GetColumn(inspector));
             Assert.True(((System.Windows.Controls.Button)window.FindName("RunButton")).IsEnabled);
