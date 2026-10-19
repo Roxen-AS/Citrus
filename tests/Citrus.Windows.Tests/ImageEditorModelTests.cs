@@ -96,7 +96,9 @@ public sealed class ImageEditorModelTests
     {
         using var services = new ImageEditorServices(new()); await services.VerifyAsync(default);
         Assert.True(services.Routes.TryGet("image.crop",out var route)); Assert.Equal(EditorSubmissionShape.PerRoot,route.Shape);
-        Assert.False(services.Routes.TryGet("image.annotate",out _)); Assert.False(services.Routes.TryGet("images.pdf",out _)); Assert.False(services.Routes.TryGet("image.convert.png",out _));
+        Assert.True(services.Routes.TryGet("image.annotate",out var annotate)); Assert.Equal("Annotate",annotate.EntryTool); Assert.Equal(EditorSubmissionShape.PerRoot,annotate.Shape);
+        Assert.True(services.Routes.TryGet("image.redact",out var redact)); Assert.Equal("Manual masks",redact.EntryTool); Assert.Equal(EditorSubmissionShape.PerRoot,redact.Shape);
+        Assert.False(services.Routes.TryGet("images.pdf",out _)); Assert.False(services.Routes.TryGet("image.convert.png",out _));
     }
     [Fact]
     public async Task Captured_but_unreadable_source_blocks_export_until_explicit_exclusion()

@@ -53,7 +53,11 @@ public sealed class EditorHostReviewRegressionTests
         Assert.Equal(new ImageGeometry(0,false,false,null,null,false),neutral.Geometry);
         Assert.Equal(0,neutral.Adjustments.Brightness); Assert.Equal(PhotoEffect.None,neutral.Adjustments.Effect);
         Assert.Equal(new QualityGoal(85),reset.Export.Compression); Assert.Null(row.ResizeIntent);
-        Assert.Same(row,model.Selected); Assert.True(row.Included); Assert.Equal(initial.Sources,reset.Sources);
+        Assert.Same(row,model.Selected); Assert.True(row.Included);
+        // Reset rebuilds the source container while preserving the captured root itself.
+        Assert.Equal(initial.Sources.ToArray(),reset.Sources.ToArray());
+        var originalSource = Assert.Single(initial.Sources); var resetSource = Assert.Single(reset.Sources);
+        Assert.Same(originalSource,resetSource); Assert.Equal(originalSource.Id,neutral.SourceId);
         Assert.Equal(before.Export with { Compression = new QualityGoal(85) },reset.Export);
         model.Undo(); Assert.Equal(before.Recipe,row.Draft!.Recipe); Assert.Equal(before.Export,row.Draft.Export);
         model.Redo(); Assert.Equal(reset.Recipe,row.Draft!.Recipe);
