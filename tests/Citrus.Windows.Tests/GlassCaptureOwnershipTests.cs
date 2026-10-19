@@ -8,7 +8,35 @@ public sealed class GlassCaptureOwnershipTests
     private static readonly ScreenRect Crop = new(100, 100, 368, 414);
     private static readonly ScreenRect Work = new(0, 0, 1200, 800);
     private static GlassCaptureSnapshot Owned(params GlassCaptureWindow[] extra) => new(Crop, Work, 1, 2, 3,
-        [new(2, Crop, true, true), new(3, Crop, true, true), .. extra, new(1, Work, true, true)], true);
+        [new(2, Crop, true, true), new(3, Crop, true, true), .. extra, new(1, Work, true, true)], true,
+        new(true, true, "WinSta0", "Default", "Default", true, 1, 1, 0, 42, 1),
+        new(368 * 414, 368 * 414, true));
+
+    [Fact]
+    public void Wrong_input_desktop_inactive_session_or_unavailable_identity_refuses_before_screen_read()
+    {
+        var scene = Owned();
+        foreach (var desktop in new[] {
+            scene.Desktop! with { ThreadDesktop = "Default", InputDesktop = "Winlogon" },
+            scene.Desktop! with { ThreadIsInputDesktop = false },
+            scene.Desktop! with { QueriesSucceeded = false },
+            scene.Desktop! with { UserInteractive = false },
+            scene.Desktop! with { ProcessSession = 0 },
+            scene.Desktop! with { ActiveConsoleSession = 2 },
+            scene.Desktop! with { WtsConnectionState = 4 },
+            scene.Desktop! with { Foreground = 0 },
+            scene.Desktop! with { ForegroundSession = 2 } })
+            Assert.False(GlassCaptureOwnership.Check(scene with { Desktop = desktop }).Allowed);
+    }
+
+    [Fact]
+    public void Visual_z_order_alone_cannot_override_actual_unowned_input_pixels()
+    {
+        var scene = Owned();
+        Assert.False(GlassCaptureOwnership.Check(scene with { Input = new(1, 368 * 414, false, 100, 100, 66058, "UnownedInputRoot") }).Allowed);
+        Assert.False(GlassCaptureOwnership.Check(scene with { Input = null }).Allowed);
+        Assert.False(GlassCaptureOwnership.Check(scene with { Input = new(10, 368 * 414, true) }).Allowed);
+    }
 
     [Fact]
     public void Entire_crop_inside_visible_owned_background_and_work_area_is_allowed()

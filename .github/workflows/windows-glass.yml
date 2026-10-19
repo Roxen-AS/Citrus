@@ -6,7 +6,9 @@ on:
       - 'src/Citrus.Core/Presentation/**'
       - 'src/Citrus.Windows/**'
       - 'tests/Citrus.Windows.Tests/**'
+      - '.gitattributes'
       - 'packaging/*presentation*'
+      - 'packaging/notices/Presentation-Notice.txt'
       - 'packaging/notices/presentation/**'
       - '.github/workflows/windows-glass.yml'
 permissions:
@@ -56,7 +58,20 @@ jobs:
             @{ SourcePath = $file.FullName; Sha256 = (Get-FileHash $file.FullName -Algorithm SHA256).Hash; Artifact = $name }
           }
           @{ LicenseFiles = @($evidence); InstalledIncludeVersions = @(Get-ChildItem (Join-Path $kits 'Include') -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name); Review = 'Pending SDK redistribution terms review; collection does not approve release' } | ConvertTo-Json -Depth 6 | Set-Content TestResults/sdk-license/evidence.json
+          $redistCandidates = @()
+          if (Test-Path $kits) { $redistCandidates += Get-ChildItem $kits -File -Filter '*redist*.txt' -ErrorAction SilentlyContinue }
+          foreach ($directory in @('Redist','Licenses','License')) {
+            $source = Join-Path $kits $directory
+            if (Test-Path $source) { $redistCandidates += Get-ChildItem $source -File -Recurse -Filter '*redist*.txt' -ErrorAction SilentlyContinue | Select-Object -First 40 }
+          }
+          $redistEvidence = @($redistCandidates | Sort-Object FullName -Unique | Select-Object -First 40 | ForEach-Object {
+            $name = 'redist_' + $_.FullName.Substring($kits.Length + 1).Replace('\','_')
+            Copy-Item -LiteralPath $_.FullName -Destination (Join-Path TestResults/sdk-license $name)
+            @{ SourcePath = $_.FullName; Sha256 = (Get-FileHash $_.FullName -Algorithm SHA256).Hash; Artifact = $name }
+          })
+          @{ Files = $redistEvidence; Found = ($redistEvidence.Count -gt 0); SearchRoot = $kits; Review = 'Installed local REDIST evidence only; not found is recorded, not replaced by network downloads' } | ConvertTo-Json -Depth 6 | Set-Content TestResults/sdk-license/redist-evidence.json
       - name: Locked restore and x64 native test build
+        id: native-build
         shell: pwsh
         run: |
           & $env:DOTNET_X64 restore tests/Citrus.Windows.Tests --locked-mode
@@ -67,11 +82,15 @@ jobs:
         shell: pwsh
         run: |
           & $env:DOTNET_X64 test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~BackdropControllerTests|FullyQualifiedName~WheelBackdropLifecycleTests|FullyQualifiedName~GlassNativeProofTests|FullyQualifiedName~GlassCaptureOwnership' --logger trx --results-directory TestResults/native
-          if ($LASTEXITCODE) { throw 'Native configuration/lifecycle/capture assertions failed' }
+          $nativeExit = $LASTEXITCODE
           if (Test-Path TestResults/glass-native/metadata.json) { Get-Content TestResults/glass-native/metadata.json | Add-Content $env:GITHUB_STEP_SUMMARY }
+          if ($nativeExit) { throw 'Native configuration/lifecycle/capture assertions failed; inspect capability-unavailable metadata before interpreting this as optical evidence' }
       - name: Self-contained product inventory and projection smoke without SDK or PATH lookup
+        if: ${{ always() && steps.native-build.outcome == 'success' }}
         shell: pwsh
         run: |
+          python packaging/test-presentation-checkout.py
+          if ($LASTEXITCODE) { throw 'Presentation checkout byte preservation failed' }
           & $env:DOTNET_X64 publish src/Citrus.Windows -c Release -r win-x64 --self-contained true -p:RestoreLockedMode=true -m:1 -nodeReuse:false -o dist/glass-product
           if ($LASTEXITCODE) { throw 'Product publish failed' }
           python packaging/verify-presentation-publish.py dist/glass-product --package-cache

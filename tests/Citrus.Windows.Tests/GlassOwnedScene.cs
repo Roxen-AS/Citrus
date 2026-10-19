@@ -96,12 +96,14 @@ internal sealed class GlassOwnedScene : IDisposable
             windows.Add(new(current.ToInt64(), rectangle.ToScreenRect(), visible, known));
             current = BackdropNativeMethods.GetWindow(current, 2); // GW_HWNDNEXT: top to bottom.
         }
-        return new(bounds, work, BackgroundHandle.ToInt64(), WheelHandle.ToInt64(), companion.ToInt64(), windows, current == 0);
+        return GlassNativeDesktopProbe.Complete(new(bounds, work, BackgroundHandle.ToInt64(), WheelHandle.ToInt64(), companion.ToInt64(), windows, current == 0));
     }
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
 
-    public void AssertWheelOwnsClip()
+    public void AssertWheelOwnsClip(nint companion = default)
     {
+        string artifacts = Environment.GetEnvironmentVariable("CITRUS_GLASS_ARTIFACTS") ?? System.IO.Path.Combine(AppContext.BaseDirectory, "TestResults", "glass-native");
+        GlassCompositorCapture.RequireOwned(this, companion, System.IO.Path.Combine(artifacts, "clip-input.preflight.json"));
         var bounds = Bounds;
         // Every physical pixel strictly inside the inward-rounded native ellipse.
         nint region = BackdropNativeMethods.CreateEllipticRgn((int)Math.Ceiling(8 * DpiScale), (int)Math.Ceiling(8 * DpiScale),

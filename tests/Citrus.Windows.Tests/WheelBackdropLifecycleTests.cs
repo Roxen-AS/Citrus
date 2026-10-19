@@ -33,7 +33,7 @@ public sealed class WheelBackdropLifecycleTests(DesktopFixture desktop)
         using var controller = new WheelBackdropController(true);
         controller.Attach(scene.WheelHandle);
         controller.Synchronize(1, scene.Bounds, scene.DpiScale, true, BackdropControllerTests.Eligible, false);
-        scene.AssertWheelOwnsClip();
+        scene.AssertWheelOwnsClip(controller.CompanionHandle);
     });
 
     [Fact]

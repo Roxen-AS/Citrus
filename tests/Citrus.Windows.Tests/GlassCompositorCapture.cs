@@ -15,19 +15,9 @@ internal static class GlassCompositorCapture
     internal static Bitmap Capture(GlassOwnedScene scene, nint companion, string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        var snapshot = RequireOwned(scene, companion, path + ".preflight.json");
         int hr = BackdropNativeMethods.DwmFlush();
         if (hr < 0) Marshal.ThrowExceptionForHR(hr);
-        // Refuse before GetDC/BitBlt: every crop pixel must be covered by the owned opaque background,
-        // and visual top-level z order may contain only this scene above it where the crop intersects.
-        var snapshot = scene.ReadCaptureSnapshot(companion);
-        var preflight = GlassCaptureOwnership.Check(snapshot);
-        File.WriteAllText(path + ".preflight.json", JsonSerializer.Serialize(new
-        {
-            CheckedBeforeScreenRead = true, preflight.Allowed, preflight.Reason,
-            Method = "Native full-rectangle bounds plus bounded top-level visual z-order; disabled/transparent HWNDs included",
-            Snapshot = snapshot
-        }, new JsonSerializerOptions { WriteIndented = true }));
-        if (!preflight.Allowed) throw new InvalidOperationException("Owned compositor capture refused: " + preflight.Reason);
         ScreenRect bounds = snapshot.Crop;
         nint screen = GetDC(0), memory = 0, nativeBitmap = 0, previous = 0;
         try
@@ -52,6 +42,32 @@ internal static class GlassCompositorCapture
             if (screen != 0) ReleaseDC(0, screen);
         }
     }
+    internal static GlassCaptureSnapshot RequireOwned(GlassOwnedScene scene, nint companion, string metadataPath)
+    {
+        // Identity and every physical input pixel are prerequisites; visual z order alone proved insufficient on OOBE.
+        var snapshot = scene.ReadCaptureSnapshot(companion);
+        var preflight = GlassCaptureOwnership.Check(snapshot);
+        Directory.CreateDirectory(Path.GetDirectoryName(metadataPath)!);
+        File.WriteAllText(metadataPath, JsonSerializer.Serialize(new
+        {
+            CheckedBeforeScreenRead = true, preflight.Allowed, preflight.Reason, CaptureSkipped = !preflight.Allowed,
+            Method = "Actual input/thread desktop and active session; exhaustive full-crop input roots; native visual z order",
+            Snapshot = snapshot
+        }, new JsonSerializerOptions { WriteIndented = true }));
+        if (!preflight.Allowed)
+        {
+            File.WriteAllText(Path.Combine(Path.GetDirectoryName(metadataPath)!, "metadata.json"), JsonSerializer.Serialize(new
+            {
+                Eligibility = "CapabilityUnavailableNoOpticalEvidence", CaptureSkipped = true, SkipReason = preflight.Reason,
+                ProductionCompanionValidated = false, ScreenReadPerformedForRefusedFrame = false,
+                DiagnosticFile = Path.GetFileName(metadataPath), Snapshot = snapshot,
+                Note = "Host input desktop/session or scene ownership is unavailable. No setup/privacy UI interaction or OS preference write was attempted."
+            }, new JsonSerializerOptions { WriteIndented = true }));
+            throw new InvalidOperationException("Native glass capability unavailable; screen capture skipped: " + preflight.Reason);
+        }
+        return snapshot;
+    }
+
     [DllImport("user32.dll")] private static extern nint GetDC(nint hwnd);
     [DllImport("user32.dll")] private static extern int ReleaseDC(nint hwnd, nint dc);
     [DllImport("gdi32.dll", SetLastError = true)] private static extern nint CreateCompatibleDC(nint dc);
@@ -109,7 +125,7 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         await Task.Delay(300); // Bounded native compositor settle, never an application animation loop.
         using var configured = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "02-disabled-clipped-native.png"));
-        scene.AssertWheelOwnsClip();
+        scene.AssertWheelOwnsClip(controller.CompanionHandle);
         scene.SetPattern(true);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         await Task.Delay(300);
