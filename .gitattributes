@@ -10,3 +10,6 @@ packaging/notices/media-licenses/** -text
 packaging/notices/pdf-licenses/** -text -whitespace
 # Preserve the exact upstream .NET runtime license/notice bytes as distributed.
 packaging/notices/dotnet/** -text -whitespace
+# Preserve pinned presentation notices and original upstream SDK/CsWinRT bytes.
+packaging/notices/Presentation-Notice.txt -text
+packaging/notices/presentation/** -text -whitespace

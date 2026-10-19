@@ -6,13 +6,26 @@ namespace Citrus.Windows.Tests;
 
 internal sealed record GlassCaptureWindow(long Handle, ScreenRect Bounds, bool Visible, bool BoundsKnown);
 internal sealed record GlassCaptureSnapshot(ScreenRect Crop, ScreenRect WorkArea, long Background, long Wheel,
-    long Companion, IReadOnlyList<GlassCaptureWindow> Windows, bool Complete);
+    long Companion, IReadOnlyList<GlassCaptureWindow> Windows, bool Complete, GlassDesktopSnapshot? Desktop = null, GlassInputOwnership? Input = null, GlassWindowIdentity? InputMismatchWindow = null);
+internal sealed record GlassDesktopSnapshot(bool UserInteractive, bool QueriesSucceeded, string WindowStation,
+    string ThreadDesktop, string InputDesktop, bool ThreadIsInputDesktop, uint ProcessSession, uint ActiveConsoleSession,
+    int WtsConnectionState, long Foreground, uint? ForegroundSession, long ThreadDesktopHandle = 0,
+    long InputDesktopHandle = 0, long WindowStationHandle = 0, int NativeError = 0, GlassWindowIdentity? ForegroundWindow = null, string QueryDiagnostic = "");
+internal sealed record GlassInputOwnership(long CheckedPixels, long RequiredPixels, bool Complete, int? FailedX = null,
+    int? FailedY = null, long ActualRoot = 0, string? Failure = null);
+internal sealed record GlassWindowIdentity(long Handle, long RootHandle, string ClassName, uint ProcessId, string ProcessName,
+    uint ThreadId, uint? SessionId, bool BoundsKnown, ScreenRect Bounds, long Style, long ExtendedStyle, string DesktopName);
 internal sealed record GlassCapturePreflight(bool Allowed, string Reason);
 
 internal static class GlassCaptureOwnership
 {
     internal static GlassCapturePreflight Check(GlassCaptureSnapshot scene)
     {
+        var desktop = CheckDesktop(scene.Desktop);
+        if (!desktop.Allowed) return desktop;
+        if (scene.Input is not { Complete: true, Failure: null } input ||
+            input.RequiredPixels != (long)(scene.Crop.Width * scene.Crop.Height) || input.CheckedPixels != input.RequiredPixels)
+            return new(false, "InputCropOwnershipUnavailable");
         if (!scene.Complete) return new(false, "IncompleteVisualZOrder");
         if (!Valid(scene.Crop) || scene.Crop.Width * scene.Crop.Height > 16_777_216)
             return new(false, "InvalidOrUnboundedCrop");
@@ -41,6 +54,18 @@ internal static class GlassCaptureOwnership
             if (Intersects(window.Bounds, scene.Crop)) return new(false, "UnrelatedVisualOccluder");
         }
         return new(true, "EntireCropOwnedBeforeCapture");
+    }
+    internal static GlassCapturePreflight CheckDesktop(GlassDesktopSnapshot? desktop)
+    {
+        if (desktop is null || !desktop.QueriesSucceeded || !desktop.UserInteractive)
+            return new(false, "InteractiveDesktopIdentityUnavailable");
+        if (!string.Equals(desktop.WindowStation, "WinSta0", StringComparison.OrdinalIgnoreCase) || !string.Equals(desktop.ThreadDesktop, desktop.InputDesktop, StringComparison.OrdinalIgnoreCase) || !desktop.ThreadIsInputDesktop)
+            return new(false, "ThreadIsNotActualInputDesktop");
+        if (desktop.ProcessSession == 0 || desktop.ProcessSession != desktop.ActiveConsoleSession || desktop.WtsConnectionState != 0)
+            return new(false, "SessionIsNotActiveInteractiveConsole");
+        if (desktop.Foreground == 0 || desktop.ForegroundSession != desktop.ProcessSession)
+            return new(false, "ForegroundIsNotInInteractiveSession");
+        return new(true, "ActualInteractiveInputDesktop");
     }
     private static bool Valid(ScreenRect rectangle) => double.IsFinite(rectangle.Left) && double.IsFinite(rectangle.Top) &&
         double.IsFinite(rectangle.Right) && double.IsFinite(rectangle.Bottom) && rectangle.Width > 0 && rectangle.Height > 0;
