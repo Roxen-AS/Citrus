@@ -18,6 +18,7 @@ internal sealed class MaterialPreferenceMonitor : IDisposable
     private DispatcherOperation? pending;
     private bool disposed;
     public MaterialDecision Decision { get; private set; }
+    public string PreferenceDiagnostic { get; private set; } = "NotRead";
     public double TextScaleFactor { get; private set; } = 1;
     public event Action? Changed;
 
@@ -55,23 +56,29 @@ internal sealed class MaterialPreferenceMonitor : IDisposable
     public void Refresh()
     {
         dispatcher.VerifyAccess(); ObjectDisposedException.ThrowIf(disposed, this);
-        bool available = false, effects = false;
+        Decision = MaterialPolicy.Resolve(preferences(), Read());
+        Changed?.Invoke();
+    }
+    public MaterialEnvironment Read()
+    {
+        dispatcher.VerifyAccess(); ObjectDisposedException.ThrowIf(disposed, this);
+        bool effects = false;
         double scale = 1;
+        PreferenceDiagnostic = "WinRtUnavailable";
         try
         {
             if (settings is not null)
             {
                 effects = settings.AdvancedEffectsEnabled;
                 scale = settings.TextScaleFactor;
-                available = true;
+                PreferenceDiagnostic = effects ? "Available" : "AdvancedEffectsDisabled";
             }
         }
-        catch (Exception) { available = false; }
+        catch (Exception) { effects = false; PreferenceDiagnostic = "WinRtUnavailable"; }
         bool composition = BackdropNativeMethods.DwmIsCompositionEnabled(out bool enabled) >= 0 && enabled;
-        Decision = MaterialPolicy.Resolve(preferences(), new(Environment.OSVersion.Version.Build, composition, available,
-            effects, SystemParameters.HighContrast, SystemParameters.IsRemoteSession, SystemParameters.ClientAreaAnimation));
         TextScaleFactor = double.IsFinite(scale) && scale >= 1 ? scale : 1;
-        Changed?.Invoke();
+        return new(Environment.OSVersion.Version.Build, composition, effects, SystemParameters.HighContrast,
+            SystemParameters.IsRemoteSession, SystemParameters.ClientAreaAnimation);
     }
     private void EffectsChanged(UISettings sender, object args) => RequestRefresh();
     private void TextChanged(UISettings sender, object args) => RequestRefresh();

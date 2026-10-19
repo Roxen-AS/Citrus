@@ -8,13 +8,23 @@ namespace Citrus.Windows.Tests;
 [Collection("Desktop")]
 public sealed class BackdropControllerTests(DesktopFixture desktop)
 {
-    internal static MaterialDecision Eligible => MaterialPolicy.Resolve(new(), new(22621, true, true, true, false, false, true));
+    internal static MaterialDecision Eligible => MaterialPolicy.Resolve(new(), new(22621, true, true, false, false, true));
+
+    [Fact]
+    public void Permanent_backdrop_contract_keeps_state_and_native_diagnostics_separate()
+    {
+        var result = new BackdropResult(BackdropState.Solid, "Unavailable", unchecked((int)0x80070057), 22621);
+        Assert.Equal(BackdropState.Solid, result.State);
+        Assert.False(result.IsNative);
+        Assert.Equal(22621, result.WindowsBuild);
+        Assert.Equal(typeof(MaterialEnvironment), typeof(MaterialPreferenceMonitor).GetMethod("Read")!.ReturnType);
+    }
 
     [Fact]
     public void Dwm_none_is_one_not_auto()
     {
         var api = new RecordingBackdropApi();
-        var result = BackdropConfiguration.Apply(api, 123, Eligible with { UseNativeAcrylic = false }, false);
+        var result = BackdropConfiguration.Apply(api, 123, Eligible with { RequestNativeAcrylic = false }, false);
         Assert.False(result.IsNative);
         Assert.Contains((38, 1), api.Attributes);
         Assert.DoesNotContain((38, 0), api.Attributes);

@@ -1,12 +1,15 @@
+using System;
 using Citrus.Core.Presentation;
 
 namespace Citrus.Windows.Presentation;
 
-internal readonly record struct BackdropResult(string Mode, string Reason, int WindowsBuild, int? HResult = null)
+internal enum BackdropState { Solid, ConfiguredNativeAcrylic }
+
+internal readonly record struct BackdropResult(BackdropState State, string Reason, int? HResult, int WindowsBuild)
 {
-    public bool IsNative => Mode == "ConfiguredNativeAcrylic";
+    public bool IsNative => State == BackdropState.ConfiguredNativeAcrylic;
     public static BackdropResult Solid(MaterialDecision decision, string? reason = null, int? hResult = null)
-        => new("Solid", reason ?? decision.Reason, decision.WindowsBuild, hResult ?? decision.HResult);
+        => new(BackdropState.Solid, reason ?? decision.Reason, hResult, Environment.OSVersion.Version.Build);
 }
 
 // Narrow seam around documented DWM calls; a successful HRESULT is configuration, never optical proof.
@@ -31,7 +34,7 @@ internal static class BackdropConfiguration
     internal const int SystemBackdropType = 38, None = 1, TransientWindow = 3;
     internal static BackdropResult Apply(IBackdropApi api, nint hwnd, MaterialDecision decision, bool dark)
     {
-        if (!decision.UseNativeAcrylic)
+        if (!decision.RequestNativeAcrylic)
         {
             int reset = Reset(api, hwnd);
             return BackdropResult.Solid(decision, hResult: reset < 0 ? reset : null);
@@ -44,7 +47,7 @@ internal static class BackdropConfiguration
             Reset(api, hwnd);
             return BackdropResult.Solid(decision, "NativeConfigurationFailed", hr);
         }
-        return new("ConfiguredNativeAcrylic", "ConfiguredNotOpticallyVerified", decision.WindowsBuild, hr);
+        return new(BackdropState.ConfiguredNativeAcrylic, "ConfiguredNotOpticallyVerified", hr, Environment.OSVersion.Version.Build);
     }
 
     internal static int Reset(IBackdropApi api, nint hwnd)

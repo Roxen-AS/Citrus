@@ -45,10 +45,10 @@ internal sealed class WheelBackdropController : IDisposable
         if (generation < this.generation || generation <= cancelledThrough) return BackdropResult.Solid(decision, "StaleGeneration");
         if (generation > this.generation) { companion?.Hide(); this.generation = generation; }
         if (!confirmedVisible) { companion?.Hide(); return Result = BackdropResult.Solid(decision, "UnconfirmedOrNotPresented"); }
-        if (!nativeCompanionValidated || !decision.UseNativeAcrylic)
+        if (!nativeCompanionValidated || !decision.RequestNativeAcrylic)
         {
             RemoveCompanion();
-            return Result = BackdropResult.Solid(decision, !decision.UseNativeAcrylic ? decision.Reason : "CompanionNotValidated");
+            return Result = BackdropResult.Solid(decision, !decision.RequestNativeAcrylic ? decision.Reason : "CompanionNotValidated");
         }
         if (source is null || source.IsDisposed || !BackdropNativeMethods.IsWindowVisible(source.Handle))
         { RemoveCompanion(); return Result = BackdropResult.Solid(decision, "WheelNotVisible"); }
@@ -84,7 +84,7 @@ internal sealed class WheelBackdropController : IDisposable
         this.generation = generation;
         cancelledThrough = Math.Max(cancelledThrough, generation);
         companion?.Hide();
-        Result = Result with { Mode = "Solid", Reason = "Hidden" };
+        Result = Result with { State = BackdropState.Solid, Reason = "Hidden" };
     }
     private nint Hook(nint hwnd, int message, nint wParam, nint lParam, ref bool handled)
     {
@@ -94,7 +94,7 @@ internal sealed class WheelBackdropController : IDisposable
         if (message is 0x46 or 0x47 or 0x2E0 or 0x31E or 0x1A or 0x31A or 0x2B1)
         {
             companion?.Hide();
-            Result = Result with { Mode = "Solid", Reason = "EnvironmentOrPlacementChanged" };
+            Result = Result with { State = BackdropState.Solid, Reason = "EnvironmentOrPlacementChanged" };
             Invalidated?.Invoke();
         }
         return 0;

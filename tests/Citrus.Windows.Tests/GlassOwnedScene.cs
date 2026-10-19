@@ -1,5 +1,6 @@
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
@@ -80,6 +81,25 @@ internal sealed class GlassOwnedScene : IDisposable
         var brush = new DrawingBrush(drawing) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 16, 16), Stretch = Stretch.None };
         brush.Freeze(); background.Background = brush;
     }
+    public GlassCaptureSnapshot ReadCaptureSnapshot(nint companion)
+    {
+        var bounds = Bounds;
+        var work = NativeMethods.WorkArea(new NativeMethods.Point { X = (int)(bounds.Left + bounds.Width / 2), Y = (int)(bounds.Top + bounds.Height / 2) });
+        var windows = new List<GlassCaptureWindow>();
+        var seen = new HashSet<nint>();
+        nint current = GetTopWindow(0);
+        // Walk actual visual top-level z order, not WindowFromPoint (which skips disabled/transparent helpers).
+        while (current != 0 && windows.Count < 2048 && seen.Add(current))
+        {
+            bool visible = BackdropNativeMethods.IsWindowVisible(current);
+            bool known = BackdropNativeMethods.GetWindowRect(current, out var rectangle);
+            windows.Add(new(current.ToInt64(), rectangle.ToScreenRect(), visible, known));
+            current = BackdropNativeMethods.GetWindow(current, 2); // GW_HWNDNEXT: top to bottom.
+        }
+        return new(bounds, work, BackgroundHandle.ToInt64(), WheelHandle.ToInt64(), companion.ToInt64(), windows, current == 0);
+    }
+    [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
+
     public void AssertWheelOwnsClip()
     {
         var bounds = Bounds;

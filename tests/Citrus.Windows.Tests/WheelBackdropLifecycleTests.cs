@@ -71,7 +71,7 @@ public sealed class WheelBackdropLifecycleTests(DesktopFixture desktop)
         var controller = new WheelBackdropController(true); controller.Attach(scene.WheelHandle);
         controller.Synchronize(1, scene.Bounds, scene.DpiScale, true, BackdropControllerTests.Eligible, false);
         var old = controller.CompanionHandle;
-        controller.Synchronize(1, scene.Bounds, scene.DpiScale, true, BackdropControllerTests.Eligible with { UseNativeAcrylic = false, Reason = "HighContrast" }, false);
+        controller.Synchronize(1, scene.Bounds, scene.DpiScale, true, BackdropControllerTests.Eligible with { RequestNativeAcrylic = false, Reason = "HighContrast" }, false);
         Assert.False(BackdropNativeMethods.IsWindow(old));
         controller.Dispose(); controller.Dispose();
         Assert.False(controller.IsAttached);

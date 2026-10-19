@@ -48,7 +48,7 @@ internal sealed class WindowBackdropController : IDisposable
         if (source is null) return Result = BackdropResult.Solid(decision, "NotAttached");
         if ((BackdropNativeMethods.GetWindowLongPtr(source.Handle, -20).ToInt64() & BackdropNativeMethods.WsExLayered) != 0)
             return Result = BackdropResult.Solid(decision, "LayeredWindow");
-        if (decision.UseNativeAcrylic) source.CompositionTarget.BackgroundColor = Colors.Transparent;
+        if (decision.RequestNativeAcrylic) source.CompositionTarget.BackgroundColor = Colors.Transparent;
         Result = BackdropConfiguration.Apply(api, source.Handle, decision, dark);
         if (!Result.IsNative) source.CompositionTarget.BackgroundColor = originalBackground;
         return Result;
