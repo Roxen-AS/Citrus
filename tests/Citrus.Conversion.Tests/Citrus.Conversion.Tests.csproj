@@ -7,4 +7,5 @@
     <ProjectReference Include="../../src/Citrus.Conversion/Citrus.Conversion.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
+  <ItemGroup><None Update="Fixtures/Archives/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

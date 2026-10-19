@@ -1,0 +1,13 @@
+Citrus archive backend
+
+RAR reading uses SharpCompress 0.50.5, MIT licensed, source commit
+ e4193af83b6ec8bdd5fb4f6ebffc2315dd3fc626
+https://github.com/adamhathcock/sharpcompress/tree/e4193af83b6ec8bdd5fb4f6ebffc2315dd3fc626
+The full MIT notice is in archive-licenses/SharpCompress-0.50.5-MIT.txt.
+The managed SharpCompress.dll is included in the offline application. No native
+UnRAR library or executable is bundled or downloaded. ZIP, TAR and GZIP use
+.NET's built-in archive APIs. Dependency and source hashes are recorded in
+archive-backend.lock.json and NuGet package lock files.
+
+RAR test archives are development fixtures only, carry separate MIT/BSD notices
+under tests/Citrus.Conversion.Tests/Fixtures/Archives, and are not publish assets.
