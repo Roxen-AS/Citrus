@@ -25,6 +25,7 @@ public sealed class PdfEngine(OutputWriter? outputWriter = null) : IConversionEn
 
     public bool CanExecute(OperationRequest request)
     {
+        if (request.Editor is not null) return false;
         var operation = Operations.FirstOrDefault(op => op.Id == request.Operation.Id);
         if (operation is null || (!operation.IsGroup && request.Inputs.Count != 1) ||
             !DropValidation.Accepts(request.Inputs, operation.Mode)) return false;

@@ -1,3 +1,5 @@
+using Citrus.Core.Editing;
+
 namespace Citrus.Core;
 
 public enum FileKind { Unknown, Directory, Image, Audio, Video, Pdf, Subtitle, Archive }
@@ -19,9 +21,9 @@ public sealed record OperationOptions
     public bool PreserveAspectRatio { get; init; } = true;
 }
 
-public sealed record OperationRequest(OperationDescriptor Operation, IReadOnlyList<string> Inputs, OperationOptions Options, string? DestinationDirectory);
+public sealed record OperationRequest(OperationDescriptor Operation, IReadOnlyList<string> Inputs, OperationOptions Options, string? DestinationDirectory, EditorDocument? Editor = null);
 public sealed record ConversionProgress(double? Fraction, string Message);
-public sealed record ConversionResult(IReadOnlyList<string> Outputs);
+public sealed record ConversionResult(IReadOnlyList<string> Outputs, CompressionOutcome? Compression = null);
 
 public interface IConversionEngine
 {

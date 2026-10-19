@@ -67,6 +67,7 @@ public sealed class MediaEngine : IConversionEngine
 
     public bool CanExecute(OperationRequest request)
     {
+        if (request.Editor is not null) return false;
         if (request.Inputs.Count != 1 || !routes.TryGetValue(request.Operation.Id, out var preset) || !DropValidation.Accepts(request.Inputs, request.Operation.Mode)) return false;
         string extension = Path.GetExtension(request.Inputs[0]);
         bool video = VideoInputs.TryGetValue(extension, out string? demuxer);

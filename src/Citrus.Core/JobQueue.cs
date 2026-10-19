@@ -1,3 +1,5 @@
+using Citrus.Core.Editing;
+
 namespace Citrus.Core;
 
 /// <summary>A session-only request and its outcome. Completion never faults; inspect State and Error.</summary>
@@ -17,16 +19,19 @@ public sealed class ConversionJob
     public ConversionProgress? Progress { get { lock (gate) return progress; } }
     public Exception? Error { get { lock (gate) return error; } }
     public IReadOnlyList<string> Outputs { get { lock (gate) return outputs; } }
+    private CompressionOutcome? compression;
+    public CompressionOutcome? Compression { get { lock (gate) return compression; } }
     public Task Completion => completion.Task;
     public void Cancel() => cancellation.Cancel();
     internal CancellationToken Token => cancellation.Token;
 
-    internal void SetState(ConversionJobState value, Exception? failure = null, IReadOnlyList<string>? results = null)
+    internal void SetState(ConversionJobState value, Exception? failure = null, IReadOnlyList<string>? results = null, CompressionOutcome? metrics = null)
     {
         lock (gate)
         {
             state = value;
             error = failure;
+            compression = metrics;
             if (results is not null) outputs = Array.AsReadOnly(results.ToArray());
         }
     }
@@ -95,7 +100,7 @@ public sealed class JobQueue
             var progress = new JobProgress(value => { if (job.Report(value)) Notify(job); });
             var result = await engine.ExecuteAsync(job.Request, progress, job.Token).ConfigureAwait(false);
             // Successful return owns the commit outcome; late cancellation must not hide user outputs.
-            job.SetState(ConversionJobState.Succeeded, results: result.Outputs);
+            job.SetState(ConversionJobState.Succeeded, results: result.Outputs, metrics: result.Compression);
         }
         catch (OperationCanceledException) when (job.Token.IsCancellationRequested)
         {

@@ -18,7 +18,7 @@ public sealed class ImageEngine(OutputWriter? outputWriter = null) : IConversion
             new OperationDescriptor("image.strip", "Strip metadata", OperationMode.Tools, null, false, false)
         }).ToArray());
 
-    public bool CanExecute(OperationRequest request) => request.Inputs.Count == 1 &&
+    public bool CanExecute(OperationRequest request) => request.Editor is null && request.Inputs.Count == 1 &&
         Operations.Any(operation => operation.Id == request.Operation.Id) &&
         DropValidation.Accepts(request.Inputs, request.Operation.Mode) &&
         Formats.ContainsKey(Path.GetExtension(request.Inputs[0])) &&
