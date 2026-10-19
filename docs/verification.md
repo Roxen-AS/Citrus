@@ -1,6 +1,6 @@
 # Candidate verification record
 
-Status: **unsigned Windows installer candidate; native Windows acceptance pending**.
+Status: **0.3.0-preview.1 source candidate; current Windows UI acceptance pending**.
 This record is committed product documentation so evidence survives cleanup of
 local development reports. Artifacts are `dist/Citrus-Setup.exe`,
 `dist/Citrus-win-x64/`, and `dist/SHA256SUMS`. The source archive inside the payload
@@ -10,7 +10,36 @@ Environment: Linux x64; .NET SDK 10.0.402, runtime 10.0.13; Python 3.12;
 NSIS 3.11. No Windows desktop session was available. Earlier bounded Wine attempts
 could not start the shipped runtime; no further Wine attempt is used as evidence.
 
-## Checks and interpretation
+## Current source checks — 0.3 preview
+
+The combined editor and presentation source at `5f1ab80` passed a locked Release
+solution build with zero warnings/errors. Core: **164 passed, one Windows-only
+sharing-violation case skipped**. Conversion: **454 passed, zero failures/skips**.
+These ran on Linux with host FFmpeg 7.1.5; they do not establish Windows rendering,
+physical Explorer behavior, device audio or compositor appearance. The subsequent
+version-only change to 0.3.0-preview.1 also passed the solution build.
+
+The exact native media correction at `aa032b8` passed **49/49** tests on Windows
+using the bundled FFmpeg/FFprobe 9.0.2 executables in run
+[39220122966](https://github.com/Skytuhua/Citrus/actions/runs/39220122966).
+That focused result is distinct from the combined Windows suite, which must run
+again on the current source.
+
+The neutral Light/Dark visual rework replaces the earlier brown palette, keeps
+the workspace action footer pinned, and adapts wheel metadata to enlarged text.
+Source review passed; actual new Windows images remain unaccepted. Desktop run
+[39221819285](https://github.com/Skytuhua/Citrus/actions/runs/39221819285)
+timed out during the native tests. Native glass run
+[39221819243](https://github.com/Skytuhua/Citrus/actions/runs/39221819243)
+passed 23 tests and refused two screen captures because the first pixel belonged
+to an unrelated foreground window. It produced no glass proof images. The wheel's
+production native-backdrop gate remains disabled; WPF images and DWM return codes
+are not optical blur evidence.
+
+The older installer and test counts below are retained baseline evidence. They do
+not identify a rebuilt 0.3 installer or establish acceptance of the current UI.
+
+## Earlier 0.2 baseline checks and interpretation
 
 Checks executed on 2026-10-19. Native Windows items remain pending:
 
