@@ -50,10 +50,13 @@ public sealed class DesktopFixture : IDisposable
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
     }
-    public async Task RunAsync(Func<Task> action)
+    public async Task RunAsync(Func<Task> action, TimeSpan? timeout = null)
     {
+        var deadline = timeout ?? TimeSpan.FromSeconds(30);
+        if (deadline <= TimeSpan.Zero || deadline > TimeSpan.FromMinutes(2))
+            throw new ArgumentOutOfRangeException(nameof(timeout), "Desktop action deadline must be positive and at most two minutes.");
         var dispatcher = await ready.Task.WaitAsync(TimeSpan.FromSeconds(20));
-        await guard.RunAsync(dispatcher, action, TimeSpan.FromSeconds(30), fatalExit.Task);
+        await guard.RunAsync(dispatcher, action, deadline, fatalExit.Task);
     }
     public void Dispose()
     {

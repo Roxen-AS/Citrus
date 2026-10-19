@@ -53,7 +53,9 @@ public sealed class GlassCompositorTests(DesktopFixture desktop)
         Assert.Equal(BackdropState.Solid, fixture.Surface.State);
         Assert.Equal(255, ((System.Windows.Media.SolidColorBrush)fixture.Surface.EffectiveTint).Color.A);
         Assert.Equal(fixture.Scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
-    });
+        // Five exhaustive ordinary-window ownership scans/captures take about 30 seconds on CI.
+        // Keep every pixel check; only this larger optical workload gets a bounded 90-second budget.
+    }, timeout: ordinary ? TimeSpan.FromSeconds(90) : null);
 
     [Theory]
     [InlineData(false)]
