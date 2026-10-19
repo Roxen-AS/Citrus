@@ -1,0 +1,95 @@
+name: Windows 11 native glass evidence
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'src/Citrus.Core/Presentation/**'
+      - 'src/Citrus.Windows/**'
+      - 'tests/Citrus.Windows.Tests/**'
+      - 'packaging/*presentation*'
+      - 'packaging/notices/presentation/**'
+      - '.github/workflows/windows-glass.yml'
+permissions:
+  contents: read
+jobs:
+  native-client-proof:
+    runs-on: windows-11-arm
+    timeout-minutes: 25
+    env:
+      CITRUS_GLASS_ARTIFACTS: ${{ github.workspace }}\TestResults\glass-native
+    steps:
+      - uses: actions/checkout@v4
+      - name: Select exact x64 SDK host on ARM64 Windows 11
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force TestResults/host | Out-Null
+          $os = Get-CimInstance Win32_OperatingSystem
+          $os | Select-Object Caption, Version, BuildNumber, ProductType | ConvertTo-Json | Set-Content TestResults/host/os.json
+          if ($os.ProductType -ne 1 -or [int]$os.BuildNumber -lt 22621) { throw 'Actual Windows 11 client OS is required' }
+          $candidate = Join-Path $env:ProgramFiles 'dotnet\x64\dotnet.exe'
+          $usable = (Test-Path $candidate) -and ((& $candidate --list-sdks) -match '^10\.0\.402 ') -and ((& $candidate --info) -match 'Architecture:\s+x64')
+          if (-not $usable) {
+            $install = Join-Path $env:RUNNER_TEMP 'citrus-dotnet-x64'
+            $script = Join-Path $env:RUNNER_TEMP 'citrus-dotnet-install.ps1'
+            Invoke-WebRequest https://dot.net/v1/dotnet-install.ps1 -OutFile $script
+            & $script -Version 10.0.402 -Architecture x64 -InstallDir $install -NoPath
+            if ($LASTEXITCODE) { throw 'Official x64 SDK installation failed; blocked acquisition must be reported without bypass' }
+            $candidate = Join-Path $install 'dotnet.exe'
+          }
+          $info = & $candidate --info
+          $info | Set-Content TestResults/host/dotnet-info.txt
+          if ((& $candidate --version) -ne '10.0.402' -or -not ($info -match 'Architecture:\s+x64')) { throw 'Exact x64 SDK host not established' }
+          "DOTNET_X64=$candidate" | Out-File $env:GITHUB_ENV -Append
+          "Host process architecture=$env:PROCESSOR_ARCHITECTURE; product/test process=x64 under emulation; session=$((Get-Process -Id $PID).SessionId)" | Set-Content TestResults/host/architecture.txt
+      - name: Collect already-installed SDK license evidence without network acquisition
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $kits = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10'
+          New-Item -ItemType Directory -Force TestResults/sdk-license | Out-Null
+          $roots = @((Join-Path $kits 'Licenses'), (Join-Path $kits 'License')) | Where-Object { Test-Path $_ }
+          $files = @($roots | ForEach-Object { Get-ChildItem $_ -File -Recurse -ErrorAction SilentlyContinue } | Where-Object { $_.Extension -in '.rtf','.txt','.html' } | Select-Object -First 40)
+          $evidence = foreach ($file in $files) {
+            $name = $file.FullName.Substring($kits.Length + 1).Replace('\','_')
+            Copy-Item -LiteralPath $file.FullName -Destination (Join-Path TestResults/sdk-license $name)
+            @{ SourcePath = $file.FullName; Sha256 = (Get-FileHash $file.FullName -Algorithm SHA256).Hash; Artifact = $name }
+          }
+          @{ LicenseFiles = @($evidence); InstalledIncludeVersions = @(Get-ChildItem (Join-Path $kits 'Include') -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name); Review = 'Pending SDK redistribution terms review; collection does not approve release' } | ConvertTo-Json -Depth 6 | Set-Content TestResults/sdk-license/evidence.json
+      - name: Locked restore and x64 native test build
+        shell: pwsh
+        run: |
+          & $env:DOTNET_X64 restore tests/Citrus.Windows.Tests --locked-mode
+          if ($LASTEXITCODE) { throw 'Locked restore failed' }
+          & $env:DOTNET_X64 build tests/Citrus.Windows.Tests -c Release --no-restore -m:1 -nodeReuse:false
+          if ($LASTEXITCODE) { throw 'Native x64 test build failed' }
+      - name: Production controller lifecycle and actual owned-scene compositor capture
+        shell: pwsh
+        run: |
+          & $env:DOTNET_X64 test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~BackdropControllerTests|FullyQualifiedName~WheelBackdropLifecycleTests|FullyQualifiedName~GlassNativeProofTests' --logger trx --results-directory TestResults/native
+          if ($LASTEXITCODE) { throw 'Native configuration/lifecycle/capture assertions failed' }
+          if (Test-Path TestResults/glass-native/metadata.json) { Get-Content TestResults/glass-native/metadata.json | Add-Content $env:GITHUB_STEP_SUMMARY }
+      - name: Self-contained product inventory and projection smoke without SDK or PATH lookup
+        shell: pwsh
+        run: |
+          & $env:DOTNET_X64 publish src/Citrus.Windows -c Release -r win-x64 --self-contained true -p:RestoreLockedMode=true -m:1 -nodeReuse:false -o dist/glass-product
+          if ($LASTEXITCODE) { throw 'Product publish failed' }
+          python packaging/verify-presentation-publish.py dist/glass-product --package-cache
+          if ($LASTEXITCODE) { throw 'Projection closure verification failed' }
+          & $env:DOTNET_X64 publish tests/Citrus.Windows.Tests -c Release -r win-x64 --self-contained true -p:RestoreLockedMode=true -m:1 -nodeReuse:false -o dist/glass-smoke
+          if ($LASTEXITCODE) { throw 'Self-contained smoke publish failed' }
+          python packaging/verify-presentation-publish.py dist/glass-smoke --package-cache
+          if ($LASTEXITCODE) { throw 'Smoke projection closure verification failed' }
+          $exe = (Resolve-Path dist/glass-smoke/Citrus.Windows.Tests.exe).Path
+          $env:DOTNET_ROOT = Join-Path $env:RUNNER_TEMP 'deliberately-absent-dotnet'
+          $env:DOTNET_ROOT_X64 = $env:DOTNET_ROOT
+          $env:DOTNET_MULTILEVEL_LOOKUP = '0'
+          $env:PATH = "$env:SystemRoot\System32;$env:SystemRoot"
+          & $exe --glass-projection-smoke | Tee-Object -FilePath TestResults/host/offline-projection-smoke.json
+          if ($LASTEXITCODE) { throw 'App-local projection smoke failed' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows11-x64-glass-evidence
+          path: TestResults/**
+          if-no-files-found: warn

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "dependencies": {
-    "net10.0-windows7.0": {
+    "net10.0-windows10.0.19041": {
       "bblanchon.PDFium.Linux": {
         "type": "Transitive",
         "resolved": "152.0.7961",
@@ -80,8 +80,7 @@
         "resolved": "4.150.1",
         "contentHash": "5v3T8X1N62Dp+AkPO70GNBNS/NRBPGMOTiN+Prg33sZAcm/Ug3YOAH+3RTj/jxJV8NGTJs2idGpC2Qdae2mGLQ==",
         "dependencies": {
-          "SkiaSharp.NativeAssets.Win32": "4.150.1",
-          "SkiaSharp.NativeAssets.macOS": "4.150.1"
+          "SkiaSharp.NativeAssets.Win32": "4.150.1"
         }
       },
       "SkiaSharp.NativeAssets.Linux.NoDependencies": {
@@ -120,7 +119,7 @@
         "type": "Project"
       }
     },
-    "net10.0-windows7.0/win-x64": {
+    "net10.0-windows10.0.19041/win-x64": {
       "bblanchon.PDFium.Linux": {
         "type": "Transitive",
         "resolved": "152.0.7961",

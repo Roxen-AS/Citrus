@@ -60,7 +60,7 @@ def verify(root):
         'docs/operations.md','docs/windows-acceptance.md','docs/verification.md']
     for name in required:
         if not (root / name).is_file() or not (root / name).stat().st_size: raise ValueError('Missing/empty package asset: ' + name)
-    for name in ['image-backend.lock.json','media-lock.json','pdf-backend.lock.json','archive-backend.lock.json']:
+    for name in ['image-backend.lock.json','media-lock.json','pdf-backend.lock.json','archive-backend.lock.json','presentation-backend.lock.json']:
         if (root / name).read_bytes() != (REPO / 'packaging' / name).read_bytes(): raise ValueError('Changed provenance: ' + name)
     image = json.loads((root / 'image-backend.lock.json').read_text())['windowsNative']
     if sha(root / Path(image['path']).name) != image['sha256']: raise ValueError('Image native hash mismatch')
@@ -77,7 +77,7 @@ def verify(root):
             if archive.extractfile(member).read() != (REPO / source).read_bytes(): raise ValueError('Stale corresponding source: ' + member)
         for source in (REPO / 'packaging/notices/media-licenses').iterdir():
             if archive.extractfile('provenance/media-licenses/' + source.name).read() != source.read_bytes(): raise ValueError('Stale source license: ' + source.name)
-    for script in ['verify-pdf-publish.py','verify-archive-publish.py']:
+    for script in ['verify-pdf-publish.py','verify-archive-publish.py','verify-presentation-publish.py']:
         import subprocess, sys
         subprocess.run([sys.executable, str(REPO / 'packaging' / script), str(root)], check=True)
     inventory(root)

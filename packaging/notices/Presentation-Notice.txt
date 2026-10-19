@@ -1,0 +1,23 @@
+Citrus Windows presentation projection dependencies
+
+Microsoft.Windows.SDK.NET.Ref 10.0.19041.57
+Copyright Microsoft Corporation. All rights reserved.
+NuGet: https://www.nuget.org/packages/Microsoft.Windows.SDK.NET.Ref/10.0.19041.57
+Declared license: https://aka.ms/WinSDKLicenseURL
+Exact upstream nuspec: presentation/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57.nuspec
+The SDK package supplies app-local Microsoft.Windows.SDK.NET.dll and WinRT.Runtime.dll.
+It is an implicit SDK download/reference and is audited by presentation-backend.lock.json.
+The package contains no full SDK license text. Its declared license endpoint returned
+HTTP 403 in the build environment on 2026-10-19. Windows native CI collects the
+already-installed Windows SDK license, version, path and SHA-256 for review.
+Redistribution-license review is PENDING; no release approval is implied by a build.
+Do not describe the entire Windows SDK projection package as MIT-licensed.
+
+WinRT.Runtime.dll 2.2.0.0 (file 2.2.0.48161), C#/WinRT
+MIT license: presentation/CsWinRT-2.2.0-LICENSE.txt
+Source: https://github.com/microsoft/CsWinRT/tree/8649ee3eeb2445ca2a36d80d878ef60b96a6c65d
+Release tag: 2.2.0.241111.1
+This component-specific source license does not replace the SDK package license.
+
+No Windows App SDK, WinUI framework, undocumented accent/composition API, or runtime
+backend download is included. Native Acrylic uses the operating system DWM API.

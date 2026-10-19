@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "dotnetSdk": "10.0.402",
+  "targetFramework": "net10.0-windows10.0.19041.0",
+  "supportedOSPlatformVersion": "10.0.19041.0",
+  "windowsSdkPackageVersion": "10.0.19041.57",
+  "implicitPackages": [
+    {
+      "id": "Microsoft.Windows.SDK.NET.Ref",
+      "version": "10.0.19041.57",
+      "reason": "SDK framework reference/download; omitted from NuGet packages.lock.json",
+      "nugetSource": "https://api.nuget.org/v3/index.json",
+      "nupkgSha512": "TI9FqukRZSFfSZ6fLh0cjO0X0OIAn5vZKGU/iNzINt3IZeK7o9Y1Dmtp+xwEv696XO1cHMB7aUqTjql3/KY9xg==",
+      "nupkgSha256": "90b18f2cf7d7a23f5b0bfe2b86d8dda45881481f677ce36eccaf6e9ab50b6b4b",
+      "nuspecSha256": "ab5229d56bc17be4f78440c326aa8376f0577c5121a7c0b5a70b7d2819c6cd9a",
+      "runtimeListSha256": "42a5438172736cb0f04fecae83f134f64e97b019ffbed26f78fb06c70a2e8359",
+      "dependencies": []
+    }
+  ],
+  "publishedAssemblies": {
+    "Microsoft.Windows.SDK.NET.dll": {
+      "packagePath": "lib/net8.0/Microsoft.Windows.SDK.NET.dll",
+      "sha256": "0ec371d93798852e36461c8adddbeadce0f963a04752f0b64e54fe19c1c834a7",
+      "assemblyVersion": "10.0.19041.38",
+      "fileVersion": "10.0.19041.55"
+    },
+    "WinRT.Runtime.dll": {
+      "packagePath": "lib/net8.0/WinRT.Runtime.dll",
+      "sha256": "bcf3a14e8712a90837fc5c0d8c8a24696af2bd7f74e9767597ec81ededfb23db",
+      "assemblyVersion": "2.2.0.0",
+      "fileVersion": "2.2.0.48161"
+    }
+  },
+  "excludedRuntimeProfiles": [
+    "Microsoft.Windows.UI.Xaml.dll"
+  ],
+  "noticeSha256": {
+    "Presentation-Notice.txt": "4671013110771fc1e5a5d5459ad70c339190cdb2684c843a96f4ddc35712f49d",
+    "presentation/CsWinRT-2.2.0-LICENSE.txt": "9906940f61b1f0b533fa7d99baf55178b2808fbe113ea51dfbfad8572ccd5f2b",
+    "presentation/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57.nuspec": "ab5229d56bc17be4f78440c326aa8376f0577c5121a7c0b5a70b7d2819c6cd9a"
+  },
+  "sdkLicense": {
+    "declaredUrl": "https://aka.ms/WinSDKLicenseURL",
+    "status": "Pending installed Windows SDK license evidence and redistribution review",
+    "localRetrieval": "HTTP 403; not bypassed"
+  },
+  "csWinRtSource": {
+    "tag": "2.2.0.241111.1",
+    "commit": "8649ee3eeb2445ca2a36d80d878ef60b96a6c65d"
+  },
+  "nativeEligibility": {
+    "wheelProductionDefault": false,
+    "status": "Windows compositor proof pending; HRESULT success is configuration only"
+  }
+}

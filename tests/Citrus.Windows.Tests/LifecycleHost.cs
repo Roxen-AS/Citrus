@@ -9,6 +9,7 @@ internal static class LifecycleHost
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args.Length == 1 && args[0] == "--glass-projection-smoke") return GlassProjectionSmoke.Run();
         if (args.Length < 3 || args[0] != "--resident-test") return 2;
         FileActions? actions = null;
         if (args.Contains("--owned-move"))
