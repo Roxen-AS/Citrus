@@ -29,7 +29,7 @@ def mutations(payload):
     def expand(text):
         for line in text.splitlines():
             line = line.strip()
-            if line == '!include "${GENERATED}/install.nsh"':
+            if line == '!include "${GENERATED}\\install.nsh"':
                 yield from expand(install)
             elif line.startswith('Call '):
                 name = line[5:]
