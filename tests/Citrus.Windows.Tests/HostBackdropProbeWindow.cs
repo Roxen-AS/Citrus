@@ -161,6 +161,14 @@ internal sealed class HostBackdropProbeWindow : IAsyncDisposable
         UsesHostBrush = !opaque;
     }
 
+    internal (Vector2 Size, Vector2 Center, Vector2 Radius) ReadVisualGeometry()
+    {
+        dispatcher.VerifyAccess();
+        if (visual is null || geometry is null || clip is null || visual.Clip != clip || clip.Geometry != geometry)
+            throw new InvalidOperationException("The configured visual must retain its ellipse geometry clip.");
+        return (visual.Size, geometry.Center, geometry.Radius);
+    }
+
     internal void Hide()
     {
         dispatcher.VerifyAccess();

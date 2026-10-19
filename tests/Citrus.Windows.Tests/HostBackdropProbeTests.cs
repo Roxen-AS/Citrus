@@ -93,7 +93,7 @@ public sealed class HostBackdropProbeTests(DesktopFixture desktop)
         if (queueLease.OwnsQueue) Assert.True(queueLease.ShutdownCompleted);
         Assert.Equal(BackdropState.Solid, scene.Wheel.MaterialState);
         Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
-    });
+    }, timeout: TimeSpan.FromSeconds(90)); // Two owned optical variants:12 guarded frames plus6 exhaustive ellipse input scans.
 
     private static void AssertOpaqueBacking(System.Windows.Media.Brush brush)
     {
@@ -139,7 +139,7 @@ public sealed class HostBackdropProbeTests(DesktopFixture desktop)
             Assert.True(probe.Configured);
             Assert.True(probe.UsesHostBrush);
             probe.ShowBehind(scene.WheelHandle, scene.Bounds);
-            result["NativeWindowConfiguration"] = AssertConfiguration(scene, probe);
+            result["NativeWindowConfiguration"] = AssertConfiguration(scene, probe, root);
             using var configuredA = await Capture(scene, helper, root, "02-configured-raw-host-A");
             scene.AssertWheelOwnsClip(helper);
             scene.SetPattern(true);
@@ -248,7 +248,7 @@ public sealed class HostBackdropProbeTests(DesktopFixture desktop)
         }
     }
 
-    private static object AssertConfiguration(GlassOwnedScene scene, HostBackdropProbeWindow probe)
+    private static object AssertConfiguration(GlassOwnedScene scene, HostBackdropProbeWindow probe, string root)
     {
         long style = BackdropNativeMethods.GetWindowLongPtr(probe.Handle, -16).ToInt64();
         long extended = BackdropNativeMethods.GetWindowLongPtr(probe.Handle, -20).ToInt64();
@@ -261,25 +261,57 @@ public sealed class HostBackdropProbeTests(DesktopFixture desktop)
         Assert.False(BackdropNativeMethods.IsWindowVisible(probe.Owner));
         Assert.Equal(scene.WheelHandle, BackdropNativeMethods.GetWindow(probe.Handle, 3));
         Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
-        nint region = BackdropNativeMethods.CreateRectRgn(0, 0, 0, 0);
+        // Requested geometric endpoints and the rasterized native bounding box are different
+        // contracts. Compare the entire actual region against an independent native ellipse,
+        // never an assumed endpoint-inclusive bounding box or a +/-1 tolerance.
+        int requestedLeft = checked((int)Math.Ceiling(8 * scene.DpiScale));
+        int requestedRight = checked((int)Math.Floor(360 * scene.DpiScale));
+        nint region = BackdropNativeMethods.CreateRectRgn(0, 0, 0, 0), reference = 0;
         try
         {
             Assert.NotEqual(0, region);
-            Assert.Equal(3, BackdropNativeMethods.GetWindowRgn(probe.Handle, region));
-            Assert.NotEqual(0, BackdropNativeMethods.GetRgnBox(region, out var bounds));
-            Assert.Equal(probe.ClipLeft, bounds.Left); Assert.Equal(probe.ClipRight, bounds.Right);
-            Assert.True(BackdropNativeMethods.PtInRegion(region, (int)(184 * scene.DpiScale), (int)(184 * scene.DpiScale)));
-            Assert.False(BackdropNativeMethods.PtInRegion(region, 0, 0));
-            return new
+            reference = BackdropNativeMethods.CreateEllipticRgn(requestedLeft, requestedLeft, requestedRight, requestedRight);
+            Assert.NotEqual(0, reference);
+            int regionKind = BackdropNativeMethods.GetWindowRgn(probe.Handle, region);
+            int boundsKind = BackdropNativeMethods.GetRgnBox(region, out var bounds);
+            int referenceKind = BackdropNativeMethods.GetRgnBox(reference, out var referenceBounds);
+            bool matchesReference = EqualRgn(region, reference);
+            bool centerIncluded = BackdropNativeMethods.PtInRegion(region, (int)(184 * scene.DpiScale), (int)(184 * scene.DpiScale));
+            bool cornerIncluded = BackdropNativeMethods.PtInRegion(region, 0, 0);
+            var visual = probe.ReadVisualGeometry();
+            var metadata = new
             {
-                Style = style, ExtendedStyle = extended, RegionKind = "COMPLEXREGION(3)", RegionBounds = bounds.ToScreenRect(),
-                RegionCenterIncluded = true, RegionCornerIncluded = false, Helper = probe.Handle.ToInt64(), Owner = probe.Owner.ToInt64(),
+                Style = style, ExtendedStyle = extended, RegionKind = regionKind, NativeBoundsKind = boundsKind,
+                RegionBounds = bounds.ToScreenRect(), ReferenceRegionKind = referenceKind, ReferenceRegionBounds = referenceBounds.ToScreenRect(),
+                RegionMatchesIndependentNativeEllipse = matchesReference,
+                RequestedPhysicalEllipse = new { Left = requestedLeft, Top = requestedLeft, Right = requestedRight, Bottom = requestedRight },
+                ActualVisualClip = new { Width = visual.Size.X, Height = visual.Size.Y, CenterX = visual.Center.X, CenterY = visual.Center.Y, RadiusX = visual.Radius.X, RadiusY = visual.Radius.Y },
+                RegionCenterIncluded = centerIncluded, RegionCornerIncluded = cornerIncluded, Helper = probe.Handle.ToInt64(), Owner = probe.Owner.ToInt64(),
                 ImmediatelyAboveHelper = BackdropNativeMethods.GetWindow(probe.Handle, 3).ToInt64(),
                 OwnerHidden = !BackdropNativeMethods.IsWindowVisible(probe.Owner), InputExclusion = "WS_DISABLED|WS_EX_NOACTIVATE|WS_EX_TOOLWINDOW|WS_EX_TRANSPARENT; WM_MOUSEACTIVATE MA_NOACTIVATE; WM_NCHITTEST HTTRANSPARENT"
             };
+            GlassCompositorTests.Write(Path.Combine(root, "native-window-configuration.json"), metadata);
+            Assert.Equal(3, referenceKind); // The independently rasterized ellipse is complex.
+            Assert.Equal(referenceKind, regionKind);
+            Assert.Equal(referenceKind, boundsKind);
+            Assert.True(matchesReference, "The HWND must retain exactly the independently rasterized inward ellipse.");
+            Assert.Equal(referenceBounds.ToScreenRect(), bounds.ToScreenRect());
+            Assert.Equal(requestedLeft, probe.ClipLeft); Assert.Equal(requestedRight, probe.ClipRight);
+            float radius = (requestedRight - requestedLeft) / 2f;
+            Assert.Equal((float)probe.Width, visual.Size.X); Assert.Equal((float)probe.Height, visual.Size.Y);
+            Assert.Equal(requestedLeft + radius, visual.Center.X); Assert.Equal(requestedLeft + radius, visual.Center.Y);
+            Assert.Equal(radius, visual.Radius.X); Assert.Equal(radius, visual.Radius.Y);
+            Assert.True(centerIncluded); Assert.False(cornerIncluded);
+            return metadata;
         }
-        finally { if (region != 0) BackdropNativeMethods.DeleteObject(region); }
+        finally
+        {
+            if (reference != 0) BackdropNativeMethods.DeleteObject(reference);
+            if (region != 0) BackdropNativeMethods.DeleteObject(region);
+        }
     }
+
+    [DllImport("gdi32.dll")] private static extern bool EqualRgn(nint first, nint second);
 
     private static async Task<Bitmap> Capture(GlassOwnedScene scene, nint helper, string root, string name, BackdropState shellState = BackdropState.ConfiguredNativeAcrylic)
     {
