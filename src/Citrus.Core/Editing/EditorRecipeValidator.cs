@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using System.Reflection;
+using System.Numerics;
 
 namespace Citrus.Core.Editing;
 
@@ -13,8 +14,8 @@ public static class EditorRecipeValidator
         void Size(SizeI size, string field) => Check(size.Width is > 0 and <= 16384 && size.Height is > 0 and <= 16384 && (long)size.Width * size.Height <= 64_000_000, field, "Invalid size or pixel budget exceeded.");
         void Rect(RectD r, string field) { Number(r.X, 0, 16384, field); Number(r.Y, 0, 16384, field); Number(r.Width, double.Epsilon, 16384, field); Number(r.Height, double.Epsilon, 16384, field); }
         void Ids(IEnumerable<Guid> ids, string field) { var array = ids.ToArray(); Check(!array.Contains(Guid.Empty) && array.Distinct().Count() == array.Length, field, "IDs must be nonempty and unique."); }
-        void Time(RationalTime time, string field) => Check(time.Denominator > 0 && time.Numerator >= 0 && (decimal)time.Numerator <= 86400m * time.Denominator, field, "Invalid time or duration exceeds 24 hours.");
-        void Range(TimeRange range, string field) { Time(range.Start, field); Time(range.End, field); if (range.Start.Denominator > 0 && range.End.Denominator > 0) Check(range.Start.CompareTo(range.End) < 0, field, "Range must be nonempty."); }
+        void Time(RationalTime time, string field, bool assembled = true) => Check(time.Denominator > 0 && time.Numerator >= 0 && (!assembled || (BigInteger)time.Numerator <= 86400 * (BigInteger)time.Denominator), field, assembled ? "Invalid time or timeline exceeds 24 hours." : "Invalid source offset.");
+        void Range(TimeRange range, string field, bool assembled = true) { Time(range.Start, field, assembled); Time(range.End, field, assembled); if (range.Start.Denominator > 0 && range.End.Denominator > 0) Check(range.Start.CompareTo(range.End) < 0, field, "Range must be nonempty."); }
         void Shadow(ShadowSpec? shadow, string field) { if (shadow is null) return; Number(shadow.X,-16384,16384,field); Number(shadow.Y,-16384,16384,field); Number(shadow.Sigma,0,100,field); }
         void Background(CanvasBackground background, string field)
         {
@@ -48,29 +49,30 @@ public static class EditorRecipeValidator
                 }
             }
         }
-        decimal Clips(ImmutableArray<MediaClip> clips)
+        ExactTime Clips(ImmutableArray<MediaClip> clips)
         {
             Check(clips.Length is >= 1 and <= 100,"Clips","Require 1..100 clips.");
             Ids(clips.Select(c => c.Id),"Clips");
-            decimal duration = 0;
+            var duration = ExactTime.Zero;
             foreach (var clip in clips)
             {
-                Range(clip.Range,"Clips.Range"); Number(clip.Speed,.25,4,"Clips.Speed");
+                Range(clip.Range,"Clips.Range", assembled: false); Number(clip.Speed,.25,4,"Clips.Speed");
                 Check(clip.VideoStream is >= 0 || clip.AudioStream is >= 0,"Clips.Stream","At least one stream required.");
                 Check(clip.VideoStream is null or >= 0 && clip.AudioStream is null or >= 0,"Clips.Stream","Invalid stream index.");
                 if (double.IsFinite(clip.Speed) && clip.Speed is >= .25 and <= 4)
                 {
-                    Check(Math.Round(clip.Speed,6) == clip.Speed,"Clips.Speed","At most six decimal places.");
-                    if (clip.Range.Start.Denominator > 0 && clip.Range.End.Denominator > 0)
-                        duration += ((decimal)clip.Range.End.Numerator / clip.Range.End.Denominator - (decimal)clip.Range.Start.Numerator / clip.Range.Start.Denominator) / (decimal)clip.Speed;
+                    bool validSpeedPrecision = Math.Round(clip.Speed,6) == clip.Speed;
+                    Check(validSpeedPrecision,"Clips.Speed","At most six decimal places.");
+                    if (validSpeedPrecision && clip.Range.Start.Denominator > 0 && clip.Range.End.Denominator > 0)
+                        duration = duration.Add(ExactTime.From(clip.Range.End).Subtract(ExactTime.From(clip.Range.Start)).Divide(ExactTime.FromDisplayedSpeed(clip.Speed)));
                 }
             }
-            Check(duration is > 0 and <= 86400,"Clips","Invalid assembled duration.");
+            Check(duration.CompareTo(ExactTime.Zero) > 0 && duration.CompareTo(new RationalTime(86400, 1)) <= 0,"Clips","Invalid assembled duration.");
             return duration;
         }
         void Audio(AudioRecipe audio)
         {
-            decimal duration = Clips(audio.Clips);
+            ExactTime duration = Clips(audio.Clips);
             Check(audio.SampleRate is >= 8000 and <= 192000,"SampleRate","Unsupported sample rate.");
             var matrix = audio.Channels;
             Check(matrix.InputChannels.Length is >= 1 and <= 64 && matrix.OutputChannels.Length is >= 1 and <= 64 && matrix.Coefficients.Length == matrix.InputChannels.Length * matrix.OutputChannels.Length,"Channels","Invalid channel matrix dimensions.");
@@ -84,7 +86,7 @@ public static class EditorRecipeValidator
                 Range(b.Range,"Bleeps.Range"); Number(b.FrequencyHz,100,4000,"Bleeps.FrequencyHz"); Number(b.GainDbFs,-60,-3,"Bleeps.GainDbFs");
                 Check(b.FadeMilliseconds is >= 0 and <= 50,"Bleeps.FadeMilliseconds","Invalid fade.");
                 Check(b.Channels.Length > 0 && b.Channels.All(c => c >= 0 && c < matrix.OutputChannels.Length) && b.Channels.Distinct().Count() == b.Channels.Length,"Bleeps.Channels","Invalid channels.");
-                if (b.Range.End.Denominator > 0) Check((decimal)b.Range.End.Numerator / b.Range.End.Denominator <= duration,"Bleeps.Range","Region exceeds timeline.");
+                if (b.Range.End.Denominator > 0) Check(duration.CompareTo(b.Range.End) >= 0,"Bleeps.Range","Region exceeds timeline.");
             }
             for (int i = 0; i < audio.Bleeps.Length; i++)
                 for (int j = i + 1; j < audio.Bleeps.Length; j++)
@@ -156,19 +158,20 @@ public static class EditorRecipeValidator
                 Check(collage.Columns is >= 1 and <= 100,"Columns","Invalid columns."); Number(collage.Margin,0,16384,"Margin"); Number(collage.Gap,0,16384,"Gap"); Number(collage.FeaturedFraction,.2,.8,"FeaturedFraction");
                 Check(collage.FeaturedItemId is null || collage.Items.Any(i => i.Id == collage.FeaturedItemId),"FeaturedItemId","Unknown featured item.");
                 if (collage.Layout is CollageLayout.FeaturedLeft or CollageLayout.FeaturedTop) Check(collage.FeaturedItemId is not null,"FeaturedItemId","Featured layout needs a selected item.");
+                Check(CollageHasTileArea(collage),"Layout","Margins and gaps must leave positive tile extents.");
                 foreach (var item in collage.Items) { if (item.Crop is { } r) Rect(r,"Items.Crop"); Number(item.Anchor.X,0,1,"Items.Anchor"); Number(item.Anchor.Y,0,1,"Items.Anchor"); Number(item.Weight,double.Epsilon,100000,"Items.Weight"); }
                 Background(collage.Background,"Background"); Number(collage.CornerRadius,0,16384,"CornerRadius"); Shadow(collage.Shadow,"Shadow"); break;
             case VideoRecipe video:
-                decimal duration = Clips(video.Clips); Size(video.Canvas,"Canvas"); if (video.Crop is { } vc) { Rect(vc,"Crop"); Check(vc.X + vc.Width <= video.Canvas.Width && vc.Y + vc.Height <= video.Canvas.Height,"Crop","Crop exceeds canvas."); }
+                ExactTime duration = Clips(video.Clips); Size(video.Canvas,"Canvas"); if (video.Crop is { } vc) { Rect(vc,"Crop"); Check(vc.X + vc.Width <= video.Canvas.Width && vc.Y + vc.Height <= video.Canvas.Height,"Crop","Crop exceeds canvas."); }
                 Check(video.SplitAt.Length <= 99 && (video.SplitAt.IsEmpty || video.SnapshotAt is null),"SplitAt","At most 100 segments; snapshot and split are exclusive.");
                 RationalTime previous = new(0,1);
-                foreach (var split in video.SplitAt) { Time(split,"SplitAt"); if (split.Denominator > 0) { Check(split.CompareTo(previous) > 0 && (decimal)split.Numerator / split.Denominator < duration,"SplitAt","Splits must be unique, sorted and inside duration."); previous = split; } }
-                if (video.SnapshotAt is { } snapshot) { Time(snapshot,"SnapshotAt"); if (snapshot.Denominator > 0) Check((decimal)snapshot.Numerator / snapshot.Denominator < duration,"SnapshotAt","Snapshot exceeds timeline."); }
+                foreach (var split in video.SplitAt) { Time(split,"SplitAt"); if (split.Denominator > 0) { Check(split.CompareTo(previous) > 0 && duration.CompareTo(split) > 0,"SplitAt","Splits must be unique, sorted and inside duration."); previous = split; } }
+                if (video.SnapshotAt is { } snapshot) { Time(snapshot,"SnapshotAt"); if (snapshot.Denominator > 0) Check(duration.CompareTo(snapshot) > 0,"SnapshotAt","Snapshot exceeds timeline."); }
                 Check(video.Masks.Length <= 1000,"Masks","Too many masks."); Ids(video.Masks.Select(m => m.Id),"Masks");
                 foreach (var mask in video.Masks)
                 {
                     Range(mask.Range,"Masks.Range");
-                    if (mask.Range.End.Denominator > 0) Check((decimal)mask.Range.End.Numerator / mask.Range.End.Denominator <= duration,"Masks.Range","Mask exceeds timeline.");
+                    if (mask.Range.End.Denominator > 0) Check(duration.CompareTo(mask.Range.End) >= 0,"Masks.Range","Mask exceeds timeline.");
                     Number(mask.Radius,0,100,"Masks.Radius"); Check(mask.Keys.Length > 0,"Masks.Keys","Keyframes required.");
                     RationalTime? last = null;
                     foreach (var key in mask.Keys) { Time(key.Time,"Masks.Keys"); Rect(key.Bounds,"Masks.Keys"); if (key.Time.Denominator > 0 && mask.Range.Start.Denominator > 0 && mask.Range.End.Denominator > 0) Check(key.Time.CompareTo(mask.Range.Start) >= 0 && key.Time.CompareTo(mask.Range.End) <= 0 && (last is null || key.Time.CompareTo(last.Value) > 0),"Masks.Keys","Keys must be sorted inside mask range."); last = key.Time; }
@@ -183,6 +186,53 @@ public static class EditorRecipeValidator
             default: Check(false,"Recipe","Unknown recipe family."); break;
         }
         return errors.ToImmutable();
+    }
+
+    // Recipe time denominators are bounded by their schema; intermediate sums/products are not.
+    // Normalize with BigInteger so endpoints, accumulated clips and displayed speeds stay exact.
+    private readonly struct ExactTime
+    {
+        private readonly BigInteger numerator;
+        private readonly BigInteger denominator;
+        private ExactTime(BigInteger numerator, BigInteger denominator)
+        {
+            var divisor = BigInteger.GreatestCommonDivisor(numerator, denominator);
+            this.numerator = numerator / divisor;
+            this.denominator = denominator / divisor;
+        }
+        public static ExactTime Zero => new(0, 1);
+        public static ExactTime From(RationalTime time) => new(time.Numerator, time.Denominator);
+        public static ExactTime FromDisplayedSpeed(double speed) => new((long)Math.Round(speed * 1_000_000), 1_000_000);
+        public ExactTime Add(ExactTime other) => new(numerator * other.denominator + other.numerator * denominator, denominator * other.denominator);
+        public ExactTime Subtract(ExactTime other) => new(numerator * other.denominator - other.numerator * denominator, denominator * other.denominator);
+        public ExactTime Divide(ExactTime other) => new(numerator * other.denominator, denominator * other.numerator);
+        public int CompareTo(ExactTime other) => (numerator * other.denominator).CompareTo(other.numerator * denominator);
+        public int CompareTo(RationalTime other) => CompareTo(From(other));
+    }
+
+    private static bool CollageHasTileArea(CollageRecipe collage)
+    {
+        int count = collage.Items.Length;
+        double width = collage.Size.Width - 2 * collage.Margin;
+        double height = collage.Size.Height - 2 * collage.Margin;
+        if (count == 0 || width <= 0 || height <= 0) return false;
+        switch (collage.Layout)
+        {
+            case CollageLayout.Grid:
+                if (collage.Columns <= 0) return false;
+                int rows = (count + collage.Columns - 1) / collage.Columns;
+                return width - (collage.Columns - 1) * collage.Gap > 0 && height - (rows - 1) * collage.Gap > 0;
+            case CollageLayout.Row:
+                return width - (count - 1) * collage.Gap > 0;
+            case CollageLayout.Column:
+                return height - (count - 1) * collage.Gap > 0;
+            case CollageLayout.FeaturedLeft:
+                return count == 1 || (width - collage.Gap > 0 && height - (count - 2) * collage.Gap > 0);
+            case CollageLayout.FeaturedTop:
+                return count == 1 || (height - collage.Gap > 0 && width - (count - 2) * collage.Gap > 0);
+            default:
+                return false;
+        }
     }
 
     private static bool IsHash(string value) => value.Length == 64 && value.All(Uri.IsHexDigit);

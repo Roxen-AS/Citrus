@@ -19,10 +19,18 @@ public static class ImageBatchMapper
         RectD? crop = source.Geometry.Crop;
         if (crop is { } original)
         {
+            // Validate the saved source-plane crop before clamping rounding at the target edge.
+            if (original.X + original.Width > from.Width || original.Y + original.Height > from.Height)
+                throw new ArgumentException("Crop does not fit the template source.");
             double sx = template.Geometry == ImageBatchGeometry.Relative ? (double)to.Width / from.Width : 1;
             double sy = template.Geometry == ImageBatchGeometry.Relative ? (double)to.Height / from.Height : 1;
             double left = Math.Floor(original.X * sx), top = Math.Floor(original.Y * sy);
             double right = Math.Ceiling((original.X + original.Width) * sx), bottom = Math.Ceiling((original.Y + original.Height) * sy);
+            if (template.Geometry == ImageBatchGeometry.Relative)
+            {
+                left = Math.Clamp(left, 0, to.Width); top = Math.Clamp(top, 0, to.Height);
+                right = Math.Clamp(right, 0, to.Width); bottom = Math.Clamp(bottom, 0, to.Height);
+            }
             if (left < 0 || top < 0 || right > to.Width || bottom > to.Height || right <= left || bottom <= top)
                 throw new ArgumentException("Crop does not fit this source.");
             crop = new(left,top,right-left,bottom-top);
