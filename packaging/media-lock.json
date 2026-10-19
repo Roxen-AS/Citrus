@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "target": "win-x64",
+  "license": "LGPL-2.1-or-later",
+  "sources": [
+    {
+      "name": "ffmpeg",
+      "repository": "FFmpeg/FFmpeg",
+      "commit": "946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+      "url": "https://codeload.github.com/FFmpeg/FFmpeg/tar.gz/946fcce07b6dcd0331c8cc609192aeff5e1924f8",
+      "sha256": "0aa2b1de2a5698b20a23e93d539a9a8e82ca0117496c5bdf05d198805f42bb3b",
+      "version": "n9.0.2",
+      "license": "LGPL-2.1-or-later (selected configuration)"
+    },
+    {
+      "name": "lame",
+      "repository": "lameproject/lame",
+      "commit": "1f5cc9487284d5950343aa5d4f70de433468070a",
+      "url": "https://codeload.github.com/lameproject/lame/tar.gz/1f5cc9487284d5950343aa5d4f70de433468070a",
+      "sha256": "b6b8a1e8e10a1353966345a5cd5efb10147afd1f26103951aa3dc36f2eb900dd",
+      "version": "commit snapshot",
+      "license": "LGPL-2.0-or-later"
+    },
+    {
+      "name": "opus",
+      "repository": "xiph/opus",
+      "commit": "ddbe48383984d56acd9e1ab6a090c54ca6b735a6",
+      "url": "https://codeload.github.com/xiph/opus/tar.gz/ddbe48383984d56acd9e1ab6a090c54ca6b735a6",
+      "sha256": "18e9d9e26565e279753aafb6823a482ef85ea9fddbfdcdbff8fd095b12dd96b6",
+      "version": "v1.5.2",
+      "license": "BSD-3-Clause (selected configuration)"
+    },
+    {
+      "name": "ogg",
+      "repository": "xiph/ogg",
+      "commit": "be05b13e98b048f0b5a0f5fa8ce514d56db5f822",
+      "url": "https://codeload.github.com/xiph/ogg/tar.gz/be05b13e98b048f0b5a0f5fa8ce514d56db5f822",
+      "sha256": "b2ff5c003e5697507169f7d614d64dc4e8bf030c85ad081bec75c164566f8246",
+      "version": "v1.3.6",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "vorbis",
+      "repository": "xiph/vorbis",
+      "commit": "0657aee69dec8508a0011f47f3b69d7538e9d262",
+      "url": "https://codeload.github.com/xiph/vorbis/tar.gz/0657aee69dec8508a0011f47f3b69d7538e9d262",
+      "sha256": "6ccc3fa4cfd3072f9a772025cc8fd712098d081c00171b09b6627ffced7faa88",
+      "version": "v1.3.7",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "vpx",
+      "repository": "webmproject/libvpx",
+      "commit": "d168454ecd099805c675d4a98c66f4891373302a",
+      "url": "https://codeload.github.com/webmproject/libvpx/tar.gz/d168454ecd099805c675d4a98c66f4891373302a",
+      "sha256": "5f6519823db1cc67fba023dc5dcf33abcd3fbab65d7e3c6f1d8ff00917a8c1c6",
+      "version": "v1.15.2",
+      "license": "BSD-3-Clause and patent grant"
+    }
+  ],
+  "sourceDistribution": "media/source/citrus-media-source.tar.gz",
+  "binaryChecksums": "media/sha256.json",
+  "buildScript": "build-media.sh",
+  "patches": [
+    "patches/lame-encoder-only-exports.patch"
+  ],
+  "configuration": {
+    "ffmpeg": [
+      "enable-shared",
+      "disable-static",
+      "disable-gpl",
+      "disable-nonfree",
+      "disable-version3",
+      "disable-network",
+      "disable-autodetect",
+      "disable-ffplay",
+      "disable-devices",
+      "disable-protocols",
+      "enable-protocol=file,pipe",
+      "enable-mediafoundation",
+      "enable-d3d11va"
+    ],
+    "lame": [
+      "enable-shared",
+      "disable-static",
+      "disable-decoder",
+      "disable-frontend"
+    ],
+    "opus": [
+      "OPUS_DRED=OFF",
+      "OPUS_DEEP_PLC=OFF",
+      "OPUS_OSCE=OFF"
+    ]
+  },
+  "toolchainRuntime": {
+    "name": "MinGW-w64 winpthreads",
+    "version": "12.0.0-5 (Debian mingw-w64-x86-64-dev)",
+    "file": "libwinpthread-1.dll",
+    "sha256": "fc3cd567190f3f24e8201c2e1602f7d1f1e583a572efb7dbd8746d7928538e94",
+    "license": "MIT / BSD-3-Clause / public-domain; excludes LGPL test suite",
+    "packageUrl": "https://deb.debian.org/debian/pool/main/m/mingw-w64/mingw-w64-x86-64-dev_12.0.0-5_all.deb",
+    "packageSha256": "0bf89cf7454cccb49cd2a46a6f7b33896f6ae3a1a2fe33e02c40be6155bbb385"
+  }
+}

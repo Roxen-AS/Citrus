@@ -5,4 +5,16 @@
     <ProjectReference Include="../Citrus.Core/Citrus.Core.csproj" />
     <PackageReference Include="Magick.NET-Q8-x64" Version="[15.0.0]" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../packaging/media/win-x64/*" Link="media/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/media/source/*" Link="source/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/media-lock.json" Link="media-lock.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/media/sha256.json" Link="media-sha256.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Media-Notice.txt" Link="notices/Media-Notice.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/media-licenses/*" Link="notices/media-licenses/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/media-engine.md" Link="docs/media-engine.md" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="RequireOfflineMediaForWindowsPublish" BeforeTargets="PrepareForPublish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <Error Condition="!Exists('../../packaging/media/win-x64/ffmpeg.exe') Or !Exists('../../packaging/media/win-x64/ffprobe.exe') Or !Exists('../../packaging/media/source/citrus-media-source.tar.gz')" Text="Offline media assets or corresponding source archive are missing. Run packaging/build-media.sh before publishing." />
+  </Target>
 </Project>

@@ -18,4 +18,7 @@
     <Resource Include="Resources/Citrus.ico" />
     <Content Include="../../packaging/notices/Magick.NET-15.0.0-Notice.txt" Link="notices/Magick.NET-15.0.0-Notice.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  <Target Name="RequireOfflineMediaForPublish" BeforeTargets="PrepareForPublish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <Error Condition="!Exists('../../packaging/media/win-x64/ffmpeg.exe') Or !Exists('../../packaging/media/win-x64/ffprobe.exe') Or !Exists('../../packaging/media/source/citrus-media-source.tar.gz')" Text="Offline media assets or corresponding source archive are missing. Run packaging/build-media.sh before publishing." />
+  </Target>
 </Project>
