@@ -5,7 +5,9 @@ namespace Citrus.Core.Tests;
 
 internal static class EditorTestData
 {
-    public static SourceSnapshot Source(string path = "/tmp/source.png") => new(Guid.NewGuid(), path, 4, 1, new string('A', 64));
+    // Contract fixtures need identities, not files; derive native absolute paths without creating them.
+    public static string PathFor(string name) => Path.GetFullPath(Path.Combine(Path.GetTempPath(), "citrus-editor-contract-fixtures", name));
+    public static SourceSnapshot Source(string? path = null) => new(Guid.NewGuid(), path ?? PathFor("source.png"), 4, 1, new string('A', 64));
     public static ImageAdjustments Identity => new(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, PhotoEffect.None, 0);
     public static EditorDocument Image(SourceSnapshot? source = null)
     {

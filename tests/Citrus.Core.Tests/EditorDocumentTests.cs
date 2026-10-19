@@ -100,7 +100,7 @@ public sealed partial class EditorDocumentTests
     {
         var template = EditorTestData.Image();
         template = template with { Recipe = EditorTestData.Recipe(template) with { Geometry = new(0,false,false,new(100,50,600,400),null,false) } };
-        var target = EditorTestData.Image(EditorTestData.Source("/tmp/target.jpeg"));
+        var target = EditorTestData.Image(EditorTestData.Source(EditorTestData.PathFor("target.jpeg")));
         var batch = new Citrus.Core.Editing.ImageBatchTemplate(template,new(1000,500),Citrus.Core.Editing.ImageBatchGeometry.Relative,null,false,true);
         var mapped = Citrus.Core.Editing.ImageBatchMapper.Map(batch,target,new(500,1000));
         Assert.Equal(new Citrus.Core.Editing.RectD(50,100,300,800), EditorTestData.Recipe(mapped).Geometry.Crop);
@@ -112,7 +112,7 @@ public sealed partial class EditorDocumentTests
     public void Apply_to_all_preserves_per_root_format_name_and_existing_layers_by_default()
     {
         var template = EditorTestData.Image();
-        var target = EditorTestData.Image(EditorTestData.Source("/tmp/other.tiff"));
+        var target = EditorTestData.Image(EditorTestData.Source(EditorTestData.PathFor("other.tiff")));
         var mask = new Citrus.Core.Editing.PixelMask(Guid.NewGuid(),new(1,2,3,4),Citrus.Core.Editing.MaskEffect.Solid,new(0,0,0,255),0);
         target = target with { Recipe = EditorTestData.Recipe(target) with { Masks = [mask] } };
         var mapped = Citrus.Core.Editing.ImageBatchMapper.Map(new(template,new(100,100),Citrus.Core.Editing.ImageBatchGeometry.Relative,null,false,true),target,new(100,200));
@@ -138,7 +138,7 @@ public sealed partial class EditorDocumentTests
     public void Copy_layers_rejects_conflicting_captured_identities()
     {
         var target = EditorTestData.Image();
-        var shared = EditorTestData.Source("/tmp/background.png");
+        var shared = EditorTestData.Source(EditorTestData.PathFor("background.png"));
         var recipe = EditorTestData.Recipe(target);
         target = target with { Sources = [..target.Sources,shared], Recipe = recipe with { Canvas = new(new(100,100),new Citrus.Core.Editing.ImageBackground(shared.Id,Citrus.Core.Editing.ImageFit.Cover,new(.5,.5),1,0),new(0,0,100,100),Citrus.Core.Editing.ImageFit.Contain,0,null) } };
         var template = target with { Sources = [target.Sources[0],shared with { Sha256 = new string('B',64) }] };
@@ -158,5 +158,21 @@ public sealed partial class EditorDocumentTests
         var mask = new Citrus.Core.Editing.TimedMask(Guid.NewGuid(),new(new(0,1),new(11,1)),Citrus.Core.Editing.MaskEffect.Solid,new(0,0,0,255),0,[new(new(0,1),new(0,0,10,10))],Citrus.Core.Editing.MaskInterpolation.Step);
         var video = new Citrus.Core.Editing.VideoRecipe([clip],null,new(100,100),Citrus.Core.Editing.ImageFit.Contain,false,[mask],[],null,[]);
         Assert.NotEmpty(Citrus.Core.Editing.EditorRecipeValidator.Validate(doc with { Recipe = video }));
+    }
+}
+
+public sealed partial class EditorDocumentTests
+{
+    [Theory]
+    [InlineData(@"\tmp\source.png")]
+    [InlineData("C:source.png")]
+    [InlineData("source.png")]
+    public void Root_relative_drive_relative_and_unqualified_paths_remain_invalid(string invalidPath)
+    {
+        var document = EditorTestData.Image();
+        var invalidSource = document with { Sources = [document.Sources[0] with { Path = invalidPath }] };
+        Assert.Contains(Citrus.Core.Editing.EditorRecipeValidator.Validate(invalidSource), issue => issue.FieldPath == "Sources.Path");
+        var invalidDestination = document with { Export = document.Export with { DestinationDirectory = invalidPath } };
+        Assert.Contains(Citrus.Core.Editing.EditorRecipeValidator.Validate(invalidDestination), issue => issue.FieldPath == "Export.DestinationDirectory");
     }
 }

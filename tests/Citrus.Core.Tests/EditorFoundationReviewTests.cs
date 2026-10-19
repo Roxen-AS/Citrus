@@ -13,7 +13,7 @@ public sealed class EditorFoundationReviewTests
     {
         var template = EditorTestData.Image();
         template = template with { Recipe = EditorTestData.Recipe(template) with { Geometry = new(0, false, false, new(x, y, width, height), null, false) } };
-        var target = EditorTestData.Image(EditorTestData.Source("/tmp/target.png"));
+        var target = EditorTestData.Image(EditorTestData.Source(EditorTestData.PathFor("target.png")));
         var batch = new ImageBatchTemplate(template, new(1920, 1080), ImageBatchGeometry.Relative, null, false, true);
         var mapped = ImageBatchMapper.Map(batch, target, new(248, 140));
         Assert.Equal(new RectD(expectedX, expectedY, expectedWidth, expectedHeight), EditorTestData.Recipe(mapped).Geometry.Crop);
