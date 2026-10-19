@@ -11,11 +11,14 @@ public sealed class DesktopFixture : IDisposable
     private readonly Thread thread;
     private readonly TaskCompletionSource<Dispatcher> ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly DesktopDispatcherGuard guard = new();
+    private readonly TaskCompletionSource<Exception> fatalExit = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private int disposalRequested;
     internal int SuppressedStartupCallbacks { get; private set; }
     public DesktopFixture()
     {
         thread = new Thread(() =>
         {
+            var dispatcher = Dispatcher.CurrentDispatcher;
             try
             {
                 var app = new ResourceOnlyApp(() =>
@@ -23,11 +26,26 @@ public sealed class DesktopFixture : IDisposable
                     SuppressedStartupCallbacks++;
                     ready.SetResult(Dispatcher.CurrentDispatcher);
                 });
-                var dispatcher = Dispatcher.CurrentDispatcher;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
                 Dispatcher.Run();
+                bool expected = Volatile.Read(ref disposalRequested) != 0;
+                DesktopStageTrace.RecordDispatcherExit(Thread.CurrentThread, dispatcher, normalReturn: true, expected, error: null);
+                if (!expected)
+                {
+                    var error = new InvalidOperationException("Desktop dispatcher returned before fixture disposal.");
+                    ready.TrySetException(error);
+                    fatalExit.TrySetResult(error);
+                }
             }
-            catch (Exception error) { ready.TrySetException(error); }
+            catch (Exception error)
+            {
+                try { DesktopStageTrace.RecordDispatcherExit(Thread.CurrentThread, dispatcher, normalReturn: false,
+                    Volatile.Read(ref disposalRequested) != 0, error); }
+                catch (Exception evidenceError) { error.Data["DispatcherEvidenceWriteFailure"] = evidenceError.ToString(); }
+                // Readiness may already be complete. Preserve the original fatal error for the active action too.
+                ready.TrySetException(error);
+                fatalExit.TrySetResult(error);
+            }
         }) { IsBackground = true };
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
@@ -35,10 +53,11 @@ public sealed class DesktopFixture : IDisposable
     public async Task RunAsync(Func<Task> action)
     {
         var dispatcher = await ready.Task.WaitAsync(TimeSpan.FromSeconds(20));
-        await guard.RunAsync(dispatcher, action, TimeSpan.FromSeconds(30));
+        await guard.RunAsync(dispatcher, action, TimeSpan.FromSeconds(30), fatalExit.Task);
     }
     public void Dispose()
     {
+        Interlocked.Exchange(ref disposalRequested, 1);
         if (ready.Task.IsCompletedSuccessfully) ready.Task.Result.BeginInvokeShutdown(DispatcherPriority.Send);
         if (!thread.Join(TimeSpan.FromSeconds(10))) throw new TimeoutException("Desktop dispatcher did not stop.");
     }

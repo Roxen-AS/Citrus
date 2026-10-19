@@ -14,9 +14,11 @@ internal sealed class DesktopStageTrace : IDisposable
     private readonly Task probe;
     private int count;
     private bool disposed;
+    private readonly Thread ownerThread;
 
     public DesktopStageTrace(string name, Dispatcher dispatcher)
     {
+        ownerThread = Thread.CurrentThread;
         string directory = Path.Combine(Environment.CurrentDirectory, "TestResults", "diagnostics");
         Directory.CreateDirectory(directory);
         stream = new FileStream(Path.Combine(directory, name + ".jsonl"), FileMode.Create, FileAccess.Write, FileShare.Read);
@@ -25,13 +27,13 @@ internal sealed class DesktopStageTrace : IDisposable
         probe = ProbeAsync(dispatcher);
     }
 
-    public void Mark(string stage)
+    public void Mark(string stage, object? details = null)
     {
         lock (gate)
         {
             if (disposed || count >= 256) return;
             writer.WriteLine(JsonSerializer.Serialize(new { sequence = ++count, utc = DateTimeOffset.UtcNow,
-                thread = Environment.CurrentManagedThreadId, stage }));
+                thread = Environment.CurrentManagedThreadId, stage, details }));
             writer.Flush();
             stream.Flush(flushToDisk: true);
         }
@@ -43,7 +45,7 @@ internal sealed class DesktopStageTrace : IDisposable
         try
         {
             await Task.Delay(TimeSpan.FromSeconds(5), stop.Token).ConfigureAwait(false);
-            Mark("watchdog.fired.off-dispatcher");
+            Mark("watchdog.fired.off-dispatcher", DispatcherState(ownerThread, dispatcher));
             foreach (var priority in new[] { DispatcherPriority.Send, DispatcherPriority.Normal, DispatcherPriority.Render, DispatcherPriority.ApplicationIdle })
             {
                 stop.Token.ThrowIfCancellationRequested();
@@ -52,6 +54,7 @@ internal sealed class DesktopStageTrace : IDisposable
             }
             await Task.Delay(TimeSpan.FromSeconds(5), stop.Token).ConfigureAwait(false);
             foreach (var operation in queued) Mark($"watchdog.{operation.Priority}.status.{operation.Status}");
+            Mark("watchdog.thread-state", DispatcherState(ownerThread, dispatcher));
         }
         catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         finally
@@ -62,6 +65,23 @@ internal sealed class DesktopStageTrace : IDisposable
                 _ = operation.Task.ContinueWith(task => { _ = task.Exception; }, CancellationToken.None,
                     TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously, TaskScheduler.Default);
         }
+    }
+
+    internal static object DispatcherState(Thread thread, Dispatcher dispatcher) => new
+    {
+        managedThreadId = thread.ManagedThreadId, thread.IsAlive, threadState = thread.ThreadState.ToString(),
+        dispatcher.HasShutdownStarted, dispatcher.HasShutdownFinished
+    };
+
+    internal static void RecordDispatcherExit(Thread thread, Dispatcher dispatcher, bool normalReturn, bool disposalRequested, Exception? error)
+    {
+        string directory = Path.Combine(Environment.CurrentDirectory, "TestResults", "diagnostics");
+        Directory.CreateDirectory(directory);
+        using var output = new FileStream(Path.Combine(directory, "desktop-dispatcher-exit.json"), FileMode.Create, FileAccess.Write, FileShare.Read);
+        JsonSerializer.Serialize(output, new { utc = DateTimeOffset.UtcNow, normalReturn, disposalRequested,
+            state = DispatcherState(thread, dispatcher), exception = error?.ToString(),
+            note = "Snapshot taken inside the dispatcher thread's terminal handler; watchdog independently records subsequent liveness." });
+        output.Flush(flushToDisk: true);
     }
 
     public void Dispose()

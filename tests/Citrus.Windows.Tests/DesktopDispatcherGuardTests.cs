@@ -45,6 +45,54 @@ public sealed class DesktopDispatcherGuardTests
         finally { pending.TrySetResult(); }
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Fatal_exit_preserves_original_error_and_quarantines_the_fixture(bool originallyTimeout)
+    {
+        using var sta = new IsolatedDispatcher();
+        var pending = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fatal = new TaskCompletionSource<Exception>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var guard = new DesktopDispatcherGuard();
+        var original = CaptureOriginalError(originallyTimeout);
+        try
+        {
+            var run = guard.RunAsync(sta.Dispatcher, () => { entered.SetResult(); return pending.Task; }, TimeSpan.FromSeconds(2), fatal.Task);
+            await entered.Task.WaitAsync(TimeSpan.FromSeconds(2));
+            fatal.SetResult(original);
+            var surfaced = await Record.ExceptionAsync(() => run.WaitAsync(TimeSpan.FromSeconds(1)));
+            Assert.Same(original, surfaced);
+            Assert.Contains(nameof(CaptureOriginalError), surfaced!.StackTrace);
+            var quarantined = await Assert.ThrowsAsync<InvalidOperationException>(() => guard.RunAsync(sta.Dispatcher,
+                () => Task.CompletedTask, TimeSpan.FromSeconds(1), fatal.Task));
+            Assert.Same(original, quarantined.InnerException);
+        }
+        finally { pending.TrySetResult(); }
+    }
+
+    [Fact]
+    public async Task Already_reported_fatal_exit_does_not_enqueue_another_action()
+    {
+        using var sta = new IsolatedDispatcher();
+        var original = CaptureOriginalError(false);
+        bool executed = false;
+        var surfaced = await Record.ExceptionAsync(() => new DesktopDispatcherGuard().RunAsync(sta.Dispatcher,
+            () => { executed = true; return Task.CompletedTask; }, TimeSpan.FromSeconds(1), Task.FromResult(original)));
+        Assert.Same(original, surfaced);
+        Assert.False(executed);
+    }
+
+    private static Exception CaptureOriginalError(bool timeout)
+    {
+        try
+        {
+            if (timeout) throw new TimeoutException("Original dispatcher failure, not the guard deadline.");
+            throw new InvalidOperationException("Original dispatcher failure.");
+        }
+        catch (Exception error) { return error; }
+    }
+
     private sealed class IsolatedDispatcher : IDisposable
     {
         private readonly Thread thread;
