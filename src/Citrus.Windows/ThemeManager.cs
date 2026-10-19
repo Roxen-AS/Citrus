@@ -33,17 +33,17 @@ internal sealed class ThemeManager : IDisposable
         }
         IsDark = !light;
         var colors = light
-            ? new[] { "#F7F5F2", "#FFFFFF", "#202020", "#62605D", "#A42615", "#C14D00", "#FFFFFF", "#FFFFFF", "#202428" }
-            : new[] { "#24211F", "#312E2A", "#F8F5F0", "#CBC3B9", "#FFB49C", "#FFAD6C", "#241408", "#302D29", "#F3EFE9" };
+            ? new[] { "#F5F7FA", "#FFFFFF", "#17212B", "#596574", "#A42615", "#FF6B16", "#17212B", "#FFFFFF", "#202428" }
+            : new[] { "#171B22", "#222832", "#F5F7FA", "#B8C3D1", "#FFB49C", "#FF6B16", "#171B22", "#272F3A", "#F5F7FA" };
         string[] keys = ["WindowBackground", "PanelBackground", "PrimaryText", "SecondaryText", "ErrorText", "Accent", "AccentText", "ControlBackground", "ControlText"];
         for (int i = 0; i < keys.Length; i++) app.Resources[keys[i]] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(colors[i]));
         string[] extraKeys = ["InsetBackground", "BorderBrush", "ActionInk", "WheelShell", "PetalBackground", "SelectedPetalText"];
-        string[] extraColors = light ? ["#F0EFEC", "#E4E1DC", "#B84900", "#FFF7F5F2", "#FFFFFFFF", "#FFFFFF"]
-            : ["#242424", "#55514C", "#FFAD6C", "#FF292724", "#FF3A3733", "#FFFFFF"];
+        string[] extraColors = light ? ["#EDF1F6", "#DCE2EA", "#17212B", "#FFF5F7FA", "#FFFFFFFF", "#17212B"]
+            : ["#1C222B", "#3C4654", "#FF6B16", "#FF171B22", "#FF2B3441", "#171B22"];
         for (int i=0;i<extraKeys.Length;i++) app.Resources[extraKeys[i]] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(extraColors[i]));
-        app.Resources["SelectedPetal"] = new SolidColorBrush(Color.FromRgb(193,77,0));
+        app.Resources["SelectedPetal"] = new SolidColorBrush(Color.FromRgb(255,107,22));
         string[] materialKeys = ["MaterialChromeTint", "MaterialShellTint", "MaterialSpecularTop", "MaterialSpecularBottom", "MaterialInnerEdge", "MaterialOutline"];
-        string[] materialColors = light ? ["#24FFFFFF", "#18FFFFFF", "#B3FFFFFF", "#12000000", "#38FFFFFF", "#26000000"] : ["#30201F1D", "#28201F1D", "#59FFFFFF", "#66000000", "#24FFFFFF", "#66FFFFFF"];
+        string[] materialColors = light ? ["#24FFFFFF", "#18FFFFFF", "#B3FFFFFF", "#12000000", "#38FFFFFF", "#26000000"] : ["#30202A38", "#28202A38", "#59FFFFFF", "#66000000", "#24FFFFFF", "#66FFFFFF"];
         for (int i = 0; i < materialKeys.Length; i++) app.Resources[materialKeys[i]] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(materialColors[i]));
         app.Resources["MaterialDepth"] = new LinearGradientBrush(new GradientStopCollection {
             new(((SolidColorBrush)app.Resources["MaterialSpecularTop"]).Color, 0), new(Colors.Transparent, .45),

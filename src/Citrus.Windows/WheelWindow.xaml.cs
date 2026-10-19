@@ -101,9 +101,9 @@ public partial class WheelWindow : Window
         Caption.FontSize = 14 * Math.Min(textScale, 2);
         Caption.LineHeight = compact ? 34 : 20;
         CaptionRow.Height = new GridLength(compact ? 38 : 20);
-        HintRow.Height = new GridLength(compact ? 0 : 16);
+        HintRow.Height = new GridLength(compact ? 0 : 18);
         Hint.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
-        Badge.FontSize = 11 * textScale; ModeLabel.FontSize = 10 * textScale;
+        Badge.FontSize = 12 * textScale; ModeLabel.FontSize = 11 * textScale;
         Badge.Visibility = ModeLabel.Visibility = textScale >= 2 ? Visibility.Collapsed : Visibility.Visible;
         foreach (var petal in petals) petal.ApplyTextScale(textScale);
         System.Windows.Automation.AutomationProperties.SetName(this, $"Citrus {mode}: {paths.Count} files. {Badge.Text}. {Caption.Text}");
@@ -476,8 +476,8 @@ public partial class WheelWindow : Window
         }
         Caption.Text = "Center to cancel";
         Previous.Visibility = Next.Visibility = operations.Count > WheelGeometry.MaxTargetsPerPage ? Visibility.Visible : Visibility.Hidden;
-        ((TextBlock)Previous.Child).Opacity = paging.Page == 0 ? .35 : 1;
-        ((TextBlock)Next.Child).Opacity = (paging.Page+1)*WheelGeometry.MaxTargetsPerPage >= operations.Count ? .35 : 1;
+        Previous.Child.Opacity = paging.Page == 0 ? .35 : 1;
+        Next.Child.Opacity = (paging.Page+1)*WheelGeometry.MaxTargetsPerPage >= operations.Count ? .35 : 1;
         if (operations.Count > WheelGeometry.MaxTargetsPerPage) Hint.Text = $"{paging.Page+1} / {(operations.Count+WheelGeometry.MaxTargetsPerPage-1)/WheelGeometry.MaxTargetsPerPage} · hover arrows";
     }
 }

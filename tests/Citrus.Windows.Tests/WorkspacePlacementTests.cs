@@ -78,8 +78,8 @@ public sealed class WorkspacePlacementTests(DesktopFixture desktop)
         {
             window.Show();
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-            Assert.Equal(Math.Min(1180, work.Width / scale), window.ActualWidth, 0);
-            Assert.Equal(Math.Min(820, work.Height / scale), window.ActualHeight, 0);
+            Assert.Equal(Math.Min(960, work.Width / scale), window.ActualWidth, 0);
+            Assert.Equal(Math.Min(700, work.Height / scale), window.ActualHeight, 0);
             Assert.True(GetWindowRect(new WindowInteropHelper(window).Handle, out var bounds));
             AssertInside(bounds, work);
             Assert.InRange(Math.Abs((bounds.Left + bounds.Right) / 2.0 - (work.Left + work.Right) / 2), 0, 2);

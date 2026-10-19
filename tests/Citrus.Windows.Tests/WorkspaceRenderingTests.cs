@@ -33,9 +33,7 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
     {
         using var files = new NativeFiles();
         string path = Path.Combine(files.Root, "sample.png");
-        var bitmap = BitmapSource.Create(64, 64, 96, 96, PixelFormats.Bgr32, null, Enumerable.Repeat((byte)160, 64 * 64 * 4).ToArray(), 64 * 4);
-        var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
-        using (var stream = File.Create(path)) encoder.Save(stream);
+        CitrusPreviewFixture.Save(path);
         using var themes = new ThemeManager(Application.Current);
         themes.Apply(theme, reduceMotion: true);
         using var window = new MainWindow((App)Application.Current) { Width = width, Height = height, ShowActivated = false };
@@ -47,27 +45,32 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
             window.AddFiles([path]);
             window.Show();
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            themes.ApplyTypography(scale);
+            window.ApplyTextScale(scale);
+            var timeout = System.Diagnostics.Stopwatch.StartNew();
+            while (((Image)window.FindName("PreviewImage")).Source is null && timeout.Elapsed < TimeSpan.FromSeconds(5)) await Task.Delay(10);
+            Assert.NotNull(((Image)window.FindName("PreviewImage")).Source);
             window.UpdateLayout();
             var inspector = (FrameworkElement)window.FindName("Inspector");
             var root = (FrameworkElement)window.Content;
             var chrome = (MaterialSurface)window.FindName("Chrome");
-            var requested = new { requestedWindowWidthDip = width, requestedWindowHeightDip = height, materialState = chrome.State.ToString(), captureScope = "WPF-only; native DWM pixels are not captured" };
-            string artifact = $"workspace-requested-{width}x{height}-{theme}-{scale * 100:0}pct-raster";
-            var capture = VisualArtifacts.Capture(root, artifact, scale, theme, requested);
+            var requested = new { requestedWindowWidthDip = width, requestedWindowHeightDip = height, textScale = scale, materialState = chrome.State.ToString(), captureScope = "WPF-only; native DWM pixels are not captured" };
+            string artifact = $"workspace-requested-{width}x{height}-{theme}-text{scale * 100:0}-raster100";
+            var capture = VisualArtifacts.Capture(root, artifact, 1, theme, requested);
             // Preserve the actual backdrop without requiring lossless alpha arithmetic at glyph edges.
             // Native WPF captures contain alpha 254 (one unit below opaque) around antialiased text;
             // all background holes (alpha 0..253) must still fail. Exact corner/background tests remain.
             var pixels = new byte[capture.PixelWidth * capture.PixelHeight * 4];
             capture.CopyPixels(pixels, capture.PixelWidth * 4, 0);
             // Exclude only a fractional final raster row/column, whose coverage can be below one pixel.
-            if (((MaterialSurface)window.FindName("Chrome")).State == BackdropState.Solid) Assert.True(Enumerable.Range(0, (int)Math.Floor(root.ActualHeight * scale)).All(y =>
-                Enumerable.Range(0, (int)Math.Floor(root.ActualWidth * scale)).All(x => pixels[(y * capture.PixelWidth + x) * 4 + 3] >= 254)),
+            if (((MaterialSurface)window.FindName("Chrome")).State == BackdropState.Solid) Assert.True(Enumerable.Range(0, (int)Math.Floor(root.ActualHeight)).All(y =>
+                Enumerable.Range(0, (int)Math.Floor(root.ActualWidth)).All(x => pixels[(y * capture.PixelWidth + x) * 4 + 3] >= 254)),
                 "Workspace capture lost the actual window background.");
             if (chrome.State == BackdropState.ConfiguredNativeAcrylic)
             {
                 Assert.Equal(0, ((SolidColorBrush)window.Background).Color.A);
                 Assert.True(((SolidColorBrush)chrome.EffectiveTint).Color.A < 255);
-                int chromePixel = ((int)(root.ActualHeight * scale / 2) * capture.PixelWidth + (int)(10 * scale)) * 4;
+                int chromePixel = ((int)(root.ActualHeight / 2) * capture.PixelWidth + 10) * 4;
                 Assert.InRange(pixels[chromePixel + 3], (byte)1, (byte)253); // Real WPF tint in exposed left chrome.
 
             }
@@ -75,19 +78,29 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
             var header = (Grid)window.FindName("WorkspaceHeader");
             VisualArtifacts.AssertInside(header, root);
             foreach (FrameworkElement child in header.Children) VisualArtifacts.AssertInside(child, root);
-            foreach (string name in new[] { "GesturesEnabled", "Status", "EngineStatus" })
-                VisualArtifacts.AssertInside((FrameworkElement)window.FindName(name), root);
-            // HWND size may be clamped to the hosted desktop work area. Production adapts to ActualWidth.
-            Assert.Equal(window.ActualWidth < 1080 ? 1 : 2, Grid.GetColumn(inspector));
+            VisualArtifacts.AssertInside((FrameworkElement)window.FindName("GesturesEnabled"), root);
+            foreach (string name in new[] { "Status", "EngineStatus" })
+            {
+                var status = (FrameworkElement)window.FindName(name);
+                if (status.IsVisible) VisualArtifacts.AssertInside(status, root);
+            }
+            // The primary action is pinned outside the body viewport, including at minimum size.
+            Assert.Same(window.FindName("WorkspaceRoot"), inspector.Parent);
             Assert.True(((System.Windows.Controls.Button)window.FindName("RunButton")).IsEnabled);
-            var run = (FrameworkElement)window.FindName("RunButton"); run.BringIntoView();
+            var run = (FrameworkElement)window.FindName("RunButton");
+            Assert.True(run.IsVisible);
+            VisualArtifacts.AssertInside(run, root);
+            var body = (System.Windows.Controls.ScrollViewer)window.FindName("WorkspaceScroll");
+            var pinned = run.TransformToAncestor(root).Transform(new System.Windows.Point());
+            body.ScrollToEnd();
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             var position = run.TransformToAncestor(root).Transform(new System.Windows.Point(0, 0));
-            VisualArtifacts.Capture(root, artifact + "-inspector", scale, theme, requested);
+            Assert.Equal(pinned, position);
+            VisualArtifacts.Capture(root, artifact + "-inspector", 1, theme, requested);
             Assert.InRange(position.Y, 0, root.ActualHeight - run.ActualHeight + 1);
             VisualArtifacts.AssertInside(run, root);
         }
-        finally { window.Dispose(); window.Close(); themes.Apply(ThemeChoice.Light, reduceMotion: true); }
+        finally { window.Dispose(); window.Close(); themes.ApplyTypography(1); themes.Apply(ThemeChoice.Light, reduceMotion: true); }
     });
 
     [Fact]
