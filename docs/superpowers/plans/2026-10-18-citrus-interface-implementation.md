@@ -15,7 +15,7 @@
 - Windows 10 22H2/11 x64; native WPF desktop app; local processing and no runtime backend downloads.
 - Non-suppressing global input; genuine physical OLE FileDrop and Copy permission required; freeze the first payload and validate the final drop against it.
 - Preserve original files, collision-safe adjacent output copies and existing SubmissionDraft → SubmissionChoice → queue/output writer path.
-- Keep 750 ms unconfirmed timeout, 8 DIP deliberate arming, 400 ms page hover and eight fixed targets per page.
+- Keep 750 ms unconfirmed timeout, 8 DIP deliberate arming, 400 ms page hover and up to nine targets per page with equal angular spacing for the actual visible count.
 - No placeholder tools, proprietary assets, global volume changes or unsubstantiated Windows/100% parity claims.
 - Respect reduced motion, high contrast, light/dark/system theme, per-monitor DPI, keyboard access and shutdown cancellation.
 
@@ -46,9 +46,9 @@
 
 **Interfaces:** Preserve Task 1's ownership API and frozen payload protocol. `FilePreviewService.LoadAsync(string path, int pixelLimit, CancellationToken)` returns a frozen `ImageSource?`; it must use bounded image decoding and no UI-thread filesystem/decoder work. Audio offers preloaded nonblocking open/selection/success/error cues with enabled preference. Existing settings files must retain defaults and remaps on migration.
 
-- [ ] Add failing behavioral tests for rounded-boundary/gap neutrality, fixed slot order across 1–8 targets, retained object identity after repeated hover, stale preview cancellation and settings migration. Run host regressions before implementation; Windows render tests are compiled and run natively by Task 4.
-- [ ] Implement the exact wheel dimensions, geometry, palette, icon/thumbnail/count/caption hierarchy and durations from the spec. Use one shared rounded geometry for draw and hit tests. Retain petals across hover; update old/new state only. Prepare reset content before showing. No full layout or catalog/COM/filesystem work on DragOver.
-- [ ] Implement bounded asynchronous previews and cached optional original sound cues. Add independently configurable sound/reduced-motion settings. Respect system high contrast and animation preference; cancel pending decode/audio/presentation on teardown.
+- [ ] Add failing behavioral tests for rounded-boundary/gap neutrality, stable slot order across 1–9 targets, retained object identity after repeated hover, stale preview cancellation and settings migration. Run host regressions before implementation; Windows render tests are compiled and run natively by Task 4.
+- [ ] Implement the exact wheel dimensions, geometry, palette, icon/thumbnail/count/caption hierarchy and durations from the spec. Define `WheelGeometry.MaxTargetsPerPage = 9`, and use it for every page count/offset; draw actual-N equally spaced petals, including 1–2 targets and partial last pages. Use one shared rounded geometry for draw and hit tests. Retain petals across hover; update old/new state only. Prepare reset content before showing. No full layout or catalog/COM/filesystem work on DragOver.
+- [ ] Implement bounded asynchronous previews and cached optional original sound cues. Add independently configurable sound/reduced-motion settings; sound is enabled by default with an easy mute control. Respect system high contrast and animation preference; cancel pending decode/audio/presentation on teardown.
 - [ ] Run affected host tests and locked Release solution compile. Commit and report actual execution versus compiled-only Windows coverage.
 
 ### Task 3: Intuitive desktop workspace and quiet feedback

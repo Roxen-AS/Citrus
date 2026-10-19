@@ -9,19 +9,19 @@ The user requests Tangerine's intuitive wheel and editing experience on Windows,
 - Freeze a defensive copy of the first genuine payload for the whole drag. Mode changes and DragOver cannot replace, expand, reorder, or shrink it. Validate the actual drop against that snapshot before submission. Copy-only source permission is required; Citrus conversions preserve original files.
 - A drag epoch invalidates queued modifier activation after button release, Escape, disabling gestures, or disposal. A valid confirmed OLE Drop retains ownership when the low-level button-up arrives first.
 - Preserve the wheel's screen anchor, payload and generation across mode changes. Re-arm selection after changing modes. A folder can stay in Actions while Convert/Tools show no eligible operations without terminating the drag.
-- Retain the 750 ms unconfirmed timeout, 8 DIP deliberate selection movement, 400 ms page hover and at most eight targets per page. These values are interaction policy, not animation durations.
+- Retain the 750 ms unconfirmed timeout, 8 DIP deliberate selection movement, 400 ms page hover and at most nine targets per page. These values are interaction policy, not animation durations.
 - Obtain FileDrop data on entry and final drop, not every pointer event. Cache eligibility and operation lists once per confirmed payload; keep filesystem work, COM data extraction, decoding and catalog scans out of the hot DragOver path.
 
 ## Wheel presentation
 
 Match the supplied references: translucent pale circular shell, separated rounded petals, warm orange selection, simple black/white line icons, a real central file thumbnail or recognizable file glyph, a batch badge and a short operation caption. No opaque square flash, stale content flash, dark heavy outlines or text-only wedges.
 
-- Window: 368 × 414 DIP; ring center (184,184), outer radius 166 DIP, neutral center radius 78 DIP. Eight fixed 45-degree slots with a 4-degree neutral gutter. Petal corners approximately 8 DIP. Drawn and hit geometry must agree, including gutters and rounded corners; absent slots remain neutral.
+- Window: 368 × 414 DIP; ring center (184,184), outer radius 166 DIP, neutral center radius 78 DIP. Use the actual visible target count N (1–9), equally spaced at 360/N degrees with a 4-degree neutral gutter; this matches the six-action, seven-format and nine-tool reference wheels. Petal corners approximately 8 DIP. Drawn and hit geometry must agree, including gutters and rounded corners; absent slots remain neutral.
 - Target geometry stays fixed during hover and opening. Keep retained visual objects; a hover change updates only the old and new target state. Rebuild only on changed page/content or theme, not per pointer movement.
 - Prepare clean content before presentation. Animate opacity and presentation transforms only: opening 160 ms ease-out from scale .94 to 1; hover color 90 ms; dismissal 100 ms. Hit testing uses final layout throughout. Reduced motion disables scale/fades; high contrast uses system brushes and clear boundaries.
 - Keep a nonactivating tool window with a real OLE hit surface; never use click-through or fake hook-only drops. All post-drop work begins after the OLE callback unwinds.
 - Thumbnails load asynchronously from copied paths with bounded decode size (maximum 192 physical pixels), cancellation and generation checks. A stale preview must not replace a later drag. Use a generic glyph immediately; preview failure does not block the drop.
-- Provide quiet original open/selection/success/error cues, preloaded and optional. Selection cues are throttled (at least 45 ms apart). Never block input on audio or decode, and do not modify global system volume. Sound is configurable separately from reduced motion and is off by default to respect existing installations.
+- Provide quiet original open/selection/success/error cues, preloaded and optional. Selection cues are throttled (at least 45 ms apart). Never block input on audio or decode, and do not modify global system volume. Sound is configurable separately from reduced motion and is enabled by default, as requested, with an easy-to-find mute preference.
 
 ## Desktop workspace
 
