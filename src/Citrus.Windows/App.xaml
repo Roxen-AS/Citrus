@@ -1,3 +1,3 @@
 <Application x:Class="Citrus.Windows.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" ShutdownMode="OnExplicitShutdown">
-  <Application.Resources><ResourceDictionary><ResourceDictionary.MergedDictionaries><ResourceDictionary Source="Resources/CitrusArtwork.xaml"/><ResourceDictionary Source="Resources/Tokens.xaml"/><ResourceDictionary Source="Resources/Materials.xaml"/><ResourceDictionary Source="Resources/Controls.xaml"/><ResourceDictionary Source="Resources/Icons.xaml"/><ResourceDictionary Source="Resources/Motion.xaml"/></ResourceDictionary.MergedDictionaries></ResourceDictionary></Application.Resources>
+  <Application.Resources><ResourceDictionary Source="CitrusResources.xaml"/></Application.Resources>
 </Application>

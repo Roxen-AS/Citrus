@@ -22,7 +22,6 @@ public sealed class DesktopFixture : IDisposable
                     SuppressedStartupCallbacks++;
                     ready.SetResult(Dispatcher.CurrentDispatcher);
                 });
-                app.InitializeComponent();
                 var dispatcher = Dispatcher.CurrentDispatcher;
                 SynchronizationContext.SetSynchronizationContext(new DispatcherSynchronizationContext(dispatcher));
                 Dispatcher.Run();
@@ -43,10 +42,23 @@ public sealed class DesktopFixture : IDisposable
         if (!thread.Join(TimeSpan.FromSeconds(10))) throw new TimeoutException("Desktop dispatcher did not stop.");
     }
 
-    private sealed class ResourceOnlyApp(Action startupSuppressed) : App
+    private sealed class ResourceOnlyApp : App
     {
+        private readonly Action startupSuppressed;
+
+        public ResourceOnlyApp(Action startupSuppressed)
+        {
+            this.startupSuppressed = startupSuppressed;
+            ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown;
+            Resources = new System.Windows.ResourceDictionary
+            {
+                Source = new Uri("pack://application:,,,/Citrus.Windows;component/CitrusResources.xaml", UriKind.Absolute)
+            };
+        }
+
         // Application's constructor queues OnStartup even when only Dispatcher.Run is used.
-        // Load the real App.xaml, but never start the resident, its hooks, or presentation services.
+        // The dispatcher starts after the shared production resources have loaded, so readiness
+        // observes both resources and this callback without starting resident services or hooks.
         protected override void OnStartup(System.Windows.StartupEventArgs e) => startupSuppressed();
     }
 }
