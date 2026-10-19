@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "packageSource": "https://api.nuget.org/v3/index.json",
+  "packages": [
+    {
+      "id": "magick.net-q8-x64",
+      "version": "15.0.0",
+      "url": "https://api.nuget.org/v3-flatcontainer/magick.net-q8-x64/15.0.0/magick.net-q8-x64.15.0.0.nupkg",
+      "sha256": "96bf50fcbc586e8a149b467a97fb3d1bf09c0362b5d8ff828a9936b23fdc5374",
+      "sha512_base64": "yErXjczVWkZ/6kK074WZutQp/ealJZWbki7qd0+DD4vGk38SiMYtIjW9bEzxYkc0dMImk9Ga5j8hYBFAnOKfOQ=="
+    },
+    {
+      "id": "magick.net.core",
+      "version": "15.0.0",
+      "url": "https://api.nuget.org/v3-flatcontainer/magick.net.core/15.0.0/magick.net.core.15.0.0.nupkg",
+      "sha256": "9936d4ea3ed1991a6672056e8df47b75b43c00afa884bff78e136cd2141798b3",
+      "sha512_base64": "uBnOFSexMIv+YzqeSr1IuTGeq+apYqf38OcUXGUqOK5bJc1opjuReMP2/YAso7VXOvGZZcG0k1bCSFjMjQE+VA=="
+    }
+  ],
+  "upstreamSource": {
+    "repository": "https://github.com/dlemstra/Magick.NET",
+    "commit": "79bb8700d7fe3a564f62926ab299fc2520cb2269",
+    "release": "https://github.com/dlemstra/Magick.NET/releases/tag/15.0.0",
+    "evidence": "Package nuspec repository commit; unmodified upstream binaries, not rebuilt by Citrus."
+  },
+  "imageMagick": "7.1.2-33 (2026-10-10), from package Notice.txt",
+  "windowsNative": {
+    "path": "runtimes/win-x64/native/Magick.Native-Q8-x64.dll",
+    "sha256": "e24d1b5ecf421c9a5ec4fd592b795da228d7adde5964b1687bbcaf9c56151cc8"
+  },
+  "notice": "notices/Magick.NET-15.0.0-Notice.txt",
+  "validatedRuntime": "Linux x64 only; Windows codec and Explorer acceptance pending",
+  "rasterDecoders": [
+    "png",
+    "jpeg",
+    "webp",
+    "tiff",
+    "bmp",
+    "gif",
+    "avif"
+  ],
+  "disabledDecoders": [
+    "heic",
+    "pdf",
+    "eps",
+    "ps"
+  ],
+  "mediaManifest": "FFmpeg/FFprobe source/build manifest belongs to Task 3; no media backend is included in this candidate.",
+  "noticeNormalization": "Only whitespace normalized (LF line endings, tabs expanded, trailing spaces/blank lines removed); license text retained.",
+  "svgInput": {
+    "renderer": "MagickFormat.Msvg (bundled internal MSVG, no external delegate)",
+    "validation": "60\u00d730 red rectangle \u2192 PNG dimensions and pixels; external-resource SVG rejected",
+    "scope": "Input only, self-contained shapes/text; no SVG outputs/tools, CSS stylesheets, DTDs, scripts or external resources"
+  }
+}

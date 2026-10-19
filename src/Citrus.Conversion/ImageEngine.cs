@@ -1,0 +1,117 @@
+using Citrus.Core;
+using ImageMagick;
+using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Linq;
+
+namespace Citrus.Conversion;
+
+/// <summary>Local, explicitly selected raster decoders. Document delegates are never selected; SVG uses the internal MSVG renderer.</summary>
+public sealed class ImageEngine : IConversionEngine
+{
+    private static readonly IReadOnlyDictionary<string, MagickFormat> Formats = new Dictionary<string, MagickFormat>(StringComparer.OrdinalIgnoreCase)
+    {
+        [".png"] = MagickFormat.Png, [".jpg"] = MagickFormat.Jpeg, [".jpeg"] = MagickFormat.Jpeg,
+        [".webp"] = MagickFormat.WebP, [".tif"] = MagickFormat.Tiff, [".tiff"] = MagickFormat.Tiff,
+        [".bmp"] = MagickFormat.Bmp, [".gif"] = MagickFormat.Gif, [".avif"] = MagickFormat.Avif, [".svg"] = MagickFormat.Msvg
+    };
+    private readonly OutputWriter writer = new();
+    public IReadOnlyList<OperationDescriptor> Operations { get; } = Array.AsReadOnly(new[] { "png", "jpeg", "webp", "tiff", "bmp", "gif", "avif" }
+        .Select(ext => new OperationDescriptor("image.convert." + ext, ext.ToUpperInvariant(), OperationMode.Convert, "." + ext, false, false))
+        .Concat(new[]
+        {
+            new OperationDescriptor("image.resize", "Resize", OperationMode.Tools, null, false, true),
+            new OperationDescriptor("image.rotate", "Rotate", OperationMode.Tools, null, false, true),
+            new OperationDescriptor("image.compress", "Compress", OperationMode.Tools, null, false, true),
+            new OperationDescriptor("image.strip", "Strip metadata", OperationMode.Tools, null, false, false)
+        }).ToArray());
+
+    public bool CanExecute(OperationRequest request) => request.Inputs.Count == 1 &&
+        Operations.Any(operation => operation.Id == request.Operation.Id) &&
+        DropValidation.Accepts(request.Inputs, request.Operation.Mode) &&
+        Formats.ContainsKey(Path.GetExtension(request.Inputs[0])) &&
+        (!Path.GetExtension(request.Inputs[0]).Equals(".svg", StringComparison.OrdinalIgnoreCase) || request.Operation.Mode == OperationMode.Convert);
+
+    public Task<ConversionResult> ExecuteAsync(OperationRequest request, IProgress<ConversionProgress>? progress, CancellationToken cancellationToken) =>
+        Task.Run(async () =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!CanExecute(request)) throw new NotSupportedException("Choose an available single-frame raster image, or convert an SVG to a raster format.");
+            var options = request.Options;
+            if (options.Quality is < 1 or > 100) throw new ArgumentOutOfRangeException(nameof(request), "Quality must be between 1 and 100.");
+            if (request.Operation.Id == "image.resize" &&
+                (options.Width is <= 0 || options.Height is <= 0 || (options.Width is null && options.Height is null)))
+                throw new ArgumentException("Resize needs at least one positive dimension.", nameof(request));
+            string source = request.Inputs[0];
+            string sourceExtension = Path.GetExtension(source);
+            var operation = Operations.Single(op => op.Id == request.Operation.Id);
+            string extension = operation.OutputExtension ?? sourceExtension;
+            string suffix = operation.Mode == OperationMode.Tools ? "-" + operation.Id[6..] : "";
+            string desired = Path.Combine(request.DestinationDirectory ?? Path.GetDirectoryName(source)!, Path.GetFileNameWithoutExtension(source) + suffix + extension);
+            progress?.Report(new(null, "Reading image"));
+            // Format is forced by the vetted extension. A PDF/SVG renamed to .png cannot select a delegate.
+            using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
+            if (sourceExtension.Equals(".svg", StringComparison.OrdinalIgnoreCase)) ValidateSvg(input);
+            using (var frames = new MagickImageCollection())
+            {
+                frames.Ping(input, new MagickReadSettings { Format = Formats[sourceExtension] });
+                if (frames.Count != 1) throw new NotSupportedException("Choose a single-frame image. Animated images and multipage TIFFs are not supported yet; no copy was created.");
+            }
+            input.Position = 0;
+            using var image = new MagickImage(input, new MagickReadSettings { Format = Formats[sourceExtension] });
+            input.Close();
+            cancellationToken.ThrowIfCancellationRequested();
+            image.AutoOrient();
+            switch (operation.Id)
+            {
+                case "image.resize":
+                    image.Resize(new MagickGeometry((uint)(options.Width ?? 0), (uint)(options.Height ?? 0)) { IgnoreAspectRatio = !options.PreserveAspectRatio });
+                    break;
+                case "image.rotate": image.Rotate(options.RotationDegrees); break;
+                case "image.strip": image.Strip(); break;
+            }
+            image.Quality = (uint)options.Quality;
+            var format = Formats[extension];
+            var output = await writer.WriteFileAsync(desired, async (temporary, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                progress?.Report(new(null, "Writing copy"));
+                await image.WriteAsync(temporary, format, token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                using var check = new MagickImage(temporary, new MagickReadSettings { Format = format, FrameCount = 1 });
+                if (check.Width != image.Width || check.Height != image.Height) throw new IOException("Encoded image dimensions did not match.");
+            }, cancellationToken).ConfigureAwait(false);
+            progress?.Report(new(1, "Copy ready"));
+            return new ConversionResult([output]);
+        }, cancellationToken);
+
+    private static void ValidateSvg(Stream input)
+    {
+        const string message = "Choose a self-contained SVG with shapes or text. External resources, CSS stylesheets, scripts and animation are not supported.";
+        try
+        {
+            using var xml = XmlReader.Create(input, new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, CloseInput = false, MaxCharactersInDocument = 16 * 1024 * 1024 });
+            var document = XDocument.Load(xml);
+            if (document.Root?.Name != XName.Get("svg", "http://www.w3.org/2000/svg")) throw new NotSupportedException(message);
+            if (document.DescendantNodes().OfType<XProcessingInstruction>().Any()) throw new NotSupportedException(message);
+            foreach (var element in document.Descendants())
+            {
+                if (element.Name.LocalName is "script" or "foreignObject" or "style" or "animate" or "animateTransform" or "animateMotion" or "set")
+                    throw new NotSupportedException(message);
+                foreach (var attribute in element.Attributes().Where(attribute => !attribute.IsNamespaceDeclaration))
+                {
+                    string value = attribute.Value.Trim();
+                    if (attribute.Name.LocalName == "href" && !value.StartsWith('#')) throw new NotSupportedException(message);
+                    if (attribute.Name == XNamespace.Xml + "base") throw new NotSupportedException(message);
+                    // Keep local paint-server references (gradients/clips), disallow external CSS url/import tricks.
+                    string withoutFragments = Regex.Replace(value, "url\\(\\s*['\"]?#[A-Za-z_][A-Za-z0-9_.:-]*['\"]?\\s*\\)", "", RegexOptions.IgnoreCase);
+                    if (withoutFragments.Contains("url", StringComparison.OrdinalIgnoreCase) || value.Contains('\\') || value.Contains('@'))
+                        throw new NotSupportedException(message);
+                }
+            }
+        }
+        catch (XmlException failure) { throw new NotSupportedException(message, failure); }
+        finally { input.Position = 0; }
+    }
+
+}
