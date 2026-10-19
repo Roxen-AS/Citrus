@@ -50,12 +50,14 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
             var requested = new { requestedWindowWidthDip = width, requestedWindowHeightDip = height };
             string artifact = $"workspace-requested-{width}x{height}-{theme}-{scale * 100:0}pct-raster";
             var capture = VisualArtifacts.Capture(root, artifact, scale, theme, requested);
-            // Every root-local pixel must retain the production window's opaque backdrop.
+            // Preserve the actual backdrop without requiring lossless alpha arithmetic at glyph edges.
+            // Native WPF captures contain alpha 254 (one unit below opaque) around antialiased text;
+            // all background holes (alpha 0..253) must still fail. Exact corner/background tests remain.
             var pixels = new byte[capture.PixelWidth * capture.PixelHeight * 4];
             capture.CopyPixels(pixels, capture.PixelWidth * 4, 0);
             // Exclude only a fractional final raster row/column, whose coverage can be below one pixel.
             Assert.True(Enumerable.Range(0, (int)Math.Floor(root.ActualHeight * scale)).All(y =>
-                Enumerable.Range(0, (int)Math.Floor(root.ActualWidth * scale)).All(x => pixels[(y * capture.PixelWidth + x) * 4 + 3] == 255)),
+                Enumerable.Range(0, (int)Math.Floor(root.ActualWidth * scale)).All(x => pixels[(y * capture.PixelWidth + x) * 4 + 3] >= 254)),
                 "Workspace capture lost the actual window background.");
             var header = (System.Windows.Controls.DockPanel)((Grid)root).Children[0];
             VisualArtifacts.AssertInside(header, root);
