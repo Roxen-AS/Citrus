@@ -10,3 +10,5 @@ packaging/notices/media-licenses/** -text
 packaging/notices/pdf-licenses/** -text -whitespace
 # Preserve the exact upstream .NET runtime license/notice bytes as distributed.
 packaging/notices/dotnet/** -text -whitespace
+# Preserve every hash-pinned OCR asset, notice, source and provenance byte on checkout.
+packaging/ocr/** -text
