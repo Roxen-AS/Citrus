@@ -6,7 +6,7 @@ using Citrus.Core.Editing;
 
 namespace Citrus.Conversion.Tests;
 
-// Real media regressions for Task 6a review findings. Original backend tests remain unchanged.
+// Real media regressions for Task 6a review findings.
 public sealed class MediaPreviewReviewTests : IAsyncLifetime
 {
     private readonly string directory=Path.Combine(Path.GetTempPath(),"Citrus-media-review-"+Guid.NewGuid().ToString("N"));
@@ -15,9 +15,9 @@ public sealed class MediaPreviewReviewTests : IAsyncLifetime
     public async Task InitializeAsync() { Directory.CreateDirectory(directory); capabilities=await process.DiscoverCapabilitiesAsync(default); }
     private async Task<(MediaProbe Probe,EditorDocument Document,MediaSourceInfo Info)> Audio(string suffix,string offset="0",bool video=false,double speed=1)
     {
-        string raw=Path.Combine(directory,"source.pcm"),path=Path.Combine(directory,"source."+suffix);
-        using(var file=new BinaryWriter(File.Create(raw))) for(int i=0;i<48000;i++) file.Write((short)(i<24000?10000:20000));
-        var args=new List<string>{"-copyts","-itsoffset",offset,"-f","s16le","-ar","48000","-ac","1","-i",raw};
+        string input=Path.Combine(directory,"source-input.wav"),path=Path.Combine(directory,"source."+suffix);
+        MediaFixture.WriteWave(input,Enumerable.Range(0,48000).Select(i=>(short)(i<24000?10000:20000)).ToArray());
+        var args=new List<string>{"-copyts","-itsoffset",offset,"-i",input};
         if(video) args.AddRange(["-filter_complex","color=black:s=16x8:r=25:d=2[v]","-map","[v]","-map","0:a:0","-c:v","mpeg4"]);
         args.AddRange(["-c:a","pcm_s16le","-avoid_negative_ts","disabled",path]);
         await process.RunAsync(args,null,default);

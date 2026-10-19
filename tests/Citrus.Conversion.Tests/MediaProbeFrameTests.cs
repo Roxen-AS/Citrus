@@ -33,13 +33,23 @@ public sealed class MediaProbeFrameTests : IAsyncLifetime
     private EditorDocument Document(params MediaClip[] clips) => new(1,7,[source],[],new VideoRecipe([..clips],null,new(16,8),ImageFit.Contain,true,[],[],null,[]),new("mp4",null,"preview",new QualityGoal(80),MetadataPolicy.StripAll,new(0,0,0,255)));
     private MediaClip Clip(RationalTime start,RationalTime end,double speed=1) => new(Guid.NewGuid(),source.Id,info.Video[0].Index,null,new(start,end),speed);
     [Fact]
-    public void Vfr_nonzero_start_reports_actual_display_pts()
+    public async Task Vfr_nonzero_start_reports_actual_display_pts()
     {
         Assert.Equal(new RationalTime(10,1), info.PresentationOrigin);
         Assert.Equal(900000, info.Video[0].RawStartPts);
-        Assert.Equal(new long[] {900000,903600,909000,920700,941400}, info.Video[0].Frames.Select(f=>f.RawPts));
+        // FFmpeg versions differ in whether the terminal MP4 packet at .50 is discarded.
+        // The editor range remains end-exclusive and contains exactly these five identities.
+        var included=await probe.ReadFrameTimesAsync(source.Id,info.Video[0].Index,new(new(0,1),new(1,2)),4096,default);
+        Assert.Equal(new long[] {900000,903600,909000,920700,941400},included.Select(f=>f.RawPts));
         Assert.Equal(new RationalTime(1,10), info.Video[0].Frames[2].SourceOffset);
-        Assert.Equal(new RationalTime(1,2),info.Duration);
+        // Independently verify the complete decoded identity and extent, including any terminal frame.
+        using var raw=await process.ProbeJsonAsync(["-show_frames","-select_streams","v:0","-of","json","-i",source.Path],1024*1024,default);
+        var frames=raw.RootElement.GetProperty("frames").EnumerateArray().ToArray();
+        Assert.Equal(frames.Select(f=>f.GetProperty("pts").GetInt64()),info.Video[0].Frames.Select(f=>f.RawPts));
+        var last=frames[^1];
+        long end=last.GetProperty("pts").GetInt64()+(last.TryGetProperty("duration",out var duration)?duration:last.GetProperty("pkt_duration")).GetInt64();
+        Assert.Equal(new RationalTime(end-900000,90000),info.Duration);
+        Assert.Empty(await probe.ReadFrameTimesAsync(source.Id,info.Video[0].Index,new(info.Duration,new(1,1)),4096,default));
     }
     [Fact]
     public async Task Origin_10_range_point04_speed2_offset3_maps_pts909000_to_actual3point03()

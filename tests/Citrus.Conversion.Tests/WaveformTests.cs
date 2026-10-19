@@ -80,9 +80,9 @@ public sealed class WaveformTests : IDisposable
     public async Task Audio_stream_offset_keeps_silence_and_speed_has_exact_sample_count(double from,double to,double speed)
     {
         var process=new MediaProcess(Environment.GetEnvironmentVariable("CITRUS_TEST_FFMPEG")??"/usr/bin/ffmpeg",Environment.GetEnvironmentVariable("CITRUS_TEST_FFPROBE")??"/usr/bin/ffprobe");
-        string raw=Path.Combine(directory,"constant.pcm"),mixed=Path.Combine(directory,"offset.mov");
-        using(var writer=new BinaryWriter(File.Create(raw))) for(int i=0;i<9600;i++) writer.Write((short)10000);
-        await process.RunAsync(["-copyts","-itsoffset","0.25","-f","s16le","-ar","48000","-ac","1","-i",raw,
+        string input=Path.Combine(directory,"constant.wav"),mixed=Path.Combine(directory,"offset.mov");
+        MediaFixture.WriteWave(input,Enumerable.Repeat((short)10000,9600).ToArray());
+        await process.RunAsync(["-copyts","-itsoffset","0.25","-i",input,
             "-filter_complex","color=black:s=16x8:r=25:d=1[v]","-map","[v]","-map","0:a:0","-c:v","mpeg4","-c:a","pcm_s16le",mixed],null,default);
         var source=(await new SourceSnapshotService().CaptureAsync([mixed],default))[0].Snapshot!;
         await using var probe=new MediaProbe(process,new SourceSnapshotService(),Path.Combine(directory,"probe"));

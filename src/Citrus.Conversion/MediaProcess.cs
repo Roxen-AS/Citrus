@@ -26,6 +26,21 @@ public sealed class MediaProcess
     }
     public static MediaProcess Bundled() => new(Path.Combine(AppContext.BaseDirectory, "media", "ffmpeg.exe"), Path.Combine(AppContext.BaseDirectory, "media", "ffprobe.exe"));
 
+    // Repeating PCM can outscore the WAV header in FFmpeg's MPEG-TS autodetection.
+    // Prefer a recognized WAVE container signature, independent of the filename; the
+    // native WAV demuxer still validates the complete header/chunks and sample data.
+    internal static string[] InputArguments(string path)
+    {
+        using var input = File.OpenRead(path);
+        Span<byte> header = stackalloc byte[16];
+        int count = input.ReadAtLeast(header, header.Length, throwOnEndOfStream: false);
+        bool wave = count >= 12 && header[8..12].SequenceEqual("WAVE"u8) &&
+            (header[..4].SequenceEqual("RIFF"u8) || header[..4].SequenceEqual("RIFX"u8) ||
+             count >= 16 && header[12..16].SequenceEqual("ds64"u8) &&
+             (header[..4].SequenceEqual("RF64"u8) || header[..4].SequenceEqual("BW64"u8)));
+        return wave ? ["-f", "wav", "-i", path] : ["-i", path];
+    }
+
     public async Task RunAsync(IReadOnlyList<string> arguments, IProgress<ConversionProgress>? progress, CancellationToken cancellationToken)
     {
         var args = new List<string> { "-hide_banner", "-nostdin", "-nostats", "-loglevel", "error", "-y", "-progress", "pipe:1", "-protocol_whitelist", "file,pipe" };
@@ -124,7 +139,7 @@ public sealed class MediaProcess
     public async Task<MediaInfo> ProbeAsync(string input, CancellationToken cancellationToken)
     {
         using var json = JsonDocument.Parse(await InvokeAsync(FfprobePath,
-            ["-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries", "format=duration:stream=codec_type,width,height", "-of", "json", "-i", Path.GetFullPath(input)], null, cancellationToken).ConfigureAwait(false));
+            ["-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries", "format=duration:stream=codec_type,width,height", "-of", "json", ..InputArguments(Path.GetFullPath(input))], null, cancellationToken).ConfigureAwait(false));
         double duration = 0;
         if (json.RootElement.TryGetProperty("format", out var format) && format.TryGetProperty("duration", out var time))
             double.TryParse(time.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out duration);

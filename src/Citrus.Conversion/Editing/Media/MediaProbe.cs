@@ -84,7 +84,7 @@ public sealed class MediaProbe : IAsyncDisposable
             owned=Path.Combine(directory,Guid.NewGuid().ToString("N"));
             var staged=await snapshots.StageVerifiedAsync([source],owned,cancel.Token).ConfigureAwait(false);
             var binding=new VerifiedMediaSource(source,staged[source.Id]);
-            using var metadata=await process.ProbeJsonAsync(["-show_streams","-of","json","-i",binding.Path],2*1024*1024,cancel.Token).ConfigureAwait(false);
+            using var metadata=await process.ProbeJsonAsync(["-show_streams","-of","json",..MediaProcess.InputArguments(binding.Path)],2*1024*1024,cancel.Token).ConfigureAwait(false);
             var streams=metadata.RootElement.GetProperty("streams").EnumerateArray()
                 .Where(s=>Text(s,"codec_type") is "video" or "audio")
                 .Where(s=>!s.TryGetProperty("disposition",out var disposition)||!disposition.TryGetProperty("attached_pic",out var attached)||attached.GetInt32()==0)
@@ -182,7 +182,7 @@ public sealed class MediaProbe : IAsyncDisposable
         finally { gate.Release(); }
     }
     private Task ScanAsync(string path,Action<Dictionary<string,string>> consume,CancellationToken ct)=>process.ProbeLinesAsync(
-        ["-show_frames","-show_entries","frame=stream_index,pts,duration,pkt_duration,nb_samples","-of","compact=p=0:nk=0","-i",path],line=>
+        ["-show_frames","-show_entries","frame=stream_index,pts,duration,pkt_duration,nb_samples","-of","compact=p=0:nk=0",..MediaProcess.InputArguments(path)],line=>
         {
             if(string.IsNullOrWhiteSpace(line)) return;
             var fields=new Dictionary<string,string>(StringComparer.Ordinal);

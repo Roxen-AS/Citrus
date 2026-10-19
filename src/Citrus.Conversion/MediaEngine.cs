@@ -101,7 +101,7 @@ public sealed class MediaEngine : IConversionEngine
         string desired = Path.Combine(request.DestinationDirectory ?? Path.GetDirectoryName(source)!, Path.GetFileNameWithoutExtension(source) + suffix + "." + preset.Extension);
         string output = await writer.WriteFileAsync(desired, async (temporary, token) =>
         {
-            var args = new List<string> { "-i", source };
+            var args = new List<string>(MediaProcess.InputArguments(source));
             if (trim) { args.AddRange(["-ss", Number(options.StartSeconds)]); if (options.EndSeconds is double end) args.AddRange(["-t", Number(end - options.StartSeconds)]); }
             args.AddRange(["-map_metadata", "-1", "-map_chapters", "-1"]);
             if (preset.VideoEncoder is null) args.AddRange(["-map", "0:a:0", "-vn"]);
