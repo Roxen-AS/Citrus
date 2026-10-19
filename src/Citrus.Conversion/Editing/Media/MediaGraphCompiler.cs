@@ -51,7 +51,8 @@ public sealed class MediaGraphCompiler(MediaProbe probe,MediaCapabilities capabi
         var sourceTime=MediaTime.Add(clip.Range.Start,MediaTime.Mul(MediaTime.Sub(requested,starts[selected]),speed));
         var stamp=probe.SelectFrame(clip.SourceId,stream.Index,clip.Range,sourceTime);
         var actual=MediaTime.Add(starts[selected],MediaTime.Div(MediaTime.Sub(stamp.SourceOffset,clip.Range.Start),speed));
-        var args=new List<string>{"-copyts","-filter_threads","1","-filter_complex_threads","1","-noautorotate","-i",bindings.Single(b=>b.Snapshot.Id==clip.SourceId).Path};
+        var args=new List<string>{"-copyts","-filter_threads","1","-filter_complex_threads","1","-noautorotate"};
+        args.AddRange(MediaProcess.InputArguments(bindings.Single(b=>b.Snapshot.Id==clip.SourceId).Path));
         int sarWidth=checked((int)MediaTime.Ceiling(MediaTime.Mul(new(stream.CodedSize.Width,1),stream.SampleAspect),1));
         var filters=new List<string>{ $"scale={sarWidth}:{stream.CodedSize.Height}","setsar=1" };
         switch(stream.RotationDegrees)
@@ -107,7 +108,7 @@ public sealed class MediaGraphCompiler(MediaProbe probe,MediaCapabilities capabi
             var clip=audio.Clips[i]; var source=probe.GetInfo(clip.SourceId);
             var stream=source.Audio.FirstOrDefault(s=>s.Index==clip.AudioStream)??throw new NotSupportedException("Selected clip has no audio stream.");
             if(!stream.Channels.SequenceEqual(audio.Channels.InputChannels)) throw new NotSupportedException("Selected stream channel layout does not match the identity matrix.");
-            args.AddRange(["-i",bindings.Single(b=>b.Snapshot.Id==clip.SourceId).Path]);
+            args.AddRange(MediaProcess.InputArguments(bindings.Single(b=>b.Snapshot.Id==clip.SourceId).Path));
             var start=MediaTime.Add(source.PresentationOrigin,clip.Range.Start);
             var end=MediaTime.Add(source.PresentationOrigin,clip.Range.End);
             // Decoded audio can use a different time base from its container (e.g. Matroska 1/1000).
