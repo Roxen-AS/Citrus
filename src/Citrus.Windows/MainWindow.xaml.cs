@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows.Controls;
+using System.Windows.Interop;
 using Citrus.Core;
 using Microsoft.Win32;
 
@@ -24,6 +25,8 @@ public partial class MainWindow : Window, IDisposable
         this.app = app;
         this.previews = previews ?? new FilePreviewService();
         InitializeComponent();
+        // The HWND exists here but has not been shown: size/position before first paint.
+        SourceInitialized += PlaceInitialWorkspace;
         SelectedFiles.ItemsSource = selection.Items;
         selection.MembershipChanged += MembershipChanged;
         JobList.ItemsSource = jobs;
@@ -36,6 +39,30 @@ public partial class MainWindow : Window, IDisposable
             else StopPreview();
         };
     }
+    private void PlaceInitialWorkspace(object? sender, EventArgs e)
+    {
+        SourceInitialized -= PlaceInitialWorkspace; // Initial placement only; later user moves/resizes stay untouched.
+        if (!NativeMethods.GetCursorPos(out var pointer)) return;
+        var work = NativeMethods.WorkArea(pointer);
+        double scale = NativeMethods.MonitorScale(pointer);
+        double availableWidth = work.Width / scale, availableHeight = work.Height / scale;
+        double requestedWidth = Width, requestedHeight = Height;
+        // On displays smaller than the minimum, visible/reachable chrome takes precedence.
+        // Lower only that dimension's minimum; never install monitor-sized maximum bounds.
+        MinWidth = Math.Min(MinWidth, availableWidth);
+        MinHeight = Math.Min(MinHeight, availableHeight);
+        int width = (int)Math.Floor(Math.Min(work.Width, Math.Max(MinWidth, requestedWidth) * scale));
+        int height = (int)Math.Floor(Math.Min(work.Height, Math.Max(MinHeight, requestedHeight) * scale));
+        int left = (int)Math.Floor(work.Left + (work.Width - width) / 2);
+        int top = (int)Math.Floor(work.Top + (work.Height - height) / 2);
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Width = width / scale; Height = height / scale;
+        Left = left / scale; Top = top / scale;
+        // Work-area origins are physical coordinates, including negative mixed-monitor origins.
+        // Native placement avoids assuming the target monitor shares the primary monitor's DPI.
+        NativeMethods.SetWindowPos(new WindowInteropHelper(this).Handle, 0, left, top, width, height, 0x14); // NOACTIVATE | NOZORDER
+    }
+
     public void Configure(OperationCatalog available, IReadOnlyList<string> warnings)
     {
         catalog = available;
