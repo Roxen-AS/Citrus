@@ -13,10 +13,10 @@ InstallDir "$LOCALAPPDATA\Programs\Citrus"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
 SetDatablockOptimize on
-VIProductVersion "0.1.0.0"
+VIProductVersion "0.2.0.0"
 VIAddVersionKey "ProductName" "Citrus"
 VIAddVersionKey "FileDescription" "Citrus unsigned Windows installer candidate"
-VIAddVersionKey "FileVersion" "0.1.0-candidate"
+VIAddVersionKey "FileVersion" "0.2.0-preview.1"
 VIAddVersionKey "LegalCopyright" "Citrus contributors"
 ShowInstDetails show
 ShowUninstDetails show
@@ -353,7 +353,7 @@ Section "Citrus (required)" MainSection
   CreateShortcut "$SMPROGRAMS\Citrus\Citrus.lnk" "$INSTDIR\Citrus.Windows.exe"
   CreateShortcut "$SMPROGRAMS\Citrus\Uninstall Citrus.lnk" "$INSTDIR\Uninstall.exe"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "DisplayName" "Citrus (unsigned candidate)"
-  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "DisplayVersion" "0.1.0-candidate"
+  WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "DisplayVersion" "0.2.0-preview.1"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "InstallLocation" "$INSTDIR"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "DisplayIcon" "$INSTDIR\Citrus.Windows.exe"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
