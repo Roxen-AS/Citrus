@@ -4,6 +4,7 @@ using System.Windows.Media;
 using Citrus.Windows.Presentation;
 using Citrus.Core.Presentation;
 using System.Globalization;
+using System.Windows.Automation.Peers;
 using ShapePath = System.Windows.Shapes.Path;
 
 namespace Citrus.Windows;
@@ -15,8 +16,10 @@ public sealed class WheelPetal : Canvas
     private readonly StreamGeometry outline;
     private readonly TextBlock label;
     private readonly bool formatLabel;
+    private readonly string operationName;
     public WheelPetal(OperationDescriptor operation, int index, int count)
     {
+        operationName = operation.Label;
         Width = WheelGeometry.Width; Height = WheelGeometry.Width;
         IsHitTestVisible = false;
         var points = WheelGeometry.Petal(index,count);
@@ -51,6 +54,20 @@ public sealed class WheelPetal : Canvas
         System.Windows.Automation.AutomationProperties.SetName(this,operation.Label);
         ToolTip = operation.Label;
         SetSelected(false,false);
+    }
+    protected override AutomationPeer OnCreateAutomationPeer() => new PetalAutomationPeer(this);
+
+    // Petals are labels for the wheel's drag targets, not independent keyboard/invoke controls.
+    private sealed class PetalAutomationPeer(WheelPetal owner) : FrameworkElementAutomationPeer(owner)
+    {
+        protected override string GetNameCore() => owner.operationName;
+        protected override string GetClassNameCore() => nameof(WheelPetal);
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
+        protected override bool IsControlElementCore() => true;
+        protected override bool IsContentElementCore() => true;
+        protected override bool IsKeyboardFocusableCore() => false;
+        protected override List<AutomationPeer>? GetChildrenCore() => null;
+        public override object? GetPattern(PatternInterface patternInterface) => null;
     }
     /// <summary>The filled rounded outline owns native boundaries; its decorative stroke is not a target.</summary>
     public bool ContainsPoint(Point point) => outline.FillContains(point, .001, ToleranceType.Absolute);
