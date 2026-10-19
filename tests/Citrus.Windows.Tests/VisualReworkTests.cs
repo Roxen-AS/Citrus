@@ -75,6 +75,8 @@ public sealed class VisualReworkTests(DesktopFixture desktop)
     [InlineData(ThemeChoice.Dark)]
     public Task Large_text_history_and_warnings_leave_action_pinned_and_content_reachable(ThemeChoice choice) => desktop.RunAsync(async () =>
     {
+        using var trace = new DesktopStageTrace($"workspace-stress-{choice}-text200", Dispatcher.CurrentDispatcher);
+        trace.Mark("setup.before");
         using var files = new NativeFiles();
         string path = System.IO.Path.Combine(files.Root, "citrus.png");
         CitrusPreviewFixture.Save(path);
@@ -82,22 +84,36 @@ public sealed class VisualReworkTests(DesktopFixture desktop)
         using var window = new MainWindow((App)Application.Current) { Width = 860, Height = 640, ShowActivated = false };
         try
         {
+            trace.Mark("theme.before");
             theme.Apply(choice, true); theme.ApplyTypography(2);
+            trace.Mark("theme.after");
             var engine = new ImageEngine();
             string[] warnings = ["An optional video encoder is unavailable. Install it to enable more output formats.",
                 "An optional document tool is unavailable. Existing compatible operations remain available.",
                 "An optional archive tool is unavailable. Check the installed tools before trying again."];
+            trace.Mark("configure.before");
             window.Configure(new Citrus.Core.OperationCatalog([engine]), warnings);
-            window.AddFiles([path]); window.ApplyTextScale(2); window.Show();
+            trace.Mark("configure.after");
+            trace.Mark("add-files.before"); window.AddFiles([path]); trace.Mark("add-files.after");
+            trace.Mark("text-scale.before"); window.ApplyTextScale(2); trace.Mark("text-scale.after");
+            trace.Mark("show.before"); window.Show(); trace.Mark("show.after");
+            trace.Mark("failed-job.before");
             var operation = engine.Operations.Single(value => value.Id == "image.convert.png");
             var job = new Citrus.Core.JobQueue([engine]).EnqueueFailure(new(operation, [path], new(), null),
                 new System.IO.IOException("The selected destination is unavailable. Choose another folder and retry this job."));
-            window.AddJobs([job]);
+            trace.Mark("failed-job.after");
+            trace.Mark("add-jobs.before"); window.AddJobs([job]); trace.Mark("add-jobs.after");
             bool retried = false;
+            trace.Mark("submission-failure.before");
             window.AddSubmissionFailure("This submission could not start because the chosen destination is unavailable. Your selected files are unchanged. Retry when the destination is ready.",
                 () => { retried = true; return Task.CompletedTask; });
+            trace.Mark("submission-failure.after");
+            trace.Mark("report.before");
             window.Report("Some work needs attention. Review the failed job and the available tools below.");
+            trace.Mark("report.after");
+            trace.Mark("initial-yield.before");
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            trace.Mark("initial-yield.after");
             var root = (FrameworkElement)window.Content;
             var body = (ScrollViewer)window.FindName("WorkspaceScroll");
             var run = (System.Windows.Controls.Button)window.FindName("RunButton");
@@ -108,30 +124,41 @@ public sealed class VisualReworkTests(DesktopFixture desktop)
             VisualArtifacts.AssertInside(run, root);
             var pinned = run.TransformToAncestor(root).Transform(new System.Windows.Point());
 
+            trace.Mark("operations-scroll.before");
             var operations = (System.Windows.Controls.ListBox)window.FindName("Operations");
             body.ScrollToVerticalOffset(body.VerticalOffset + operations.TransformToAncestor(body).Transform(new System.Windows.Point()).Y);
             operations.SelectedIndex = 1; operations.ScrollIntoView(operations.SelectedItem);
+            trace.Mark("operations-yield.before");
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            trace.Mark("operations-yield.after");
             var selected = (FrameworkElement)operations.ItemContainerGenerator.ContainerFromIndex(1);
             Capture("operations");
             VisualArtifacts.AssertInside(selected, root);
             Assert.True(run.IsEnabled);
             AssertPinned();
 
+            trace.Mark("history-scroll.before");
             var retries = Descendants((FrameworkElement)window.FindName("SubmissionFailures")).OfType<System.Windows.Controls.Button>();
             var retry = Assert.Single(retries);
             body.ScrollToVerticalOffset(body.VerticalOffset + retry.TransformToAncestor(body).Transform(new System.Windows.Point()).Y);
+            trace.Mark("history-yield.before");
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            trace.Mark("history-yield.after");
             Capture("history");
             VisualArtifacts.AssertInside(retry, root);
+            trace.Mark("retry.before");
             retry.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+            trace.Mark("retry.after");
             Assert.True(retried);
             AssertPinned();
 
             var warningText = (TextBlock)window.FindName("EngineStatus");
             Assert.Equal(string.Join("\n", warnings), warningText.Text);
+            trace.Mark("warnings-scroll.before");
             body.ScrollToEnd();
+            trace.Mark("warnings-yield.before");
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            trace.Mark("warnings-yield.after");
             Capture("warnings");
             var warningBottom = warningText.TransformToAncestor(body).Transform(new System.Windows.Point(0, warningText.ActualHeight));
             Assert.InRange(warningBottom.Y, 0, body.ActualHeight + 1);
@@ -142,10 +169,20 @@ public sealed class VisualReworkTests(DesktopFixture desktop)
                 Assert.Equal(pinned, run.TransformToAncestor(root).Transform(new System.Windows.Point()));
                 VisualArtifacts.AssertInside(run, root);
             }
-            void Capture(string state) => VisualArtifacts.Capture(root, $"workspace-stress-{choice}-text200-{state}", 1, choice,
-                new { textScale = 2, failedJobs = 1, failedSubmissions = 1, warnings = warnings.Length, state, bodyViewportHeight = body.ViewportHeight });
+            void Capture(string state)
+            {
+                trace.Mark($"capture.{state}.before");
+                VisualArtifacts.Capture(root, $"workspace-stress-{choice}-text200-{state}", 1, choice,
+                    new { textScale = 2, failedJobs = 1, failedSubmissions = 1, warnings = warnings.Length, state, bodyViewportHeight = body.ViewportHeight });
+                trace.Mark($"capture.{state}.after");
+            }
         }
-        finally { window.Dispose(); window.Close(); theme.ApplyTypography(1); theme.Apply(ThemeChoice.Light, true); }
+        finally
+        {
+            trace.Mark("cleanup.before");
+            window.Dispose(); window.Close(); theme.ApplyTypography(1); theme.Apply(ThemeChoice.Light, true);
+            trace.Mark("cleanup.after");
+        }
     });
 
     private static IEnumerable<DependencyObject> Descendants(DependencyObject parent)

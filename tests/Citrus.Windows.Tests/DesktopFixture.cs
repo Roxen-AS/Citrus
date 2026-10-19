@@ -10,6 +10,7 @@ public sealed class DesktopFixture : IDisposable
 {
     private readonly Thread thread;
     private readonly TaskCompletionSource<Dispatcher> ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly DesktopDispatcherGuard guard = new();
     internal int SuppressedStartupCallbacks { get; private set; }
     public DesktopFixture()
     {
@@ -34,7 +35,7 @@ public sealed class DesktopFixture : IDisposable
     public async Task RunAsync(Func<Task> action)
     {
         var dispatcher = await ready.Task.WaitAsync(TimeSpan.FromSeconds(20));
-        await (await dispatcher.InvokeAsync(action)).WaitAsync(TimeSpan.FromSeconds(30));
+        await guard.RunAsync(dispatcher, action, TimeSpan.FromSeconds(30));
     }
     public void Dispose()
     {
