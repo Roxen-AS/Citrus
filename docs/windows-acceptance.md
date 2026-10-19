@@ -1,13 +1,19 @@
 # Windows acceptance — executed harnesses and remaining checks
 
 Checked items identify the hosted Windows harness scope actually executed at
-`cb8313c84492badc425e3c42b2db85ba1f6befd8` on 2026-10-19, unless an earlier
-installer checkpoint is explicitly named. Unchecked items remain
+`cb8313c84492badc425e3c42b2db85ba1f6befd8` on 2026-10-19, unless another
+revision is explicitly named. Unchecked items remain
 manual or unverified acceptance; record OS build, account type, candidate SHA256,
 tester/date and actual outcome on Windows 10 22H2 and Windows 11 x64. No current
 candidate is recorded as installed on the user's PC. CI/WPF evidence does not
 replace physical Explorer, actual display/accessibility or clean-machine checks.
 See [the exact runs and results](verification.md).
+
+An unsigned self-contained 0.3.0-preview.1 UI preview from cb8313c was delivered
+privately with verified local packaging/checksums and five-file size/visibility
+readback. Its locally cross-built installer/launcher bytes have not been executed
+on Windows; hosted CI tested its own build of the same source. Delivery does not
+check the manual items below or establish production optical glass.
 
 ## Recorded native harness scope
 
@@ -116,11 +122,11 @@ unrelated tree and wrong receipt, the partial payload and bootstrapped uninstall
 successful retry with the normal installer, every installed payload hash, and
 uninstall preserving root/nested user-output fixtures. It removes only exact
 fixture files and empty directories after success; on failure it retains evidence.
-The complete Windows workflow runs this harness. At exact 71fb, NSIS compilation
-and the native harness passed on Windows at **10:33:30 UTC**. This is hosted
+The complete Windows workflow runs this harness. At exact cb8313c, NSIS compilation
+and the native harness passed on Windows at **10:46:24 UTC**. This is hosted
 installer/recovery execution, not an end-user installation or a Linux simulation.
 
-- [x] Hosted Windows native harness at 71fb: first-file interruption, unrelated/wrong-receipt refusal, same-payload retry, owned uninstall and root/nested user-output preservation passed. Additional bootstrap/disk-full scenarios below remain unchecked.
+- [x] Hosted Windows native harness at cb8313c: first-file interruption, unrelated/wrong-receipt refusal, same-payload retry, owned uninstall and root/nested user-output preservation passed. Additional bootstrap/disk-full scenarios below remain unchecked.
 - [ ] Interrupt during initial receipt write/flush, root creation and uninstaller write (for example with controlled disk/access failures). If no tree was created, ordinary retry works; if a tree exists, the matching receipt permits same-candidate recovery. A partial uninstaller is replaced on retry.
 - [ ] After first-file interruption, run the bootstrapped uninstaller directly without first completing setup; owned partial files are removed and unknown files survive. Native registry flushing, silent exit codes and real disk-full behavior remain pending.
 
@@ -177,9 +183,18 @@ guarded PNGs each, including matching no-helper baselines and a visible magenta
 target control. Measured host A/B change is zero despite baseline change
 222.10698; outside-ellipse and protected hub/caption differences are zero. This
 records no observed host sampling on that Server 26100 x64 scene, not an accepted
-optical result or a Windows 11 client failure. The ARM client filter excludes this
-experiment. Keep WPF raster images, guarded capture assertions and accepted
-optical behavior distinct.
+optical result or a Windows 11 client failure. The cb8313c ARM filter excluded this
+experiment. The later actual client run at exact
+`11a4cc103196fcf13cf0d17007b7f38104a206de` (Windows 11 Enterprise, ProductType 1,
+build 26200, ARM64 OS/x64 process) executed 85 cases: 76 passed, 9 failed capture/
+pointer ownership guards. Its new probe refused the first baseline pixel before
+COM, queue/helper creation or any probe PNG/read. Desktop/session and crop bounds
+checks succeeded; the one normal owned activation did not succeed. Final Solid
+and foreground were preserved; no queue was acquired, so its false shutdown flag
+is not a queue failure. This supplies no client optical measurement or explanation
+of the unowned window's contents/cause. See [verification.md](verification.md) for
+the precise refusal record. Keep WPF raster images, guarded capture assertions and
+accepted optical behavior distinct.
 
 - [ ] Guarded ordinary-window and wheel fine/broad-pattern captures: full desktop,
   station/session, visual z order and every crop input pixel verified before reads;

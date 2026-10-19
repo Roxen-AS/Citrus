@@ -1,6 +1,6 @@
 # Candidate verification record
 
-Status: **0.3.0-preview.1 source candidate; native UI/control harnesses executed; manual interaction and optical acceptance pending**.
+Status: **unsigned 0.3.0-preview.1 UI preview delivered; native UI/control harnesses executed; manual interaction and optical acceptance pending**.
 This record is committed product documentation so evidence survives cleanup of
 local development reports. Build outputs use `dist/Citrus-Setup.exe`,
 `dist/Citrus-win-x64/`, and `dist/SHA256SUMS`. The source archive inside the payload
@@ -72,8 +72,8 @@ difference **0**, so its production companion eligibility also stayed false.
 The separate [ARM-host glass run 39238359274](https://github.com/Skytuhua/Citrus/actions/runs/39238359274)
 remains **76 passed / eight capability refusals** (seven capture ownership and
 one pointer preflight); it emitted no unowned input or refused-frame screen read.
-Its filter does not include the raw host-backdrop probe, so it supplies no
-Windows 11 client host-sampling result.
+Its cb8313c filter does not include the raw host-backdrop probe. The later actual
+Windows 11 client attempt is recorded separately below.
 
 ### Host-backdrop probe and current source
 
@@ -96,25 +96,70 @@ and the shell returns to Solid with unchanged foreground.
 
 The observed Windows Server build 26100 x64 scene therefore shows no host
 sampling/live response despite successful target presentation. This is neither
-accepted optical glass nor a Windows 11 client failure claim; the ARM client
-workflow did not run this experiment. The production native wheel gate remains
-**false**. WPF material images, successful COM/API setup and ordinary capture
+accepted optical glass nor a Windows 11 client failure claim; the cb8313c ARM
+client workflow did not run this experiment. The production native wheel gate
+remains **false**. WPF material images, successful COM/API setup and ordinary capture
 assertions do not independently establish host-backdrop eligibility.
 
-### Installer checkpoint
+### Actual Windows 11 client attempt — exact 11a4cc1
 
-The earlier exact 71fb general job
-[39236830130](https://github.com/Skytuhua/Citrus/actions/runs/39236830130) passed
-prepared-payload/native hash and media smoke verification, five negative packaging checks, two portable recovery contracts,
-official NSIS acquisition and installer compilation. At **10:33:30 UTC** its
-native recovery harness passed first-file interruption, receipt refusal, retry,
-owned uninstall and byte-preserving user-output checks. These are actual
-Windows installer/recovery results, not a Linux simulation. Its checksum log
-records **587 artifacts**. That run's success-only large candidate upload was
-skipped because of its probe failure. The cb8313c installer/recovery execution is
-still in progress at this record; no current candidate is recorded as installed
-on the user's PC. General clean-machine installation, sign-in, multi-session and
-the remaining failure-injection scenarios are still manual acceptance items.
+The later client-only run
+[39239337737](https://github.com/Skytuhua/Citrus/actions/runs/39239337737), exact
+`11a4cc103196fcf13cf0d17007b7f38104a206de`, records Windows 11 Enterprise,
+ProductType 1, build **26200**, ARM64 OS/x64 process: **85 executed, 76 passed,
+9 failed, zero skipped**. Eight failures are capture-ownership refusals and one
+is a native pointer preflight refusal; no global input was emitted.
+
+The new host probe refused its **first no-helper baseline**, before COM setup,
+queue acquisition, helper creation or any probe PNG. Reason
+`InputCropOwnershipUnavailable`, subreason `UnownedInputRoot`, occurred at pixel
+**(328,200)** after checking **1 of 152352** required pixels: actual root HWND
+**66062**, WWAHost PID **8408**, CoreWindow bounds **1024×768**. The crop is within
+the workarea. Desktop/session checks succeeded: WinSta0/Default is the active
+input desktop, process/console/foreground session is **2**, and queries succeeded.
+The single normal owned-background activation was attempted but returned false
+and did not succeed. No conclusion follows about the unowned window's contents
+or the cause of that activation result.
+
+There was **no refused-frame screen read**, host measurement or second variant.
+Cleanup retained Solid and unchanged foreground. `ShutdownCompleted=false` is
+paired with no queue acquired, not an observed queue shutdown failure. No foreign
+window interaction, guard relaxation or OS setting change was performed. The
+client path remains optically unmeasured and the production wheel gate stays
+**false**; the Server results above cannot be generalized to this client refusal.
+
+### Installer and delivered preview checkpoint
+
+The exact cb8313c general job completed **SUCCESS**, including prepared-payload/
+native hash and media smoke verification, five negative packaging checks, two
+portable recovery contracts, official NSIS acquisition and installer compilation.
+At **10:46:24 UTC**, its native recovery harness passed first-file interruption,
+receipt refusal, retry, owned uninstall and byte-preserving user-output checks;
+its checksum log records **587 artifacts**. The earlier exact 71fb harness passed
+at **10:33:30 UTC**. These are actual hosted Windows installer/recovery results.
+
+The hosted candidate archive metadata records **374905541 bytes**, SHA-256
+`de329897700fa693248b48b2bb2d2c12d61c848988c48dfe8732945e89ebf7d6`.
+That large archive was not downloaded or locally byte-verified; its identity is
+GitHub metadata, distinct from the delivered local build below.
+
+A new isolated, unsigned, self-contained Windows x64 **0.3.0-preview.1 UI preview**
+was built from exact
+[cb8313c](https://github.com/Skytuhua/Citrus/commit/cb8313c84492badc425e3c42b2db85ba1f6befd8)
+and delivered privately. Corresponding-source preparation, publish, full prepared
+payload verification, NSIS cross-compilation and checksum generation passed.
+The delivered installer is **164862830 bytes**, SHA-256
+`d4128d7ba04029811234c8244ed44c3f12131c9002be4db80cd56bd3d1691aa7`.
+These local cross-built bytes have **not been executed on Windows**; native CI
+used the same source/recipe with its own compiler output.
+
+Private delivery readback confirmed five files, matching sizes, download
+capability and unshared visibility; the existing parent and previous version
+were preserved. Remote content hashes were not provided by that listing. The
+supplied command launcher checks the assembled installer's full hash before
+starting Setup; no native launcher execution is claimed. No current candidate
+is recorded as installed on the user's PC. General clean-machine installation,
+sign-in, multi-session and remaining failure-injection scenarios stay pending.
 
 The older installer and test counts below are retained baseline evidence. They do
 not identify a rebuilt 0.3 installer or establish acceptance of the current UI.
