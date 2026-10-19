@@ -1,0 +1,22 @@
+name: Task6a bundled media diagnostics
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  fixture-evidence:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Capture exact bundled executable fixture bytes and timestamps
+        run: python tests/native-media/diagnose-task6a.py --ffmpeg packaging/media/win-x64/ffmpeg.exe --ffprobe packaging/media/win-x64/ffprobe.exe --output TestResults/media-task6a-diagnostics
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: media-task6a-diagnostics
+          path: TestResults/media-task6a-diagnostics/
+          if-no-files-found: error
