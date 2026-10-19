@@ -66,7 +66,7 @@ jobs:
       - name: Production controller lifecycle and actual owned-scene compositor capture
         shell: pwsh
         run: |
-          & $env:DOTNET_X64 test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~BackdropControllerTests|FullyQualifiedName~WheelBackdropLifecycleTests|FullyQualifiedName~GlassNativeProofTests' --logger trx --results-directory TestResults/native
+          & $env:DOTNET_X64 test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~BackdropControllerTests|FullyQualifiedName~WheelBackdropLifecycleTests|FullyQualifiedName~GlassNativeProofTests|FullyQualifiedName~GlassCaptureOwnership' --logger trx --results-directory TestResults/native
           if ($LASTEXITCODE) { throw 'Native configuration/lifecycle/capture assertions failed' }
           if (Test-Path TestResults/glass-native/metadata.json) { Get-Content TestResults/glass-native/metadata.json | Add-Content $env:GITHUB_STEP_SUMMARY }
       - name: Self-contained product inventory and projection smoke without SDK or PATH lookup

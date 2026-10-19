@@ -12,11 +12,23 @@ namespace Citrus.Windows.Tests;
 /// <summary>Test-only desktop-compositor crop over an owned scene. Never used as a production texture.</summary>
 internal static class GlassCompositorCapture
 {
-    internal static Bitmap Capture(ScreenRect bounds, string path)
+    internal static Bitmap Capture(GlassOwnedScene scene, nint companion, string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         int hr = BackdropNativeMethods.DwmFlush();
         if (hr < 0) Marshal.ThrowExceptionForHR(hr);
+        // Refuse before GetDC/BitBlt: every crop pixel must be covered by the owned opaque background,
+        // and visual top-level z order may contain only this scene above it where the crop intersects.
+        var snapshot = scene.ReadCaptureSnapshot(companion);
+        var preflight = GlassCaptureOwnership.Check(snapshot);
+        File.WriteAllText(path + ".preflight.json", JsonSerializer.Serialize(new
+        {
+            CheckedBeforeScreenRead = true, preflight.Allowed, preflight.Reason,
+            Method = "Native full-rectangle bounds plus bounded top-level visual z-order; disabled/transparent HWNDs included",
+            Snapshot = snapshot
+        }, new JsonSerializerOptions { WriteIndented = true }));
+        if (!preflight.Allowed) throw new InvalidOperationException("Owned compositor capture refused: " + preflight.Reason);
+        ScreenRect bounds = snapshot.Crop;
         nint screen = GetDC(0), memory = 0, nativeBitmap = 0, previous = 0;
         try
         {
@@ -92,16 +104,16 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
         controller.Attach(scene.WheelHandle);
         scene.SetShellTransparent(true);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-        using var baseline = GlassCompositorCapture.Capture(scene.Bounds, Path.Combine(root, "01-owned-stripes-no-companion.png"));
+        using var baseline = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "01-owned-stripes-no-companion.png"));
         var result = controller.Synchronize(1, scene.Bounds, scene.DpiScale, true, monitor.Decision, false);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         await Task.Delay(300); // Bounded native compositor settle, never an application animation loop.
-        using var configured = GlassCompositorCapture.Capture(scene.Bounds, Path.Combine(root, "02-disabled-clipped-native.png"));
+        using var configured = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "02-disabled-clipped-native.png"));
         scene.AssertWheelOwnsClip();
         scene.SetPattern(true);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         await Task.Delay(300);
-        using var changed = GlassCompositorCapture.Capture(scene.Bounds, Path.Combine(root, "03-live-owned-background-change.png"));
+        using var changed = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "03-live-owned-background-change.png"));
         nint helper = controller.CompanionHandle;
         nint immediatelyAboveHelper = helper == 0 ? 0 : BackdropNativeMethods.GetWindow(helper, 3);
         long styles = helper == 0 ? 0 : BackdropNativeMethods.GetWindowLongPtr(helper, -16).ToInt64();
@@ -127,6 +139,7 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
         bool opticalCandidate = result.IsNative && baselineEdges > 5 && configuredEdges < baselineEdges * .75 && liveDifference > 3;
         var metadata = new
         {
+            CaptureOwnership = "Each frame has a preflight JSON; full crop checked before every screen read",
             OperatingSystem = Environment.OSVersion.ToString(), RuntimeInformation.OSArchitecture, RuntimeInformation.ProcessArchitecture,
             Host = "Windows 11 ARM64; x64 product/test process under emulation when run by windows-glass.yml",
             Build = Environment.OSVersion.Version.Build, Policy = monitor.Decision, Result = result,
@@ -145,7 +158,7 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
         File.WriteAllText(Path.Combine(root, "metadata.json"), JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true }));
         controller.Hide(1); scene.SetShellTransparent(false);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-        using var solid = GlassCompositorCapture.Capture(scene.Bounds, Path.Combine(root, "04-opaque-fallback.png"));
+        using var solid = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "04-opaque-fallback.png"));
         Assert.True(baselineEdges > 5, "Capture must contain the live owned stripe scene, not a blank/opaque/noninteractive desktop.");
         Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
         Assert.False(BackdropNativeMethods.IsWindowVisible(helper));
