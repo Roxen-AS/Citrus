@@ -6,7 +6,7 @@ an in-memory registry with an explicit flush boundary and uninstaller bytes.
 The separate Windows harness executes the real installer and recovery flow.
 """
 import importlib.util
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import re
 import shlex
 import shutil
@@ -57,15 +57,20 @@ class Attempt:
         self.output = root
 
     def value(self, value):
-        return value.replace('$INSTDIR', str(self.root)).replace('${INVENTORY_HASH}', IDENTITY).replace('\\', '/')
+        return value.replace('$INSTDIR', str(self.root)).replace('${INVENTORY_HASH}', IDENTITY)
+
+    def path(self, value):
+        # Interpret NSIS path separators only at filesystem boundaries. Registry
+        # receipts/locations must retain the native root spelling used by NSIS.
+        return Path(self.value(value).replace('\\', '/'))
 
     def apply(self, operation):
         kind, *args = operation
         if kind == 'registry': self.registry[args[0]] = self.value(args[1])
         elif kind == 'flush': self.durable = dict(self.registry)
         elif kind == 'directory':
-            self.output = Path(self.value(args[0])); self.output.mkdir(parents=True, exist_ok=True)
-        elif kind == 'uninstaller': Path(self.value(args[0])).write_bytes(b'embedded-uninstaller-placeholder')
+            self.output = self.path(args[0]); self.output.mkdir(parents=True, exist_ok=True)
+        elif kind == 'uninstaller': self.path(args[0]).write_bytes(b'embedded-uninstaller-placeholder')
         elif kind == 'file': shutil.copyfile(args[0], self.output / Path(args[0]).name)
 
     def assert_recoverable(self, test):
@@ -82,6 +87,19 @@ class RecoveryContractTests(unittest.TestCase):
         return payload, mutations(payload)
 
     def test_every_bootstrap_interruption_has_durable_recovery_before_tree_creation(self):
+        # Registry values preserve the literal Windows root, even on a Linux host.
+        # Only registry mutations run with PureWindowsPath; these are string checks.
+        for root in [PureWindowsPath("C:/Users/runner name/AppData/Local/Programs/Citrus"),
+                     PureWindowsPath("//server/share/Citrus")]:
+            with self.subTest(windows_root=str(root)):
+                attempt = Attempt(root)
+                attempt.apply(('registry', 'RecoveryIdentity', '$INSTDIR|${INVENTORY_HASH}'))
+                attempt.apply(('registry', 'InstallLocation', '$INSTDIR'))
+                attempt.apply(('flush',))
+                self.assertEqual(str(root) + '|' + IDENTITY, attempt.durable['RecoveryIdentity'])
+                self.assertEqual(str(root), attempt.durable['InstallLocation'])
+                self.assertEqual(root.as_posix() + '/media/output.mp4',
+                                 attempt.path('$INSTDIR\\media\\output.mp4').as_posix())
         with tempfile.TemporaryDirectory() as temp:
             parent = Path(temp); _, steps = self.fixture(parent)
             first_file = next(i for i, step in enumerate(steps) if step[0] == 'file')
@@ -114,9 +132,9 @@ class RecoveryContractTests(unittest.TestCase):
                 self.assertEqual(digest, package.sha(attempt.root / name))
             _, deletion, _ = package.instructions(package.inventory(payload), payload)
             for line in deletion.splitlines():
-                if line.startswith('Delete '): Path(attempt.value(shlex.split(line, posix=False)[1].strip('"'))).unlink(missing_ok=True)
+                if line.startswith('Delete '): attempt.path(shlex.split(line, posix=False)[1].strip('"')).unlink(missing_ok=True)
                 elif line.startswith('RMDir '):
-                    try: Path(attempt.value(shlex.split(line, posix=False)[1].strip('"'))).rmdir()
+                    try: attempt.path(shlex.split(line, posix=False)[1].strip('"')).rmdir()
                     except OSError: pass
             self.assertEqual(b'user output', (attempt.root / 'notes.txt').read_bytes())
             self.assertEqual(b'user media', (attempt.root / 'media/converted.mp4').read_bytes())
