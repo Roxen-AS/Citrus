@@ -28,6 +28,8 @@ internal static class LifecycleHost
         }
         var app = new App(new ResidentOptions(args[2], args[1], ObserveGestures: false, Background: args.Contains("--background"), NativeActions: actions));
         app.InitializeComponent();
+        // Opt-in test diagnostics retain actual resident references, without changing product APIs.
+        GlassLifetimeObservation? glassLifetime = null;
         // Surface product startup errors from a hidden Home instead of waiting 45 seconds for READY.
         var startupWatch = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
         startupWatch.Tick += (_, _) =>
@@ -43,6 +45,7 @@ internal static class LifecycleHost
         app.ResidentReady += () =>
         {
             startupWatch.Stop();
+            if (args.Contains("--glass-lifetime")) glassLifetime = new(app);
             Console.WriteLine("READY:" + new WindowInteropHelper(app.MainWindow).EnsureHandle());
             _ = Task.Run(async () =>
             {
@@ -52,6 +55,9 @@ internal static class LifecycleHost
                     {
                         switch (command)
                         {
+                            case "glass-lifetime" when glassLifetime is not null:
+                                Console.WriteLine("GLASS_READY:" + glassLifetime.Prepare(Path.Combine(args[2], "glass.txt")));
+                                return;
                             case "open": app.OpenHome(); break;
                             case "close": app.CloseHome(); break;
                             case "pause": app.ShowWheelForLifecycleTest(); app.SetGestures(false, persist: false); break;
@@ -122,6 +128,7 @@ internal static class LifecycleHost
         };
         int result = app.Run();
         Console.WriteLine("DISPOSED:" + app.ResourcesDisposed);
+        if (glassLifetime is not null) Console.WriteLine("GLASS_DISPOSED:" + glassLifetime.AfterQuit());
         return result;
     }
 }

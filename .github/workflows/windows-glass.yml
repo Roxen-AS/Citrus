@@ -81,9 +81,9 @@ jobs:
       - name: Production controller lifecycle and actual owned-scene compositor capture
         shell: pwsh
         run: |
-          & $env:DOTNET_X64 test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~BackdropControllerTests|FullyQualifiedName~WheelBackdropLifecycleTests|FullyQualifiedName~GlassNativeProofTests|FullyQualifiedName~GlassCaptureOwnership' --logger trx --results-directory TestResults/native
+          & $env:DOTNET_X64 test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~BackdropControllerTests|FullyQualifiedName~WheelBackdropLifecycleTests|FullyQualifiedName~GlassNativeProofTests|FullyQualifiedName~GlassCaptureOwnership|FullyQualifiedName~GlassCompositorTests|FullyQualifiedName~GlassResourceLifetimeTests|FullyQualifiedName~WheelGlassInteractionTests|FullyQualifiedName~GlassSurfaceIntegrationTests|FullyQualifiedName~SpringAnimatorTests|FullyQualifiedName~PressFeedbackTests|FullyQualifiedName~WorkspaceRenderingTests' --logger trx --results-directory TestResults/native
           $nativeExit = $LASTEXITCODE
-          if (Test-Path TestResults/glass-native/metadata.json) { Get-Content TestResults/glass-native/metadata.json | Add-Content $env:GITHUB_STEP_SUMMARY }
+          Get-ChildItem TestResults/glass-native -Filter metadata.json -Recurse -ErrorAction SilentlyContinue | ForEach-Object { Get-Content $_.FullName | Add-Content $env:GITHUB_STEP_SUMMARY }
           if ($nativeExit) { throw 'Native configuration/lifecycle/capture assertions failed; inspect capability-unavailable metadata before interpreting this as optical evidence' }
       - name: Self-contained product inventory and projection smoke without SDK or PATH lookup
         if: ${{ always() && steps.native-build.outcome == 'success' }}
@@ -110,5 +110,7 @@ jobs:
         if: always()
         with:
           name: windows11-x64-glass-evidence
-          path: TestResults/**
+          path: |
+            TestResults/**
+            **/TestResults/**
           if-no-files-found: warn

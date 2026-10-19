@@ -18,6 +18,10 @@ namespace Citrus.Windows.Tests;
 internal sealed class GlassOwnedScene : IDisposable
 {
     private readonly Window background;
+    private readonly Window? ordinaryTarget;
+    // Snapshot.Wheel is the existing guarded target slot; ordinary mode supplies this owned HWND.
+    public nint CaptureTargetHandle => ordinaryTarget is null ? WheelHandle : new WindowInteropHelper(ordinaryTarget).Handle;
+    public string CaptureTargetKind => ordinaryTarget?.GetType().Name ?? nameof(WheelWindow);
     private readonly string sample = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "citrus-glass-" + Guid.NewGuid().ToString("N") + ".txt");
     public WheelWindow Wheel { get; } = new(new OperationCatalog([]));
     public nint WheelHandle => new WindowInteropHelper(Wheel).Handle;
@@ -28,13 +32,14 @@ internal sealed class GlassOwnedScene : IDisposable
     public bool BackgroundActivationAttempted { get; private set; }
     public bool BackgroundActivationReturned { get; private set; }
     public bool BackgroundActivationSucceeded { get; private set; }
-    public double DpiScale => BackdropNativeMethods.GetDpiForWindow(WheelHandle) / 96d;
+    public double DpiScale => BackdropNativeMethods.GetDpiForWindow(CaptureTargetHandle) / 96d;
     public ScreenRect Bounds
     {
-        get { Assert.True(BackdropNativeMethods.GetWindowRect(WheelHandle, out var rect)); return rect.ToScreenRect(); }
+        get { Assert.True(BackdropNativeMethods.GetWindowRect(CaptureTargetHandle, out var rect)); return rect.ToScreenRect(); }
     }
-    public GlassOwnedScene()
+    public GlassOwnedScene(Window? ordinaryTarget = null)
     {
+        this.ordinaryTarget = ordinaryTarget;
         File.WriteAllText(sample, "Owned backdrop scene");
         NativeMethods.GetCursorPos(out var pointer);
         var work = NativeMethods.WorkArea(pointer);
@@ -63,6 +68,18 @@ internal sealed class GlassOwnedScene : IDisposable
         ForegroundBefore = activateOwnedBackground ? BackdropNativeMethods.GetForegroundWindow() : originalForeground;
         BackgroundActivationSucceeded = BackgroundActivationAttempted && ForegroundBefore == BackgroundHandle;
         BaselineForeground = GlassNativeDesktopProbe.Describe(ForegroundBefore);
+        if (ordinaryTarget is not null)
+        {
+            ordinaryTarget.ShowActivated = false;
+            ordinaryTarget.Topmost = true;
+            ordinaryTarget.Show();
+            ordinaryTarget.UpdateLayout();
+            return;
+        }
+        ConfirmWheel();
+    }
+    public void ConfirmWheel()
+    {
         Wheel.ShowAtPointer(OperationMode.Convert);
         var surface = (Canvas)Wheel.FindName("Surface");
         var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new[] { sample });
@@ -87,6 +104,15 @@ internal sealed class GlassOwnedScene : IDisposable
         // The neutral-center ellipse remains opaque; only the actual production shell changes material.
         ((MaterialSurface)Wheel.FindName("Shell")).State = state;
     }
+    public void SetBroadPattern(bool alternate)
+    {
+        // Broad spatial changes are distinct from the existing 16-DIP fine stripe control.
+        var drawing = new DrawingGroup();
+        drawing.Children.Add(new GeometryDrawing(alternate ? Brushes.White : Brushes.Black, null, new RectangleGeometry(new Rect(0, 0, 256, 256))));
+        drawing.Children.Add(new GeometryDrawing(alternate ? Brushes.Black : Brushes.White, null, new RectangleGeometry(new Rect(0, 0, 128, 256))));
+        var brush = new DrawingBrush(drawing) { TileMode = TileMode.Tile, ViewportUnits = BrushMappingMode.Absolute, Viewport = new Rect(0, 0, 256, 256), Stretch = Stretch.None };
+        brush.Freeze(); background.Background = brush;
+    }
     public void SetPattern(bool alternate)
     {
         var drawing = new DrawingGroup();
@@ -110,7 +136,7 @@ internal sealed class GlassOwnedScene : IDisposable
             windows.Add(new(current.ToInt64(), rectangle.ToScreenRect(), visible, known));
             current = BackdropNativeMethods.GetWindow(current, 2); // GW_HWNDNEXT: top to bottom.
         }
-        return GlassNativeDesktopProbe.Complete(new(bounds, work, BackgroundHandle.ToInt64(), WheelHandle.ToInt64(), companion.ToInt64(), windows, current == 0));
+        return GlassNativeDesktopProbe.Complete(new(bounds, work, BackgroundHandle.ToInt64(), CaptureTargetHandle.ToInt64(), companion.ToInt64(), windows, current == 0));
     }
     [DllImport("user32.dll")] private static extern nint GetTopWindow(nint hwnd);
 
@@ -131,5 +157,5 @@ internal sealed class GlassOwnedScene : IDisposable
         }
         finally { BackdropNativeMethods.DeleteObject(region); }
     }
-    public void Dispose() { Wheel.Close(); background.Close(); File.Delete(sample); }
+    public void Dispose() { Wheel.Close(); ordinaryTarget?.Close(); background.Close(); File.Delete(sample); }
 }

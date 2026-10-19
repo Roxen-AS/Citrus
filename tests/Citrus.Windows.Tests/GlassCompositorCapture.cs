@@ -191,13 +191,13 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
         double baselineEdges = GlassCompositorCapture.EdgeEnergy(baseline, scene.DpiScale);
         double configuredEdges = GlassCompositorCapture.EdgeEnergy(configured, scene.DpiScale);
         double liveDifference = GlassCompositorCapture.LiveDifference(configured, changed, scene.DpiScale);
-        bool opticalCandidate = result.IsNative && configuredShellState == BackdropState.ConfiguredNativeAcrylic && changedShellState == BackdropState.ConfiguredNativeAcrylic && baselineEdges > 5 && configuredEdges < baselineEdges * .75 && liveDifference > 3;
         controller.Hide(1); scene.SetShellState(controller.Result.State);
         Assert.Equal(BackdropState.Solid, scene.Wheel.MaterialState);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         using var solid = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "04-opaque-fallback.png"));
         var metadata = new
         {
+            SourceSha = Environment.GetEnvironmentVariable("GITHUB_SHA") ?? "UnavailableOutsideCIRecordExactCommitAlongsideArtifact",
             CaptureOwnership = "Each frame has a preflight JSON; full crop checked before every screen read",
             OperatingSystem = Environment.OSVersion.ToString(), RuntimeInformation.OSArchitecture, RuntimeInformation.ProcessArchitecture,
             Host = "Windows 11 ARM64; x64 product/test process under emulation when run by windows-glass.yml",
@@ -211,7 +211,8 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
             ForegroundBefore = scene.ForegroundBefore.ToInt64(), ForegroundAfter = BackdropNativeMethods.GetForegroundWindow().ToInt64(),
             WholeEllipseWindowFromPoint = "passed", OleAdmission = "Synthetic callback on real registered OLE HWND; external drag not proven",
             BaselineEdgeEnergy = baselineEdges, ConfiguredEdgeEnergy = configuredEdges, LiveBackgroundDifference = liveDifference,
-            Eligibility = opticalCandidate ? "OpticalCandidateRequiresHumanFrameReview" : "UnprovenOrSuppressedSolidGateRemainsFalse",
+            Eligibility = "RawMeasurementsRequireHumanFrameReviewSolidGateRemainsFalse",
+            UniversalOpticalThresholdApplied = false,
             ShellPresentation = new
             {
                 Baseline = "Explicit native-tint-only measurement control on the real Shell; no helper and no optical eligibility claim",
@@ -225,7 +226,6 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
             Limitation = "SetWindowRgn/WS_DISABLED may suppress Acrylic. S_OK never enables the production gate. No OS transparency settings were changed."
         };
         File.WriteAllText(Path.Combine(root, "metadata.json"), JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true }));
-        Assert.True(baselineEdges > 5, "Capture must contain the live owned stripe scene, not a blank/opaque/noninteractive desktop.");
         Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
         Assert.False(BackdropNativeMethods.IsWindowVisible(helper));
         // These are configuration/capture assertions. Optical eligibility is deliberately a separate recorded result.

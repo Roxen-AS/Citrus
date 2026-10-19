@@ -28,12 +28,18 @@ public sealed class WheelBackdropLifecycleTests(DesktopFixture desktop)
     [Fact]
     public Task WindowFromPoint_still_resolves_real_wheel_inside_entire_clip() => desktop.RunAsync(async () =>
     {
-        using var scene = new GlassOwnedScene(); scene.Show();
+        using var scene = new GlassOwnedScene(); scene.Show(activateOwnedBackground: true);
+        GlassCompositorTests.Write(System.IO.Path.Combine(
+            Environment.GetEnvironmentVariable("CITRUS_GLASS_ARTIFACTS") ?? System.IO.Path.Combine(AppContext.BaseDirectory, "TestResults", "glass-native"), "clip-fixture-activation.json"),
+            new { scene.OriginalForeground, scene.BackgroundActivationAttempted, scene.BackgroundActivationReturned,
+                scene.BackgroundActivationSucceeded, scene.BaselineForeground });
         await scene.WaitForPresentationAsync();
         using var controller = new WheelBackdropController(true);
         controller.Attach(scene.WheelHandle);
         controller.Synchronize(1, scene.Bounds, scene.DpiScale, true, BackdropControllerTests.Eligible, false);
         scene.AssertWheelOwnsClip(controller.CompanionHandle);
+        Assert.True(scene.BackgroundActivationAttempted);
+        Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
     });
 
     [Fact]

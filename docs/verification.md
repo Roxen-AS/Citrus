@@ -176,3 +176,28 @@ checked against actual window width, matching the production breakpoint. These
 images do not establish the 1180 DIP layout unless the recorded actual width is
 1180; inspect that layout on a sufficiently large native desktop. No offscreen
 layout substitute or altered OS display setting is used.
+
+## Glass Task 4 evidence seams
+
+The native [glass evidence procedure](native-glass/README.md) documents separate
+ordinary/wheel actual compositor crops, fine/broad-pattern raw measurements,
+explicit solid captures, and lifecycle/quit diagnostics. The original capture and
+ownership algorithms are preserved; the owned scene's guarded target slot also
+supports the actual ordinary MainWindow HWND. The capture-dependent clip-input
+fixture now uses the same single normal owned-background activation experiment as
+the native proof and asserts preservation of its resulting foreground baseline.
+
+GlassResourceLifetimeTests extends confirmed routed admission/cancel/reopen,
+policy fallback/helper-owner destruction, dark/reduced-motion reconfiguration,
+service teardown, actual resident QuitAsync/OnExit observations and native initial
+work-area fitting. These remain synthetic routed admission and policy decisions,
+not physical OLE or OS accessibility changes. Actual compositor review and physical
+monitor/accessibility acceptance are pending; no WPF image is promoted to DWM proof.
+
+`windows-glass.yml` selects the new classes plus relevant surface, interaction,
+spring and workspace regressions and uploads all TestResults recursively even on
+failure. Runtime guard refusal remains a nonzero xUnit 2 result with truthful
+capability metadata and no refused-frame PNG. Numeric measurements have no invented
+cross-OS optical pass threshold. The production wheel gate remains false and SDK
+projection redistribution licensing remains separately unresolved. Exact revision
+build/test results belong in the task report and CI artifacts, not inferred here.

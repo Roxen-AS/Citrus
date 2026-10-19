@@ -134,3 +134,30 @@ checked against actual window width, matching the production breakpoint. These
 images do not establish the 1180 DIP layout unless the recorded actual width is
 1180; inspect that layout on a sufficiently large native desktop. No offscreen
 layout substitute or altered OS display setting is used.
+
+## Native glass and lifecycle acceptance
+
+Use [the native evidence procedure](native-glass/README.md) on the exact reviewed
+commit. The production wheel remains explicitly solid until disabled/clipped
+companion frosting has accepted compositor evidence. Ordinary `ConfiguredNativeAcrylic`
+is configuration only. Keep WPF raster images separate from native compositor crops.
+
+- [ ] Guarded ordinary-window and wheel fine/broad-pattern captures: full desktop,
+  station/session, visual z order and every crop input pixel verified before reads;
+  frame/state/preflight JSON and source SHA retained; raw measurements visually reviewed.
+- [ ] Explicit solid fallback over changed owned patterns, with opaque readable
+  content and caption backing; no global transparency or accessibility writes.
+- [ ] Confirm/cancel/reopen, theme and accessibility transitions visually reviewed
+  on real composition, including hidden intervals; no bare helper or clipping seam.
+- [ ] Actual resident QuitAsync/OnExit clears wheel HWND/helper, pending material
+  callback, attached animator, active/retained channels and Rendering subscription;
+  configuration tests independently destroy native helper and hidden owner on close.
+- [ ] Actual mixed-monitor DPI and negative-coordinate placement/input ownership;
+  actual 200% text, high contrast and reduced motion; genuine external OLE drag.
+- [ ] Review ordinary and wheel optical eligibility separately; retain explicit
+  capability-unavailable status and zero screen reads/PNGs for refused frames.
+
+The xUnit 2 harness reports runtime capture capability refusal as a nonzero test
+failure with diagnostic JSON, not a passing optical skip. One normal activation of
+the owned opaque background is permitted fixture setup; failure does not weaken
+capture guards. Source-only checks cannot mark any of these manual/native boxes done.
