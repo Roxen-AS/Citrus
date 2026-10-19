@@ -49,11 +49,49 @@ public sealed class EditorHostViewModel(EditorOpenRequest request, ImageEditorSe
     public string? Destination { get; set; } = request.DestinationDirectory;
     public bool Dirty => Sources.Any(r => r.Dirty);
     private bool accepted;
+    private readonly List<EditorImport> auxiliaryImports = [];
+    /// <summary>Explicit inset input, never a root row or part of the initial drag payload.</summary>
+    public async Task<SourceSnapshot> ImportAuxiliaryAsync(string path,CancellationToken ct)
+    {
+        if(Selected?.Draft is null)throw new ArgumentException("Select a readable image before importing an inset.");
+        if (Request.InitialPaths.Any(p=>SamePath(p,path)) || Sources.Any(r=>SamePath(r.RawPath,path)))
+            throw new ArgumentException("This image is already an export root. Choose a separate inset image.");
+        var existing=auxiliaryImports.FirstOrDefault(i=>SamePath(i.Source.Path,path));
+
+        var capture=(await services.Sources.CaptureAsync([path],ct)).Single();
+        var source=capture.Snapshot??throw new IOException(capture.Error??"Inset capture failed.");
+        await services.InspectAsync(source,ct);ct.ThrowIfCancellationRequested();
+        if(existing is not null)
+        {
+            if(existing.Source.Sha256.Equals(source.Sha256,StringComparison.OrdinalIgnoreCase)&&existing.Source.Length==source.Length){return existing.Source;}
+            if(Sources.Any(r=>r.Draft is {} d&&EditorRecipeReferences.Sources(d.Recipe).Contains(existing.Source.Id)))
+                throw new ArgumentException("Inset content changed. Delete its existing layers, then explicitly import it again.");
+            auxiliaryImports.Remove(existing);
+        }
+        auxiliaryImports.Add(new(source,EditorImportRole.Auxiliary));return source;
+    }
+    public async Task ValidateLayerDependenciesAsync(CancellationToken ct)
+    {
+        // Exact file+face and glyph coverage are checked while the host can still offer explicit resolution.
+        var documents=Sources.Where(r=>r.Included&&r.Draft is not null).Select(r=>r.Draft!).ToArray();
+        await Task.Run(()=>
+        {
+            foreach(var document in documents) foreach(var layer in ((ImageRecipe)document.Recipe).Annotations)
+            {
+                ct.ThrowIfCancellationRequested();
+                string? text=layer.Geometry switch {TextGeometry t=>t.Text,NumberGeometry n=>n.Number.ToString(System.Globalization.CultureInfo.InvariantCulture),_=>null};
+                if(text is null)continue;
+                var font=document.Fonts.Single(f=>f.Id==layer.Style.Font!.ArtifactId);var issues=FontTextValidator.Validate(font,text);
+                if(!issues.IsEmpty)throw new ArgumentException(string.Join(" ",issues.Select(i=>i.Message)));
+            }
+        },ct);
+    }
     public async Task CaptureAsync(ImmutableArray<string> paths, bool imported, CancellationToken ct)
     {
         foreach (string path in paths)
         {
             ct.ThrowIfCancellationRequested();
+            if (auxiliaryImports.Any(i=>SamePath(i.Source.Path,path)))throw new ArgumentException("This file is already an auxiliary inset. Choose a different image to add as a root.");
             if (Sources.Any(r => SamePath(r.RawPath,path)))
                 throw new ArgumentException("This file is already listed: " + path);
             var row = new EditorSourceRow(path, imported); Sources.Add(row);
@@ -130,6 +168,7 @@ public sealed class EditorHostViewModel(EditorOpenRequest request, ImageEditorSe
         // Entry presets apply only on opening. Reset is an undoable neutral recipe for this root.
         var identity = document with
         {
+            Sources=[..document.Sources.Where(s=>s.Id==image.SourceId)],Fonts=[],
             Recipe = new ImageRecipe(image.SourceId,new(0,false,false,null,null,false),
                 new(1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,PhotoEffect.None,1),[],null,[],[]),
             Export = document.Export with { Compression = new QualityGoal(85) }
@@ -162,9 +201,14 @@ public sealed class EditorHostViewModel(EditorOpenRequest request, ImageEditorSe
         var batch = new EditorSubmissionBatch(Request,
             [.. Sources.Where(r => !r.Imported && r.Source is not null).Select(r => r.Source!)],
             [.. Sources.Where(r => !r.Imported && !r.Included).Select(r => r.RawPath)],
-            [.. Sources.Where(r => r.Imported && r.Source is not null).Select(r => new EditorImport(r.Source!, EditorImportRole.Root))],
+            [.. Sources.Where(r => r.Imported && r.Source is not null).Select(r => new EditorImport(r.Source!, EditorImportRole.Root)).Concat(auxiliaryImports)],
             [.. included.Select(r => r.Source!.Id)],
-            [.. included.Select(r => new EditorSubmissionItem(Guid.NewGuid(), [r.Source!.Id], r.Draft! with { Export = r.Draft!.Export with { DestinationDirectory = Destination } }))]);
+            [.. included.Select(r =>
+            {
+                var draft=r.Draft!;var references=EditorRecipeReferences.Sources(draft.Recipe).ToHashSet();var fonts=EditorRecipeReferences.Fonts(draft.Recipe).ToHashSet();
+                var frozen=draft with {Sources=[..draft.Sources.Where(s=>references.Contains(s.Id))],Fonts=[..draft.Fonts.Where(f=>fonts.Contains(f.Id))],Export=draft.Export with {DestinationDirectory=Destination}};
+                return new EditorSubmissionItem(Guid.NewGuid(),[r.Source!.Id],frozen);
+            })]);
         accepted = true; return batch;
     }
     internal static void Validate(EditorDocument document, SizeI size)

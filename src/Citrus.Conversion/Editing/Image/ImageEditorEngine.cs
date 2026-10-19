@@ -7,13 +7,13 @@ namespace Citrus.Conversion.Editing.Image;
 public sealed class ImageEditorEngine(IEditorRenderer renderer, EditorOutputPublisher publisher, IEditorAdmissionInspector inspector) : IConversionEngine
 {
     private static readonly OperationDescriptor[] Supported =
-    [new("image.resize", "Resize", OperationMode.Tools, null, false, true), new("image.rotate", "Rotate", OperationMode.Tools, null, false, true), new("image.compress", "Compress", OperationMode.Tools, null, false, true), new("image.editor", "Adjust", OperationMode.Tools, null, false, true), new("image.crop", "Crop", OperationMode.Tools, null, false, true)];
+    [new("image.resize", "Resize", OperationMode.Tools, null, false, true), new("image.rotate", "Rotate", OperationMode.Tools, null, false, true), new("image.compress", "Compress", OperationMode.Tools, null, false, true), new("image.editor", "Adjust", OperationMode.Tools, null, false, true), new("image.crop", "Crop", OperationMode.Tools, null, false, true), new("image.annotate", "Annotate", OperationMode.Tools, null, false, true), new("image.redact", "Manual masks", OperationMode.Tools, null, false, true)];
     public IReadOnlyList<OperationDescriptor> Operations { get; } = Array.AsReadOnly(Supported);
     internal static bool AcceptsDescriptor(OperationDescriptor descriptor) => Supported.Any(d => d.Id == descriptor.Id && d.Mode == descriptor.Mode && d.OutputExtension == descriptor.OutputExtension && d.IsGroup == descriptor.IsGroup && d.NeedsOptions == descriptor.NeedsOptions);
     public bool CanExecute(OperationRequest request)
     {
         if (!AcceptsDescriptor(request.Operation)) return false;
-        if (request.Editor is null) return request.Operation.Id is "image.editor" or "image.crop" && request.Inputs.Count == 1 && ImageRasterSource.Supports(request.Inputs[0]) && DropValidation.Accepts(request.Inputs, OperationMode.Tools);
+        if (request.Editor is null) return request.Operation.Id is "image.editor" or "image.crop" or "image.annotate" or "image.redact" && request.Inputs.Count == 1 && ImageRasterSource.Supports(request.Inputs[0]) && DropValidation.Accepts(request.Inputs, OperationMode.Tools);
         try { ImageRecipeRenderer.Validate(request.Editor); EditorExportPolicy.Resolve(request); return request.Inputs.Count == 1 && ImageRasterSource.Supports(request.Inputs[0]) && DropValidation.Accepts(request.Inputs, OperationMode.Tools); }
         catch (Exception error) when (error is ArgumentException or NotSupportedException) { return false; }
     }

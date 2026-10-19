@@ -51,12 +51,15 @@ public sealed record EngineRegistry(IReadOnlyList<IConversionEngine> Engines, IR
 public sealed class ImageEditorServices : IDisposable
 {
     public ISourceSnapshotService Sources { get; } = new SourceSnapshotService();
+    public IFontArtifactService Fonts { get; } = new FontArtifactService();
     public IEditorAdmissionInspector Inspector { get; }
     public ImageEditorEngine Engine { get; }
     public EditorRouteRegistry Routes { get; } = new(new[]
     {
         new EditorRoute("image.editor", "Adjust", EditorSubmissionShape.PerRoot),
         new EditorRoute("image.crop", "Crop", EditorSubmissionShape.PerRoot),
+        new EditorRoute("image.annotate", "Annotate", EditorSubmissionShape.PerRoot),
+        new EditorRoute("image.redact", "Manual masks", EditorSubmissionShape.PerRoot),
         new EditorRoute("image.resize", "Resize", EditorSubmissionShape.PerRoot),
         new EditorRoute("image.rotate", "Rotate", EditorSubmissionShape.PerRoot),
         new EditorRoute("image.compress", "Compress", EditorSubmissionShape.PerRoot)
@@ -91,11 +94,11 @@ public sealed class ImageEditorServices : IDisposable
             var capture = (await Sources.CaptureAsync([input], ct).ConfigureAwait(false)).Single();
             var source = capture.Snapshot ?? throw new IOException(capture.Error);
             var document = new EditorDocument(1, 0, [source], [], new ImageRecipe(source.Id, new(0, false, false, null, null, false),
-                new(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, PhotoEffect.None, 1), [], null, [], []),
+                new(1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, PhotoEffect.None, 1), [new(Guid.NewGuid(),new(1,1,1,1),MaskEffect.Solid,new(0,0,0,255),0)], null, [new(Guid.NewGuid(),true,new ShapeGeometry(new(0,0,1,1),false,0),new(new(0,0,0,0),new(0,0,255,255),0,1,null))], []),
                 new("png", scope, "verified", new QualityGoal(85), MetadataPolicy.PreserveSupported, new(255,255,255,255)));
             using var previewRenderer = CreateSessionRenderer();
             var preview = await previewRenderer.RenderPreviewAsync(document, new(1, new(2,2), null,null,null), ct).ConfigureAwait(false);
-            if (preview.Size != new SizeI(2,2) || preview.Bgra32.Length != 16) throw new InvalidDataException("Image preview capability returned invalid pixels.");
+            if (preview.Size != new SizeI(2,2) || preview.Bgra32.Length != 16 || !preview.Bgra32.Take(4).SequenceEqual(new byte[]{255,0,0,255}) || !preview.Bgra32.Skip(12).Take(4).SequenceEqual(new byte[]{0,0,0,255})) throw new InvalidDataException("Image preview capability returned invalid pixels.");
             var result = await Engine.ExecuteAsync(new(Engine.Operations.Single(o => o.Id == "image.editor"), [input], new(), scope, document), null, ct).ConfigureAwait(false);
             if (result.Outputs.Count != 1 || !File.Exists(result.Outputs[0])) throw new InvalidDataException("Image export capability did not publish verified output.");
         }

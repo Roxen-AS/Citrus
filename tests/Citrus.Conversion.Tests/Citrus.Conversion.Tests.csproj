@@ -8,4 +8,6 @@
     <Using Include="Xunit" />
   </ItemGroup>
   <ItemGroup><None Update="Fixtures/Fonts/*.tt*" CopyToOutputDirectory="PreserveNewest" /><None Update="Fixtures/Archives/**/*" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/Citrus.Windows/Editors/Image/ImageLayerGeometry.cs" Link="ImageLayerGeometry.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../../src/Citrus.Windows/Editors/EditorHostViewModel.cs" Link="EditorHostViewModel.cs" /><Compile Include="../../src/Citrus.Windows/Editors/Image/ImageLayerTextMetrics.cs" Link="ImageLayerTextMetrics.cs" /></ItemGroup>
 </Project>

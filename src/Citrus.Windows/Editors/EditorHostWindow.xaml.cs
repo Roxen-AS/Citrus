@@ -15,7 +15,7 @@ namespace Citrus.Windows.Editors;
 
 public partial class EditorHostWindow : Window
 {
-    public static IReadOnlyList<string> Tools { get; } = Array.AsReadOnly(new[] { "Adjust", "Crop", "Resize", "Rotate", "Compress" });
+    public static IReadOnlyList<string> Tools { get; } = Array.AsReadOnly(new[] { "Adjust", "Crop", "Resize", "Rotate", "Annotate", "Manual masks", "Compress" });
     private readonly ImageEditorServices services;
     private readonly ImageRecipeRenderer renderer;
     private readonly EditorSession session;
@@ -23,8 +23,12 @@ public partial class EditorHostWindow : Window
     private CancellationTokenSource? previewWork;
     private EditorHostViewModel? model;
     private ImageEditorView? inspector;
+    private AnnotationInspector? layerInspector;
     private EditorSubmissionBatch? accepted;
     private long generation;
+    private long textMetricsGeneration;
+    private readonly Dictionary<(Guid Font,FontSpec Spec,string Text,double Width),double> textHeights=[];
+    private CancellationTokenSource? textMetricsWork;
     private bool closed, loading, shown, changingSelection;
     private string previousTool = "Adjust";
     internal EditorHostViewModel? Model => model;
@@ -33,9 +37,17 @@ public partial class EditorHostWindow : Window
         this.services = services; renderer = services.CreateSessionRenderer(); session = new(renderer);
         InitializeComponent(); DataContext = this; ToolPicker.ItemsSource = Tools;
         CropHandles.Changed += CropChanged;
+        LayerHandles.Changed += LayerChanged;
+        LayerHandles.TextBounds=GetTextBounds;
+        LayerHandles.SelectionChanged += RebuildInspector;
+        LayerHandles.Error += message=>ErrorText.Text=message;
+        LayerHandles.ViewChanged += (zoom,pan)=>
+        {
+            var transform=new TransformGroup();transform.Children.Add(new ScaleTransform(zoom,zoom));transform.Children.Add(new TranslateTransform(pan.X,pan.Y));PreviewImage.RenderTransform=transform;
+        };
         PreviewArea.SizeChanged += (_, _) => { if (DetailPreview.IsChecked == true) RefreshPreview(); };
         PreviewKeyDown += KeyPressed; Closing += CheckClose;
-        Closed += (_, _) => { closed = true; session.Close(); lifetime.Cancel(); previewWork?.Cancel(); };
+        Closed += (_, _) => { closed = true; session.Close(); lifetime.Cancel(); previewWork?.Cancel(); textMetricsWork?.Cancel(); };
         // Attach after all lifetime/placement wiring; ordinary windows use the shared controller and button springs.
         (Application.Current as App)?.AttachPresentation(this, Chrome);
     }
@@ -77,42 +89,95 @@ public partial class EditorHostWindow : Window
     private void UpdateSummary()
     {
         if (model is null) return;
+        SourceHeading.Text=model.Selected?.Label??"Images";
         IncludedText.Text = $"{model.Sources.Count(r => r.Included)} of {model.Sources.Count} included";
         DestinationText.Text = model.Destination ?? "Save new copies beside each original";
     }
     private void SelectSource(object sender, SelectionChangedEventArgs e)
     {
         if (model is null || changingSelection) return;
-        try { inspector?.FlushFields(); }
+        try { FlushInspector(); }
         catch (ArgumentException error)
         {
             ErrorText.Text = error.Message; changingSelection = true; SourceList.SelectedItem = model.Selected; changingSelection = false; return;
         }
-        model.CommitGesture(); model.Selected = SourceList.SelectedItem as EditorSourceRow; CropHandles.AspectRatio = null;
-        PreviewImage.Source = null; CropHandles.CancelDrag(); RebuildInspector(); RefreshPreview();
+        LayerHandles.CancelDrag(); model.CommitGesture(); model.Selected = SourceList.SelectedItem as EditorSourceRow; CropHandles.AspectRatio = null; LayerHandles.Select(null); LayerHandles.ResetView();
+        PreviewImage.Source = null; CropHandles.CancelDrag(); RebuildInspector(); RefreshPreview(); UpdateSummary();
     }
     private void InclusionChanged(object sender, RoutedEventArgs e) => UpdateSummary();
     private string Tool => ToolPicker.SelectedItem as string ?? "Adjust";
     private void ToolChanged(object sender, SelectionChangedEventArgs e)
     {
         if (model is null || changingSelection) return;
-        try { inspector?.FlushFields(); }
+        try { FlushInspector(); }
         catch (ArgumentException error)
         {
             ErrorText.Text = error.Message; changingSelection = true; ToolPicker.SelectedItem = previousTool; changingSelection = false; return;
         }
-        previousTool = Tool; model.CommitGesture(); CropHandles.CancelDrag(); CropHandles.AspectRatio = null; RebuildInspector(); RefreshPreview();
+        previousTool = Tool; LayerHandles.CancelDrag(); model.CommitGesture(); CropHandles.CancelDrag(); CropHandles.AspectRatio = null; RebuildInspector(); RefreshPreview();
     }
     private void RebuildInspector()
     {
-        Inspector.Children.Clear(); inspector = null;
+        Inspector.Children.Clear(); inspector = null; layerInspector=null;
+        bool layers=Tool is "Annotate" or "Manual masks";
+        LayerHandles.Visibility=layers&&model?.Selected?.Draft is not null?Visibility.Visible:Visibility.Collapsed;
+        LayerHandles.Update(model?.Selected?.Draft,model?.Selected?.Size??default);
+        UpdateTextMetrics();
+        if(layers)DetailPreview.IsChecked=false;
+        if(!layers){LayerHandles.ResetView();PreviewImage.RenderTransform=Transform.Identity;}
         CropHandles.Visibility = Tool == "Crop" && model?.Selected?.Draft is not null ? Visibility.Visible : Visibility.Collapsed;
-        DetailPreview.IsEnabled = Tool != "Crop";
+        DetailPreview.IsEnabled = Tool != "Crop" && !layers;
         if (model?.Selected?.Draft is null) { Inspector.Children.Add(new TextBlock { Text = model?.Selected?.Error ?? "Select an image to edit.", TextWrapping = TextWrapping.Wrap }); return; }
+        if(layers)
+        {
+            if(Tool=="Manual masks"&&LayerHandles.Tool is not (ImageLayerTool.Select or ImageLayerTool.Solid or ImageLayerTool.Gaussian or ImageLayerTool.Pixelate))LayerHandles.Tool=ImageLayerTool.Solid;
+            if(Tool=="Annotate"&&LayerHandles.Tool is ImageLayerTool.Solid or ImageLayerTool.Gaussian or ImageLayerTool.Pixelate)LayerHandles.Tool=ImageLayerTool.Select;
+            layerInspector=new(model,LayerHandles,services,this,Tool=="Manual masks",RefreshPreview,RebuildInspector,message=>{ErrorText.Text=message;if(message.Length>0)InspectorScroll.ScrollToTop();},lifetime.Token);
+            Inspector.Children.Add(layerInspector);return;
+        }
         inspector = new(model, Tool, RefreshPreview, message => ErrorText.Text = message, value => CropHandles.AspectRatio = value, RebuildInspector, CropHandles.AspectRatio);
         Inspector.Children.Add(inspector);
 
     }
+    private RectD? GetTextBounds(Annotation a)
+    {
+        if(a.Geometry is not TextGeometry t || a.Style.Font is not {} font)return null;
+        return textHeights.TryGetValue((font.ArtifactId,font,t.Text,t.WrapWidth),out double height)?new(t.Origin.X,t.Origin.Y,t.WrapWidth,height):null;
+    }
+    private async void UpdateTextMetrics()
+    {
+        textMetricsWork?.Cancel();long revision=++textMetricsGeneration;
+        if(model?.Selected?.Draft is not {Recipe:ImageRecipe image} doc)return;
+        var missing=image.Annotations.Where(a=>a.Geometry is TextGeometry && GetTextBounds(a) is null).ToArray();if(missing.Length==0)return;
+        var work=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);textMetricsWork=work;
+        try
+        {
+            var measured=await Task.Run(()=>missing.Select(a=>
+            {
+                work.Token.ThrowIfCancellationRequested();var t=(TextGeometry)a.Geometry;var f=a.Style.Font!;
+                var bounds=ImageLayerTextMetrics.Measure(doc.Fonts.Single(artifact=>artifact.Id==f.ArtifactId),f,t);
+                return(Key:(f.ArtifactId,f,t.Text,t.WrapWidth),bounds.Height);
+            }).ToArray(),work.Token);
+            if(closed||revision!=textMetricsGeneration)return;
+            foreach(var(key,height)in measured){if(textHeights.Count>=1024&&!textHeights.ContainsKey(key))textHeights.Remove(textHeights.Keys.First());textHeights[key]=height;}
+            LayerHandles.InvalidateVisual();
+        }
+        catch(OperationCanceledException)when(work.IsCancellationRequested){}
+        catch(Exception error)when(error is not OutOfMemoryException){if(!closed&&revision==textMetricsGeneration)ErrorText.Text="Resolve font: "+error.Message;}
+        finally{if(ReferenceEquals(textMetricsWork,work))textMetricsWork=null;work.Dispose();}
+    }
+    private void FlushInspector(){inspector?.FlushFields();layerInspector?.FlushFields();}
+    private void LayerChanged(EditorDocument document,bool commit)
+    {
+        try
+        {
+            if(model?.Selected?.Draft is null)return;
+            model.Change(document,true);if(commit)model.CommitGesture();
+            LayerHandles.Update(model.Selected.Draft,model.Selected.Size);RefreshPreview();ErrorText.Text="";
+        }
+        catch(ArgumentException error){ErrorText.Text=error.Message;}
+    }
+    private void FitPreview(object sender,RoutedEventArgs e)=>LayerHandles.ResetView();
     private void CropChanged(RectD rect, bool commit)
     {
         try
@@ -164,7 +229,7 @@ public partial class EditorHostWindow : Window
         }
         catch (OperationCanceledException) when (work.IsCancellationRequested) { }
         catch (Exception error) when (error is not OutOfMemoryException)
-        { if (!closed && current == generation) { PreviewImage.Source = null; PreviewStatus.Text = "Preview unavailable. " + error.Message; } }
+        { if (!closed && current == generation) { PreviewImage.Source = null; PreviewStatus.Text = "Preview unavailable. " + error.Message; if(Tool is "Annotate" or "Manual masks")ErrorText.Text=error.Message; } }
         finally { if (ReferenceEquals(previewWork, work)) previewWork = null; work.Dispose(); }
     }
     private void DetailChanged(object sender, RoutedEventArgs e) => RefreshPreview();
@@ -173,7 +238,7 @@ public partial class EditorHostWindow : Window
     private void Reset(object sender, RoutedEventArgs e) { model?.Reset(); RebuildInspector(); RefreshPreview(); }
     private void ApplyAll(object sender, RoutedEventArgs e)
     {
-        try { inspector?.FlushFields(); model!.ApplyToAll(MappingMode.SelectedIndex == 1 ? ImageBatchGeometry.Pixels : ImageBatchGeometry.Relative, model.Selected?.ResizeIntent); ErrorText.Text = ""; }
+        try { FlushInspector(); model!.ApplyToAll(MappingMode.SelectedIndex == 1 ? ImageBatchGeometry.Pixels : ImageBatchGeometry.Relative, model.Selected?.ResizeIntent); ErrorText.Text = ""; }
         catch (ArgumentException error) { ErrorText.Text = error.Message; }
     }
     private async void AddImages(object sender, RoutedEventArgs e)
@@ -197,11 +262,20 @@ public partial class EditorHostWindow : Window
         var picker = new OpenFolderDialog { Title = "Save image copies to" };
         if (picker.ShowDialog(this) == true) { model!.Destination = picker.FolderName; UpdateSummary(); }
     }
-    private void Export(object sender, RoutedEventArgs e)
+    private async void Export(object sender, RoutedEventArgs e)
     {
         if (loading || accepted is not null) return;
-        try { inspector?.FlushFields(); accepted = model!.Accept(); DialogResult = true; }
-        catch (ArgumentException error) { ErrorText.Text = error.Message; }
+        ExportButton.IsEnabled=false;
+        try
+        {
+            FlushInspector(); model!.CommitGesture();var drafts=model.Sources.Select(r=>(Row:r,r.Included,r.Draft)).ToArray();
+            await model.ValidateLayerDependenciesAsync(lifetime.Token);if(closed)return;
+            if(drafts.Length!=model.Sources.Count||drafts.Any(d=>d.Included!=d.Row.Included||d.Draft!=d.Row.Draft))throw new ArgumentException("The draft changed during validation. Create copies again to use your latest edits.");
+            accepted=model.Accept();DialogResult=true;
+        }
+        catch(OperationCanceledException)when(lifetime.IsCancellationRequested){}
+        catch (ArgumentException error) { ErrorText.Text = error.Message; InspectorScroll.ScrollToTop(); }
+        finally{if(!closed)ExportButton.IsEnabled=true;}
     }
     private void Cancel(object sender, RoutedEventArgs e) => Close();
     private void CheckClose(object? sender, CancelEventArgs e)
@@ -213,7 +287,7 @@ public partial class EditorHostWindow : Window
     {
         if (e.Key == Key.Escape)
         {
-            if (CropHandles.IsDragging || inspector?.GestureActive == true) { CropHandles.CancelDrag(); model?.CancelGesture(); RebuildInspector(); RefreshPreview(); }
+            if (CropHandles.IsDragging || LayerHandles.IsDragging || inspector?.GestureActive == true) { CropHandles.CancelDrag(); LayerHandles.CancelDrag(); model?.CancelGesture(); RebuildInspector(); RefreshPreview(); }
             else Close();
             e.Handled = true;
         }
