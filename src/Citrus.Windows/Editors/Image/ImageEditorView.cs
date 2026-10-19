@@ -130,8 +130,9 @@ public sealed class ImageEditorView : StackPanel
     {
         Label("Set width, height, or both. Preserve aspect fits inside both limits. Blank dimensions leave the source size unchanged.");
         var intent = model.Selected!.ResizeIntent;
-        var width = TextField("Width · optional pixels", intent?.Width?.ToString() ?? Recipe.Geometry.OutputSize?.Width.ToString() ?? "", _ => { });
-        var height = TextField("Height · optional pixels", intent?.Height?.ToString() ?? Recipe.Geometry.OutputSize?.Height.ToString() ?? "", _ => { });
+        Action commitPair = null!; // Assigned before any input is dispatched to this constructed view.
+        var width = TextField("Width · optional pixels", intent?.Width?.ToString() ?? Recipe.Geometry.OutputSize?.Width.ToString() ?? "", _ => commitPair());
+        var height = TextField("Height · optional pixels", intent?.Height?.ToString() ?? Recipe.Geometry.OutputSize?.Height.ToString() ?? "", _ => commitPair());
         var aspect = new CheckBox { Content = "Preserve aspect ratio", IsChecked = intent?.PreserveAspectRatio ?? true, Margin = new(0,8,0,8) };
         var upscale = new CheckBox { Content = "Allow upscaling", IsChecked = Recipe.Geometry.AllowUpscale, Margin = new(0,8,0,8) };
         Children.Add(aspect); Children.Add(upscale);
@@ -147,6 +148,7 @@ public sealed class ImageEditorView : StackPanel
             model.Change(document); model.Selected.ResizeIntent = resize; Applied(); refresh();
         }
         void Applied() { appliedWidth = width.Text; appliedHeight = height.Text; appliedAspect = aspect.IsChecked; appliedUpscale = upscale.IsChecked; }
+        commitPair = Apply;
         pendingFields.Add(Apply);
         Button("Apply size", Apply);
         Label("Width-only and height-only settings use each image's own aspect ratio when applied to all.");

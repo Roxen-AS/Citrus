@@ -124,7 +124,18 @@ public sealed class EditorHostViewModel(EditorOpenRequest request, ImageEditorSe
     public void CancelGesture() { if (Selected?.History is { } history) Selected.Draft = history.Current; }
     public void Undo() { CancelGesture(); if (Selected?.History?.Undo() == true) { Selected.Draft = Selected.History.Current; Selected.RestoreResize(); } }
     public void Redo() { CancelGesture(); if (Selected?.History?.Redo() == true) { Selected.Draft = Selected.History.Current; Selected.RestoreResize(); } }
-    public void Reset() { if (Selected?.History is { } history) { history.Reset(); Selected.Draft = history.Current; Selected.RestoreResize(); Selected.Dirty = true; } }
+    public void Reset()
+    {
+        if (Selected is not { History: { } history, Draft: { Recipe: ImageRecipe image } document } row) return;
+        // Entry presets apply only on opening. Reset is an undoable neutral recipe for this root.
+        var identity = document with
+        {
+            Recipe = new ImageRecipe(image.SourceId,new(0,false,false,null,null,false),
+                new(1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,PhotoEffect.None,1),[],null,[],[]),
+            Export = document.Export with { Compression = new QualityGoal(85) }
+        };
+        history.Commit(identity,Guid.NewGuid().ToString()); row.Draft = history.Current; row.ResizeIntent = null; row.Dirty = true;
+    }
     public void ApplyToAll(ImageBatchGeometry geometry, ImageResizeIntent? resize)
     {
         CommitGesture(); var selected = Selected ?? throw new InvalidOperationException("Select a readable source.");

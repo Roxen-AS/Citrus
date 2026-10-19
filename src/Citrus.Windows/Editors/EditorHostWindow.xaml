@@ -9,8 +9,8 @@
     <ListBox x:Name="SourceList" SelectionChanged="SelectSource" AutomationProperties.Name="Preview source; checkboxes control export inclusion" ScrollViewer.VerticalScrollBarVisibility="Auto">
      <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="4"><CheckBox IsChecked="{Binding Included}" VerticalAlignment="Center" Click="InclusionChanged" AutomationProperties.Name="Include source in export" Margin="0,0,8,0"/><StackPanel><TextBlock Text="{Binding Label}" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Detail}" TextWrapping="Wrap" FontSize="{DynamicResource MetadataSize}"/></StackPanel></DockPanel></DataTemplate></ListBox.ItemTemplate>
     </ListBox>
-    <Grid Grid.Row="1" x:Name="PreviewArea" Margin="12"><Image x:Name="PreviewImage" Stretch="Uniform"/><e:CropOverlay x:Name="CropHandles" Visibility="Collapsed" AutomationProperties.Name="Crop handles; arrow keys move crop, numeric fields resize"/></Grid>
-    <StackPanel Grid.Row="2" Margin="12"><TextBlock x:Name="PreviewStatus" TextWrapping="Wrap" FontSize="{DynamicResource MetadataSize}"/><CheckBox x:Name="DetailPreview" Content="Exact center source detail (up to 512 × 512)" Click="DetailChanged"/></StackPanel>
+    <Grid Grid.Row="1" x:Name="PreviewArea" Margin="12" ClipToBounds="True"><Image x:Name="PreviewImage" Stretch="Uniform"/><e:CropOverlay x:Name="CropHandles" Visibility="Collapsed" AutomationProperties.Name="Crop handles; arrow keys move crop, numeric fields resize"/></Grid>
+    <StackPanel Grid.Row="2" Margin="12"><TextBlock x:Name="PreviewStatus" TextWrapping="Wrap" FontSize="{DynamicResource MetadataSize}"/><CheckBox x:Name="DetailPreview" Content="Native output-pixel center detail (up to 512 × 512)" Click="DetailChanged"/></StackPanel>
    </Grid>
    <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Background="{DynamicResource MaterialContentSurface}" Padding="12"><StackPanel>
     <ComboBox x:Name="ToolPicker" ItemsSource="{Binding Tools}" SelectionChanged="ToolChanged" AutomationProperties.Name="Image tool" Margin="0,0,0,12"/>

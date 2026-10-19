@@ -33,6 +33,7 @@ public partial class EditorHostWindow : Window
         this.services = services; renderer = services.CreateSessionRenderer(); session = new(renderer);
         InitializeComponent(); DataContext = this; ToolPicker.ItemsSource = Tools;
         CropHandles.Changed += CropChanged;
+        PreviewArea.SizeChanged += (_, _) => { if (DetailPreview.IsChecked == true) RefreshPreview(); };
         PreviewKeyDown += KeyPressed; Closing += CheckClose;
         Closed += (_, _) => { closed = true; session.Close(); lifetime.Cancel(); previewWork?.Cancel(); };
         // Attach after all lifetime/placement wiring; ordinary windows use the shared controller and button springs.
@@ -140,19 +141,15 @@ public partial class EditorHostWindow : Window
             // Crop context is the whole G plane; the overlay records the real crop in the draft.
             previewDocument = document with { Recipe = recipe with { Geometry = recipe.Geometry with { Crop = null, OutputSize = null } } };
         }
-        RectD? tile = null;
-        if (DetailPreview.IsChecked == true && Tool != "Crop")
-        {
-            var (_, output) = ImageGeometryMapper.Resolve(recipe, row.Size);
-            var center = ImageGeometryMapper.MapFromCanvas(recipe, row.Size, new(output.Width/2d,output.Height/2d));
-            double width = Math.Min(512, row.Size.Width), height = Math.Min(512,row.Size.Height);
-            tile = new(Math.Clamp(center.X-width/2,0,row.Size.Width-width),Math.Clamp(center.Y-height/2,0,row.Size.Height-height),width,height);
-        }
+        var request = DetailPreview.IsChecked == true && Tool != "Crop"
+            ? ImageDetailPreview.Create(recipe,row.Size,current,new(Math.Clamp((int)Math.Floor(PreviewArea.ActualWidth),1,512),Math.Clamp((int)Math.Floor(PreviewArea.ActualHeight),1,512)))
+            : new PreviewRequest(current,new(512,512),null,null,null);
+        RectD? tile = request.SourceTile;
         session.Update(previewDocument); PreviewStatus.Text = "Rendering preview…";
         try
         {
             await Task.Delay(120, work.Token);
-            var frame = await session.PreviewAsync(new(current, new(512,512), null,null,tile), work.Token);
+            var frame = await session.PreviewAsync(request, work.Token);
             if (frame is null) return;
             var bitmap = await Task.Run(() =>
             {
@@ -163,7 +160,7 @@ public partial class EditorHostWindow : Window
             PreviewImage.Stretch = tile is not null ? Stretch.None : Stretch.Uniform;
             PreviewImage.Source = bitmap;
             PreviewStatus.Text = $"{frame.Size.Width} × {frame.Size.Height} preview pixels · " +
-                (Tool == "Crop" ? "Full oriented image with crop overlay. " : tile is not null ? "Exact source detail. " : "") + string.Join(" ",frame.Warnings);
+                (Tool == "Crop" ? "Full oriented image with crop overlay. " : tile is not null ? "Native output-pixel detail. " : "") + string.Join(" ",frame.Warnings);
         }
         catch (OperationCanceledException) when (work.IsCancellationRequested) { }
         catch (Exception error) when (error is not OutOfMemoryException)

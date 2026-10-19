@@ -54,6 +54,39 @@ public sealed class ImageEditorWindowTests(DesktopFixture desktop)
         Assert.Equal(25u,output.Width); Assert.Equal(50u,output.Height);
     });
 
+    [Theory]
+    [InlineData("20","",true,true,20,10)]
+    [InlineData("200","",true,false,100,50)]
+    [InlineData("20","15",false,false,20,15)]
+    public Task Resize_enter_validates_and_commits_pair_once_before_export(string widthText,string heightText,bool preserveAspect,bool allowUpscale,int expectedWidth,int expectedHeight) => desktop.RunAsync(async () =>
+    {
+        using var fixture = new Fixture();
+        var batch = await Show(fixture,window =>
+        {
+            ((ComboBox)window.FindName("ToolPicker")).SelectedItem = "Resize";
+            var width = Descendants(window).OfType<TextBox>().Single(t => AutomationProperties.GetName(t) == "Width · optional pixels");
+            var height = Descendants(window).OfType<TextBox>().Single(t => AutomationProperties.GetName(t) == "Height · optional pixels");
+            Descendants(window).OfType<System.Windows.Controls.CheckBox>().Single(c => Equals(c.Content,"Preserve aspect ratio")).IsChecked = preserveAspect;
+            Descendants(window).OfType<System.Windows.Controls.CheckBox>().Single(c => Equals(c.Content,"Allow upscaling")).IsChecked = allowUpscale;
+            void Enter(TextBox box) => box.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice,PresentationSource.FromVisual(window),0,Key.Enter) { RoutedEvent = Keyboard.KeyDownEvent });
+            width.Text = "invalid"; Enter(width);
+            Assert.NotEmpty(((TextBlock)window.FindName("ErrorText")).Text);
+            Assert.Null(((ImageRecipe)window.Model!.Selected!.Draft!.Recipe).Geometry.OutputSize);
+            width.Text = widthText; height.Text = heightText; Enter(width);
+            Assert.Equal(new SizeI(expectedWidth,expectedHeight),((ImageRecipe)window.Model.Selected.Draft!.Recipe).Geometry.OutputSize);
+            Assert.Equal(allowUpscale,((ImageRecipe)window.Model.Selected.Draft.Recipe).Geometry.AllowUpscale);
+            Assert.Equal(1,window.Model.Selected.Draft.Revision); Assert.Empty(((TextBlock)window.FindName("ErrorText")).Text);
+            Click(window,"Undo"); Assert.Null(((ImageRecipe)window.Model.Selected.Draft!.Recipe).Geometry.OutputSize);
+            Click(window,"Redo"); Assert.Equal(new SizeI(expectedWidth,expectedHeight),((ImageRecipe)window.Model.Selected.Draft!.Recipe).Geometry.OutputSize);
+            Click(window,"Create copies");
+        });
+        Assert.NotNull(batch);
+        var submissions = new EditorSubmissionService(new JobQueue([fixture.Services.Engine]),fixture.Services.Routes,fixture.Services.Inspector);
+        var job = Assert.Single(await submissions.SubmitAsync(batch,default)); await job.Completion; Assert.Equal(ConversionJobState.Succeeded,job.State);
+        using var stream = File.OpenRead(job.Outputs.Single()); using var image = new MagickImage(stream,new MagickReadSettings { Format = MagickFormat.Png });
+        Assert.Equal((uint)expectedWidth,image.Width); Assert.Equal((uint)expectedHeight,image.Height);
+    });
+
     [Fact]
     public Task Minimum_window_at_double_text_keeps_export_footer_visible_and_real_preview() => desktop.RunAsync(async () =>
     {
