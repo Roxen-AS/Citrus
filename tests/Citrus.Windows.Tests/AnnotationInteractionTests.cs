@@ -67,11 +67,45 @@ public sealed class AnnotationInteractionTests(DesktopFixture desktop)
             ((ComboBox)window.FindName("ToolPicker")).SelectedItem="Annotate";var overlay=(AnnotationOverlay)window.FindName("LayerHandles");overlay.Tool=ImageLayerTool.Text;
             // A selection event rebuilds the contextual inspector without manufacturing a text layer.
             overlay.Select(null);
-            Assert.Contains(Descendants(window).OfType<ComboBox>(),c=>AutomationProperties.GetName(c)=="Installed static font files");
+            Assert.Contains(Descendants(window).OfType<ComboBox>(),c=>AutomationProperties.GetName(c)=="Installed fonts");
+            var advanced=Descendants(window).OfType<Expander>().Single(e=>Equals(e.Header,"Advanced"));Assert.False(advanced.IsExpanded);
+            advanced.IsExpanded=true;window.UpdateLayout();
             Assert.Contains(Descendants(window).OfType<Button>(),b=>b.Content is TextBlock t&&t.Text=="Choose font file…");
             Assert.Empty(((ImageRecipe)window.Model!.Selected!.Draft!.Recipe).Annotations);
             Click(window,"Cancel");
         });Assert.Null(batch);
+    });
+    [Fact]
+    public Task Edited_text_font_and_wrap_refresh_exact_handles_without_reselecting()=>desktop.RunAsync(async()=>
+    {
+        using var f=new Fixture();
+        var batch=await ShowAsync(f,async window=>
+        {
+            var font=await f.Services.Fonts.CaptureAsync(Path.Combine(AppContext.BaseDirectory,"Fixtures","Fonts","Fixture1.ttf"),0,default);
+            var model=window.Model!;var doc=model.Selected!.Draft!;var recipe=(ImageRecipe)doc.Recipe;
+            var layer=new Annotation(Guid.NewGuid(),true,new TextGeometry(new(10,10),"A",100,0),new(new(0,0,0,255),new(0,0,0,255),0,1,new(font.Id,20,20)));
+            model.Change(doc with {Fonts=[font],Recipe=recipe with {Annotations=[layer]}});((ComboBox)window.FindName("ToolPicker")).SelectedItem="Annotate";
+            var overlay=(AnnotationOverlay)window.FindName("LayerHandles");overlay.Select(layer.Id);
+            await Ready(20);
+            var content=Field("Text");content.Text=new string('A',15);
+            Descendants(window).OfType<Button>().Single(b=>b.Content is TextBlock text&&text.Text=="Apply text").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            await Ready(60);Assert.Equal(layer.Id,overlay.SelectedId);
+            var size=Field("Font size · output pixels");size.Text="10";SendKey(size,window,Key.Enter);await Ready(20);
+            var wrap=Field("Local wrap width · output pixels");wrap.Text="200";SendKey(wrap,window,Key.Enter);await Ready(10);
+            size.Text="20";SendKey(size,window,Key.Enter);await Ready(40);
+            var rotation=Field("Rotation · degrees");rotation.Text="90";SendKey(rotation,window,Key.Enter);
+            var before=overlay.SelectedBounds()!.Value;var width=Field("Width · output pixels");width.Text="80";SendKey(width,window,Key.Enter);
+            for(int i=0;i<150&&overlay.SelectedBounds() is null;i++)await Task.Delay(20);
+            var after=overlay.SelectedBounds()!.Value;Assert.Equal(before.X,after.X,5);Assert.Equal(before.Y,after.Y,5);Assert.Equal(80,after.Width,5);Assert.Equal(400,after.Height,5);
+            Assert.Equal("400",Field("Local wrap width · output pixels").Text);Assert.Equal("40",Field("Font size · output pixels").Text);
+            Click(window,"Create copies");
+            TextBox Field(string name)=>Descendants(window).OfType<TextBox>().Single(t=>AutomationProperties.GetName(t)==name);
+            async Task Ready(double height)
+            {
+                for(int i=0;i<150;i++){if(overlay.SelectedBounds() is {} bounds&&Math.Abs(bounds.Height-height)<.001)return;await Task.Delay(20);}
+                Assert.Equal(height,overlay.SelectedBounds()?.Height);
+            }
+        });Assert.NotNull(batch);
     });
     [Theory]
     [InlineData(ThemeChoice.Light,1d)] [InlineData(ThemeChoice.Dark,1d)]

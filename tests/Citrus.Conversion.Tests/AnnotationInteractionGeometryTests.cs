@@ -93,5 +93,30 @@ public sealed class AnnotationInteractionGeometryTests
         Assert.Equal(.1,saved.Width,8);Assert.Equal(.1,saved.Height,8);
         Assert.Equal(1,ImageLayerGeometry.MaskToCanvas(image,new(100,80),saved).Width,8);
     }
+    [Theory]
+    [InlineData(90)] [InlineData(30)] [InlineData(45)] [InlineData(-73)]
+    public void Rotated_text_width_resize_scales_local_font_and_wrap_together_and_keeps_canvas_anchor(double rotation)
+    {
+        var artifact=AnnotationRenderingTests.Font();var font=new FontSpec(artifact.Id,20,20);
+        var text=new TextGeometry(new(100,100),"A",100,rotation);var layer=new Annotation(Guid.NewGuid(),true,text,Ink with {Font=font});
+        var local=ImageLayerTextMetrics.Measure(artifact,font,text);var before=ImageLayerGeometry.Bounds(layer,local);
+        var resized=ImageLayerGeometry.SetBounds(layer,before with {Width=before.Width*2},local);
+        var afterLocal=ImageLayerTextMetrics.Measure(artifact,resized.Style.Font!,(TextGeometry)resized.Geometry);var after=ImageLayerGeometry.Bounds(resized,afterLocal);
+        Assert.Equal(before.X,after.X,5);Assert.Equal(before.Y,after.Y,5);
+        Assert.Equal(before.Width*2,after.Width,5);Assert.Equal(before.Height*2,after.Height,5);
+        Assert.Equal(40,resized.Style.Font!.SizePixels);Assert.Equal(200,((TextGeometry)resized.Geometry).WrapWidth);
+    }
+    [Theory]
+    [InlineData(0)] [InlineData(1)] [InlineData(2)] [InlineData(3)]
+    public void Rotated_text_corner_resize_keeps_its_opposite_canvas_corner(int handle)
+    {
+        var artifact=AnnotationRenderingTests.Font();var font=new FontSpec(artifact.Id,20,20);
+        var layer=new Annotation(Guid.NewGuid(),true,new TextGeometry(new(200,200),"AAAA",100,45),Ink with {Font=font});
+        var local=ImageLayerTextMetrics.Measure(artifact,font,(TextGeometry)layer.Geometry);var before=ImageLayerGeometry.Bounds(layer,local);
+        var target=ImageLayerGeometry.DragTextBounds(before,handle,handle is 0 or 3?-30:30,handle is 0 or 1?-10:10);
+        var resized=ImageLayerGeometry.SetBounds(layer,target,local);var actual=ImageLayerGeometry.Bounds(resized,ImageLayerTextMetrics.Measure(artifact,resized.Style.Font!,(TextGeometry)resized.Geometry));
+        var anchor=ImageLayerGeometry.Corners(before)[(handle+2)%4];var afterAnchor=ImageLayerGeometry.Corners(actual)[(handle+2)%4];
+        Assert.Equal(anchor.X,afterAnchor.X,4);Assert.Equal(anchor.Y,afterAnchor.Y,4);
+    }
     private static ImageRecipe Recipe()=>new(Guid.NewGuid(),new(0,false,false,null,null,false),new(1,0,0,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,1,PhotoEffect.None,1),[],null,[],[]);
 }

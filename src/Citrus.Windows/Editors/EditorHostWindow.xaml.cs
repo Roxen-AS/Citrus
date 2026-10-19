@@ -18,6 +18,7 @@ public partial class EditorHostWindow : Window
     public static IReadOnlyList<string> Tools { get; } = Array.AsReadOnly(new[] { "Adjust", "Crop", "Resize", "Rotate", "Annotate", "Manual masks", "Compress" });
     private readonly ImageEditorServices services;
     private readonly ImageRecipeRenderer renderer;
+    private readonly InstalledFontCatalog fontCatalog;
     private readonly EditorSession session;
     private readonly CancellationTokenSource lifetime = new();
     private CancellationTokenSource? previewWork;
@@ -27,14 +28,13 @@ public partial class EditorHostWindow : Window
     private EditorSubmissionBatch? accepted;
     private long generation;
     private long textMetricsGeneration;
-    private readonly Dictionary<(Guid Font,FontSpec Spec,string Text,double Width),double> textHeights=[];
-    private CancellationTokenSource? textMetricsWork;
+    private readonly ImageTextMetricsCache textMetrics=new();
     private bool closed, loading, shown, changingSelection;
     private string previousTool = "Adjust";
     internal EditorHostViewModel? Model => model;
     public EditorHostWindow(ImageEditorServices services)
     {
-        this.services = services; renderer = services.CreateSessionRenderer(); session = new(renderer);
+        this.services = services; renderer = services.CreateSessionRenderer(); session = new(renderer);fontCatalog=new(lifetime.Token);
         InitializeComponent(); DataContext = this; ToolPicker.ItemsSource = Tools;
         CropHandles.Changed += CropChanged;
         LayerHandles.Changed += LayerChanged;
@@ -47,7 +47,7 @@ public partial class EditorHostWindow : Window
         };
         PreviewArea.SizeChanged += (_, _) => { if (DetailPreview.IsChecked == true) RefreshPreview(); };
         PreviewKeyDown += KeyPressed; Closing += CheckClose;
-        Closed += (_, _) => { closed = true; session.Close(); lifetime.Cancel(); previewWork?.Cancel(); textMetricsWork?.Cancel(); };
+        Closed += (_, _) => { closed = true; session.Close(); lifetime.Cancel(); previewWork?.Cancel(); textMetrics.Dispose();fontCatalog.Dispose(); };
         // Attach after all lifetime/placement wiring; ordinary windows use the shared controller and button springs.
         (Application.Current as App)?.AttachPresentation(this, Chrome);
     }
@@ -132,39 +132,27 @@ public partial class EditorHostWindow : Window
         {
             if(Tool=="Manual masks"&&LayerHandles.Tool is not (ImageLayerTool.Select or ImageLayerTool.Solid or ImageLayerTool.Gaussian or ImageLayerTool.Pixelate))LayerHandles.Tool=ImageLayerTool.Solid;
             if(Tool=="Annotate"&&LayerHandles.Tool is ImageLayerTool.Solid or ImageLayerTool.Gaussian or ImageLayerTool.Pixelate)LayerHandles.Tool=ImageLayerTool.Select;
-            layerInspector=new(model,LayerHandles,services,this,Tool=="Manual masks",RefreshPreview,RebuildInspector,message=>{ErrorText.Text=message;if(message.Length>0)InspectorScroll.ScrollToTop();},lifetime.Token);
+            layerInspector=new(model,LayerHandles,services,fontCatalog,this,Tool=="Manual masks",RefreshPreview,RebuildInspector,message=>{ErrorText.Text=message;if(message.Length>0)InspectorScroll.ScrollToTop();},lifetime.Token);
             Inspector.Children.Add(layerInspector);return;
         }
         inspector = new(model, Tool, RefreshPreview, message => ErrorText.Text = message, value => CropHandles.AspectRatio = value, RebuildInspector, CropHandles.AspectRatio);
         Inspector.Children.Add(inspector);
 
     }
-    private RectD? GetTextBounds(Annotation a)
-    {
-        if(a.Geometry is not TextGeometry t || a.Style.Font is not {} font)return null;
-        return textHeights.TryGetValue((font.ArtifactId,font,t.Text,t.WrapWidth),out double height)?new(t.Origin.X,t.Origin.Y,t.WrapWidth,height):null;
-    }
+    private RectD? GetTextBounds(Annotation a)=>model?.Selected?.Draft is {} doc?textMetrics.GetBounds(a,doc.Fonts):null;
     private async void UpdateTextMetrics()
     {
-        textMetricsWork?.Cancel();long revision=++textMetricsGeneration;
-        if(model?.Selected?.Draft is not {Recipe:ImageRecipe image} doc)return;
-        var missing=image.Annotations.Where(a=>a.Geometry is TextGeometry && GetTextBounds(a) is null).ToArray();if(missing.Length==0)return;
-        var work=CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);textMetricsWork=work;
+        if(closed||LayerHandles.IsDragging)return;
+        long revision=++textMetricsGeneration;
+        if(model?.Selected?.Draft is not {Recipe:ImageRecipe} document)return;
         try
         {
-            var measured=await Task.Run(()=>missing.Select(a=>
-            {
-                work.Token.ThrowIfCancellationRequested();var t=(TextGeometry)a.Geometry;var f=a.Style.Font!;
-                var bounds=ImageLayerTextMetrics.Measure(doc.Fonts.Single(artifact=>artifact.Id==f.ArtifactId),f,t);
-                return(Key:(f.ArtifactId,f,t.Text,t.WrapWidth),bounds.Height);
-            }).ToArray(),work.Token);
-            if(closed||revision!=textMetricsGeneration)return;
-            foreach(var(key,height)in measured){if(textHeights.Count>=1024&&!textHeights.ContainsKey(key))textHeights.Remove(textHeights.Keys.First());textHeights[key]=height;}
-            LayerHandles.InvalidateVisual();
+            await textMetrics.UpdateAsync(document,lifetime.Token);
+            if(closed||revision!=textMetricsGeneration||model.Selected?.Draft!=document)return;
+            LayerHandles.InvalidateVisual();layerInspector?.SyncGeometry();
         }
-        catch(OperationCanceledException)when(work.IsCancellationRequested){}
+        catch(OperationCanceledException)when(lifetime.IsCancellationRequested){}
         catch(Exception error)when(error is not OutOfMemoryException){if(!closed&&revision==textMetricsGeneration)ErrorText.Text="Resolve font: "+error.Message;}
-        finally{if(ReferenceEquals(textMetricsWork,work))textMetricsWork=null;work.Dispose();}
     }
     private void FlushInspector(){inspector?.FlushFields();layerInspector?.FlushFields();}
     private void LayerChanged(EditorDocument document,bool commit)
@@ -173,7 +161,7 @@ public partial class EditorHostWindow : Window
         {
             if(model?.Selected?.Draft is null)return;
             model.Change(document,true);if(commit)model.CommitGesture();
-            LayerHandles.Update(model.Selected.Draft,model.Selected.Size);RefreshPreview();ErrorText.Text="";
+            LayerHandles.Update(model.Selected.Draft,model.Selected.Size);UpdateTextMetrics();layerInspector?.SyncGeometry();RefreshPreview();ErrorText.Text="";
         }
         catch(ArgumentException error){ErrorText.Text=error.Message;}
     }

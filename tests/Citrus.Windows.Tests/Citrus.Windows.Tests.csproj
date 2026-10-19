@@ -17,4 +17,5 @@
     <ProjectReference Include="../../src/Citrus.Windows/Citrus.Windows.csproj" />
     <Using Include="Xunit" />
   </ItemGroup>
+  <ItemGroup><None Include="../Citrus.Conversion.Tests/Fixtures/Fonts/Fixture1.ttf" Link="Fixtures/Fonts/Fixture1.ttf" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
 </Project>

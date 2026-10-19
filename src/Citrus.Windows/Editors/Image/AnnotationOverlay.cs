@@ -30,6 +30,8 @@ public sealed class AnnotationOverlay : FrameworkElement
     private EditorDocument? startDocument;
     private PointD origin,panOrigin;
     private RectD startBounds;
+    private Annotation? gestureText;
+    private RectD? gestureTextBounds;
     private int handle;
     private bool creating,panning;
     private List<PointD> stroke=[];
@@ -52,8 +54,17 @@ public sealed class AnnotationOverlay : FrameworkElement
     public RectD? SelectedBounds()
     {
         if(Document is null||SelectedId is null)return null;
-        var a=Recipe.Annotations.FirstOrDefault(a=>a.Id==SelectedId);if(a is not null)return ImageLayerGeometry.Bounds(a,TextBounds?.Invoke(a));
+        var a=Recipe.Annotations.FirstOrDefault(a=>a.Id==SelectedId);if(a is not null){var local=LocalTextBounds(a);return a.Geometry is TextGeometry&&local is null?null:ImageLayerGeometry.Bounds(a,local);}
         var mask=Recipe.Masks.FirstOrDefault(m=>m.Id==SelectedId);return mask is null?null:ImageLayerGeometry.MaskToCanvas(Recipe,SourceSize,mask.Bounds);
+    }
+    private RectD? LocalTextBounds(Annotation layer)
+    {
+        if(IsDragging&&gestureTextBounds is {} original&&gestureText is {} baseline&&layer.Id==baseline.Id&&layer.Geometry is TextGeometry text)
+        {
+            double scale=layer.Style.Font!.SizePixels/baseline.Style.Font!.SizePixels;
+            return new(text.Origin.X,text.Origin.Y,original.Width*scale,original.Height*scale);
+        }
+        return TextBounds?.Invoke(layer);
     }
     protected override void OnRender(DrawingContext dc)
     {
@@ -76,7 +87,7 @@ public sealed class AnnotationOverlay : FrameworkElement
         base.OnMouseDown(e);if(Document is null)return;
         if(e.ChangedButton==MouseButton.Middle){Focus();origin=Position(e);panOrigin=Pan;panning=CaptureMouse();e.Handled=true;return;}
         if(e.ChangedButton!=MouseButton.Left)return;
-        Focus();origin=View.ToCanvas(Position(e));startDocument=Document;creating=false;handle=-1;
+        Focus();origin=View.ToCanvas(Position(e));startDocument=Document;creating=false;handle=-1;gestureText=null;gestureTextBounds=null;
         if(Tool==ImageLayerTool.Select)
         {
             if(SelectedBounds() is {} bounds)
@@ -87,17 +98,29 @@ public sealed class AnnotationOverlay : FrameworkElement
             if(handle<0)
             {
                 double tolerance=6/View.Scale;
-                var id=ImageLayerGeometry.HitTop(Recipe.Annotations,origin,tolerance,TextBounds);
+                var available=Recipe.Annotations.Where(a=>a.Geometry is not TextGeometry||LocalTextBounds(a) is not null).ToImmutableArray();
+                var id=ImageLayerGeometry.HitTop(available,origin,tolerance,LocalTextBounds);
                 id??=Recipe.Masks.Reverse().FirstOrDefault(m=>ImageLayerGeometry.Contains(ImageLayerGeometry.MaskToCanvas(Recipe,SourceSize,m.Bounds),origin))?.Id;
+                if(id is null&&Recipe.Annotations.FirstOrDefault(a=>a.Id==SelectedId) is {Geometry:TextGeometry} pending&&LocalTextBounds(pending) is null)
+                {
+                    Error?.Invoke("Preparing exact text layout. Its handles appear when ready.");e.Handled=true;return;
+                }
                 Select(id);
             }
-            if(SelectedBounds() is not {} selected)return;startBounds=selected;
+            if(SelectedBounds() is not {} selected)
+            {
+                if(Recipe.Annotations.Any(a=>a.Geometry is TextGeometry&&LocalTextBounds(a) is null))Error?.Invoke("Preparing exact text layout. Its handles appear when ready.");
+                return;
+            }
+            startBounds=selected;
+            var selectedLayer=Recipe.Annotations.FirstOrDefault(a=>a.Id==SelectedId);
+            if(selectedLayer?.Geometry is TextGeometry){gestureText=selectedLayer;gestureTextBounds=LocalTextBounds(selectedLayer);}
         }
         else
         {
             if(!ImageLayerGeometry.Contains(new(0,0,Canvas.Width,Canvas.Height),origin))return;
             try{CreateAt(origin);}catch(Exception error)when(error is ArgumentException or InvalidOperationException){Error?.Invoke(error.Message);return;}
-            creating=true;startBounds=SelectedBounds()!.Value;
+            creating=true;startBounds=SelectedBounds()??new(origin.X,origin.Y,1,1);
         }
         IsDragging=CaptureMouse();if(!IsDragging&&creating&&startDocument is {} original){Document=original;Changed?.Invoke(original,false);}
         InvalidateVisual();e.Handled=true;
@@ -110,6 +133,7 @@ public sealed class AnnotationOverlay : FrameworkElement
         var p2=View.ToCanvas(Position(e));var point=new PointD(Math.Clamp(p2.X,0,Canvas.Width),Math.Clamp(p2.Y,0,Canvas.Height));
         try
         {
+            if(creating&&Recipe.Annotations.FirstOrDefault(a=>a.Id==SelectedId)?.Geometry is TextGeometry){e.Handled=true;return;}
             if(creating&&Tool is ImageLayerTool.Arrow or ImageLayerTool.Pen)
             {
                 if(Tool==ImageLayerTool.Arrow)stroke=[origin,point];else if(Length(stroke[^1],point)>=.5&&stroke.Count<100000)stroke.Add(point);
@@ -117,7 +141,7 @@ public sealed class AnnotationOverlay : FrameworkElement
             }
             else
             {
-                var bounds=creating?new RectD(Math.Min(origin.X,point.X),Math.Min(origin.Y,point.Y),Math.Max(1,Math.Abs(point.X-origin.X)),Math.Max(1,Math.Abs(point.Y-origin.Y))):ImageLayerGeometry.DragBounds(startBounds,handle,point.X-origin.X,point.Y-origin.Y);
+                var bounds=creating?new RectD(Math.Min(origin.X,point.X),Math.Min(origin.Y,point.Y),Math.Max(1,Math.Abs(point.X-origin.X)),Math.Max(1,Math.Abs(point.Y-origin.Y))):gestureText is not null?ImageLayerGeometry.DragTextBounds(startBounds,handle,point.X-origin.X,point.Y-origin.Y):ImageLayerGeometry.DragBounds(startBounds,handle,point.X-origin.X,point.Y-origin.Y);
                 SetBounds(bounds,true,creating?null:startDocument);
             }
             InvalidateVisual();
@@ -150,7 +174,19 @@ public sealed class AnnotationOverlay : FrameworkElement
     {
         if(e.Key==Key.Delete){Delete();e.Handled=true;return;}
         double n=Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)?10:1;var d=e.Key switch{Key.Left=>new PointD(-n,0),Key.Right=>new(n,0),Key.Up=>new(0,-n),Key.Down=>new(0,n),_=>default};
-        if(d!=default&&SelectedBounds() is {} bounds){try{SetBounds(ImageLayerGeometry.Translate(bounds,d.X,d.Y));SelectionChanged?.Invoke();}catch(ArgumentException error){Error?.Invoke(error.Message);}e.Handled=true;return;}base.OnKeyDown(e);
+        if(d!=default)
+        {
+            try
+            {
+                if(SelectedBounds() is {} bounds)SetBounds(ImageLayerGeometry.Translate(bounds,d.X,d.Y));
+                else if(Document is not null&&Recipe.Annotations.FirstOrDefault(a=>a.Id==SelectedId) is {Geometry:TextGeometry} text)ReplaceAnnotation(ImageLayerGeometry.Move(text,d.X,d.Y));
+                else return;
+                SelectionChanged?.Invoke();
+            }
+            catch(ArgumentException error){Error?.Invoke(error.Message);}
+            e.Handled=true;return;
+        }
+        base.OnKeyDown(e);
     }
     private void CreateAt(PointD p)
     {
@@ -182,7 +218,7 @@ public sealed class AnnotationOverlay : FrameworkElement
         if(Document is null||SelectedId is null)return;
         if(!double.IsFinite(bounds.X+bounds.Y+bounds.Width+bounds.Height)||bounds.Width<=0||bounds.Height<=0)throw new ArgumentException("Layer bounds must be finite and positive.");
         var sourceRecipe=(ImageRecipe)(baseline??Document).Recipe;var a=sourceRecipe.Annotations.FirstOrDefault(a=>a.Id==SelectedId);
-        if(a is not null)ReplaceAnnotation(ImageLayerGeometry.SetBounds(a,bounds,TextBounds?.Invoke(a)),transient);
+        if(a is not null)ReplaceAnnotation(ImageLayerGeometry.SetBounds(a,bounds,baseline is not null&&gestureText?.Id==a.Id?gestureTextBounds:LocalTextBounds(a)),transient);
         else
         {
             var m=sourceRecipe.Masks.FirstOrDefault(m=>m.Id==SelectedId);if(m is null)return;

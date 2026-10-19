@@ -79,14 +79,39 @@ public static class ImageLayerGeometry
     }};
     public static Annotation SetBounds(Annotation a,RectD next,RectD? textBounds=null)
     {
-        var old=Bounds(a,textBounds);double sx=next.Width/Math.Max(old.Width,.001),sy=next.Height/Math.Max(old.Height,.001);
+        var old=Bounds(a,textBounds);
+        if(a.Geometry is TextGeometry text)
+        {
+            if(textBounds is null)throw new ArgumentException("Preparing exact text layout. Resize when its handles appear.");
+            double scale=ProportionalScale(old,next);var font=a.Style.Font!;
+            if(font.SizePixels*scale is <1 or >16384 || font.LineHeight*scale is <1 or >16384 || text.WrapWidth*scale is <1 or >16384)
+                throw new ArgumentException("Text scaling must keep font size, leading and wrap width between 1 and 16384 pixels.");
+            return a with
+            {
+                Style=a.Style with {Font=font with {SizePixels=font.SizePixels*scale,LineHeight=font.LineHeight*scale}},
+                Geometry=text with {Origin=new(next.X+(text.Origin.X-old.X)*scale,next.Y+(text.Origin.Y-old.Y)*scale),WrapWidth=text.WrapWidth*scale}
+            };
+        }
+        double sx=next.Width/Math.Max(old.Width,.001),sy=next.Height/Math.Max(old.Height,.001);
         PointD Map(PointD p)=>new(next.X+(p.X-old.X)*sx,next.Y+(p.Y-old.Y)*sy);
-        return a with {Style=a.Geometry is TextGeometry && a.Style.Font is {} font ? a.Style with {Font=font with {SizePixels=Math.Max(1,font.SizePixels*sy),LineHeight=Math.Max(1,font.LineHeight*sy)}}:a.Style,Geometry=a.Geometry switch
+        return a with {Geometry=a.Geometry switch
         {
             StrokeGeometry s=>s with {Points=[..s.Points.Select((p,i)=>new PointD(old.Width<=.001?next.X+next.Width*i/(s.Points.Length-1):Map(p).X,old.Height<=.001?next.Y+next.Height*i/(s.Points.Length-1):Map(p).Y))]},ShapeGeometry s=>s with {Bounds=next,Radius=Math.Min(s.Radius,Math.Min(next.Width,next.Height)/2)},
             TextGeometry t=>t with {Origin=Map(t.Origin),WrapWidth=Math.Max(1,t.WrapWidth*sx)},NumberGeometry n=>n with {Bounds=next},
             InsetImageGeometry i=>i with {Bounds=next},MagnifierGeometry m=>m with {LensBounds=next},_=>a.Geometry
         }};
+    }
+    public static double ProportionalScale(RectD start,RectD requested)
+    {
+        double x=requested.Width/start.Width,y=requested.Height/start.Height;
+        return Math.Abs(x-1)>=Math.Abs(y-1)?x:y;
+    }
+    public static RectD DragTextBounds(RectD start,int handle,double dx,double dy)
+    {
+        var requested=DragBounds(start,handle,dx,dy);if(handle<0)return requested;
+        double scale=ProportionalScale(start,requested),width=start.Width*scale,height=start.Height*scale;
+        bool left=handle is 0 or 3,top=handle is 0 or 1;
+        return new(left?start.X+start.Width-width:start.X,top?start.Y+start.Height-height:start.Y,width,height);
     }
     public static RectD DragBounds(RectD start,int handle,double dx,double dy)
     {

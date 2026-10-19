@@ -15,19 +15,23 @@ public sealed class AnnotationInspector : StackPanel
     private readonly AnnotationOverlay overlay;
     private readonly ImageEditorServices services;
     private readonly Window owner;
+    private readonly InstalledFontCatalog fontCatalog;
     private readonly Action refresh,rebuild;
     private readonly Action<string> error;
     private readonly CancellationToken lifetime;
     private readonly List<Action> pending=[];
+    private readonly List<Action> geometryRefresh=[];
+    private sealed class FieldState(string accepted){public string Accepted=accepted;public bool Committing;}
+    public void SyncGeometry(){foreach(var update in geometryRefresh)update();}
     private EditorDocument Document=>model.Selected!.Draft!;
     private ImageRecipe Recipe=>(ImageRecipe)Document.Recipe;
     private bool busy;
     private MaskInspector? maskInspector;
-    public AnnotationInspector(EditorHostViewModel model,AnnotationOverlay overlay,ImageEditorServices services,Window owner,bool masks,Action refresh,Action rebuild,Action<string> error,CancellationToken lifetime)
+    public AnnotationInspector(EditorHostViewModel model,AnnotationOverlay overlay,ImageEditorServices services,InstalledFontCatalog fontCatalog,Window owner,bool masks,Action refresh,Action rebuild,Action<string> error,CancellationToken lifetime)
     {
-        this.model=model;this.overlay=overlay;this.services=services;this.owner=owner;this.refresh=refresh;this.rebuild=rebuild;this.error=error;this.lifetime=lifetime;
+        this.model=model;this.overlay=overlay;this.services=services;this.owner=owner;this.fontCatalog=fontCatalog;this.refresh=refresh;this.rebuild=rebuild;this.error=error;this.lifetime=lifetime;
         Title(masks?"Manual masks":"Make your point");
-        Note(masks?"Draw over an area to cover it. Automatic detection is not enabled.":"Choose a tool, then drag on the image. Select a layer to refine it.");
+        Note(masks?"Draw over an area to cover it. Automatic detection is not enabled.":"Choose a tool, then drag on the image. Click to place text; its handles appear after exact layout is ready.");
         var tools=masks?new[]{ImageLayerTool.Select,ImageLayerTool.Solid,ImageLayerTool.Gaussian,ImageLayerTool.Pixelate}:new[]{ImageLayerTool.Select,ImageLayerTool.Arrow,ImageLayerTool.Pen,ImageLayerTool.Rectangle,ImageLayerTool.Ellipse,ImageLayerTool.Highlight,ImageLayerTool.Text,ImageLayerTool.Number,ImageLayerTool.Inset,ImageLayerTool.Magnifier};
         var toolbar=new WrapPanel{Margin=new(0,8,0,12)};
         foreach(var tool in tools)
@@ -57,24 +61,55 @@ public sealed class AnnotationInspector : StackPanel
     private void AddButton(string text,Action action){var b=MakeButton(text,action);b.Margin=new(0,4,0,8);Children.Add(b);}
     private void Try(Action action){try{action();error("");}catch(Exception e)when(e is ArgumentException or IOException or NotSupportedException or InvalidOperationException){error(e.Message);}}
     public void FlushFields(){foreach(var commit in pending)commit();maskInspector?.FlushFields();}
-    private void Field(string label,string initial,Action<string> apply,bool multiline=false)
+    private TextBox Field(string label,string initial,Action<string> apply,bool multiline=false)
     {
         Children.Add(new TextBlock{Text=label,TextWrapping=TextWrapping.Wrap,Margin=new(0,10,0,4)});
         var box=new TextBox{Text=initial,Padding=new(8),AcceptsReturn=multiline,TextWrapping=multiline?TextWrapping.Wrap:TextWrapping.NoWrap,MinHeight=multiline?76:0,MaxHeight=multiline?180:double.PositiveInfinity,VerticalScrollBarVisibility=multiline?ScrollBarVisibility.Auto:ScrollBarVisibility.Disabled};
-        AutomationProperties.SetName(box,label);Children.Add(box);string accepted=initial;
-        void Commit(){if(box.Text==accepted)return;apply(box.Text);accepted=box.Text;}
-        pending.Add(Commit);box.LostKeyboardFocus+=(_,_)=>Try(Commit);box.KeyDown+=(_,e)=>{if(e.Key==System.Windows.Input.Key.Enter&&!multiline){Try(Commit);e.Handled=true;}};
+        AutomationProperties.SetName(box,label);Children.Add(box);var state=new FieldState(initial);box.Tag=state;
+        void Commit(){if(state.Committing||box.Text==state.Accepted)return;state.Committing=true;try{apply(box.Text);state.Accepted=box.Text;}finally{state.Committing=false;}}
+        pending.Add(Commit);box.LostKeyboardFocus+=(_,_)=>{Try(Commit);SyncGeometry();};box.KeyDown+=(_,e)=>{if(e.Key==System.Windows.Input.Key.Enter&&!multiline){Try(Commit);SyncGeometry();e.Handled=true;}};return box;
+    }
+    private void TrackValue(TextBox box,Func<string> value)
+    {
+        geometryRefresh.Add(()=>
+        {
+            var state=(FieldState)box.Tag;
+            if(!box.IsKeyboardFocusWithin&&!state.Committing&&box.Text==state.Accepted){state.Accepted=value();box.Text=state.Accepted;}
+        });
     }
     private static double Number(string value,double min=-16384,double max=32768)=>double.TryParse(value,NumberStyles.Float,CultureInfo.InvariantCulture,out double d)&&double.IsFinite(d)&&d>=min&&d<=max?d:throw new ArgumentException($"Enter a finite value from {min} to {max}.");
     private static string N(double d)=>d.ToString("0.###",CultureInfo.InvariantCulture);
     private void Inspect(Annotation layer)
     {
         Title("Selected "+LayerName(layer));
-        var bounds=ImageLayerGeometry.Bounds(layer,overlay.TextBounds?.Invoke(layer));
-        foreach(var (name,value) in new[]{("X",bounds.X),("Y",bounds.Y),("Width",bounds.Width),("Height",bounds.Height)})
-            Field(name+" · output pixels",N(value),s=>{var b=overlay.SelectedBounds()!.Value;double v=Number(s,name is "Width" or "Height"?1:-16384,16384);b=name switch{"X"=>b with {X=v},"Y"=>b with {Y=v},"Width"=>b with {Width=v},_=>b with {Height=v}};overlay.SetBounds(b);refresh();});
+        bool textLayer=layer.Geometry is TextGeometry;
+        if(textLayer)Note("Text size stays proportional, including rotated text. Width and height are linked. Use Local wrap width to reflow lines.");
+        var preparing=new TextBlock{Text="Preparing exact text layout…",TextWrapping=TextWrapping.Wrap,Margin=new(0,4,0,8)};
+        if(textLayer)Children.Add(preparing);
+        var initial=overlay.SelectedBounds();
+        foreach(string name in new[]{"X","Y","Width","Height"})
+        {
+            double Read(RectD b)=>name switch{"X"=>b.X,"Y"=>b.Y,"Width"=>b.Width,_=>b.Height};
+            var box=Field(name+" · output pixels",initial is {} value?N(Read(value)):"",s=>
+            {
+                var bounds=overlay.SelectedBounds()??throw new ArgumentException("Preparing exact text layout. Resize when its handles appear.");
+                double v=Number(s,name is "Width" or "Height"?1:-16384,16384);
+                bounds=name switch{"X"=>bounds with {X=v},"Y"=>bounds with {Y=v},"Width"=>bounds with {Width=v},_=>bounds with {Height=v}};
+                overlay.SetBounds(bounds);refresh();
+            });
+            geometryRefresh.Add(()=>
+            {
+                var bounds=overlay.SelectedBounds();var state=(FieldState)box.Tag;
+                box.IsEnabled=bounds is not null||state.Committing||box.IsKeyboardFocusWithin;
+                if(bounds is {} current&&!box.IsKeyboardFocusWithin&&!state.Committing&&box.Text==state.Accepted){state.Accepted=N(Read(current));box.Text=state.Accepted;}
+            });
+        }
+        if(textLayer)geometryRefresh.Add(()=>preparing.Visibility=overlay.SelectedBounds() is null?Visibility.Visible:Visibility.Collapsed);
+        SyncGeometry();
         if(layer.Geometry is TextGeometry text)
         {
+            var wrap=Field("Local wrap width · output pixels",N(text.WrapWidth),s=>{var a=Current();overlay.ReplaceAnnotation(a with {Geometry=((TextGeometry)a.Geometry) with {WrapWidth=Number(s,1,16384)}});refresh();});
+            TrackValue(wrap,()=>Recipe.Annotations.FirstOrDefault(a=>a.Id==layer.Id)?.Geometry is TextGeometry current?N(current.WrapWidth):N(text.WrapWidth));
             Field("Text",text.Text,value=>{var a=Current();ValidateText(a,value);overlay.ReplaceAnnotation(a with {Geometry=((TextGeometry)a.Geometry) with {Text=value}});refresh();},true);
             Field("Rotation · degrees",N(text.Rotation),s=>{var a=Current();overlay.ReplaceAnnotation(a with {Geometry=((TextGeometry)a.Geometry) with {Rotation=Number(s,-360,360)}});refresh();});
             AddButton("Apply text",()=>{FlushFields();refresh();});
@@ -107,21 +142,36 @@ public sealed class AnnotationInspector : StackPanel
     }
     private void FontControls()
     {
-        Title("Exact font face");
+        Title("Font");
         var selected=Recipe.Annotations.FirstOrDefault(a=>a.Id==overlay.SelectedId);var spec=selected?.Style.Font??overlay.NewStyle.Font;var artifact=Document.Fonts.FirstOrDefault(f=>f.Id==spec?.ArtifactId);
-        Note(artifact is null?"Choose a local static font to place text. No fallback fonts.":$"{artifact.Family} · face {artifact.FaceIndex}\n{Path.GetFileName(artifact.OriginalPath)}");
+        Note(artifact is null?"Choose a font for your text.":artifact.Family+" · "+FriendlyStyle(artifact.FaceName));
         if(overlay.Tool==ImageLayerTool.Text && selected?.Geometry is not TextGeometry)
             Field("Text to place",overlay.NewText,value=>
             {
                 if(string.IsNullOrWhiteSpace(value)||value.Length>100000)throw new ArgumentException("Enter text before placing it.");
                 overlay.NewText=value;
             },true);
-        var installed=InstalledFontFiles();var picker=new ComboBox{ItemsSource=installed,DisplayMemberPath=nameof(FontChoice.Name),Margin=new(0,4,0,6),MaxDropDownHeight=240,IsTextSearchEnabled=true};AutomationProperties.SetName(picker,"Installed static font files");Children.Add(picker);
-        var face=new TextBox{Text=artifact?.FaceIndex.ToString(CultureInfo.InvariantCulture)??"0",Padding=new(8)};AutomationProperties.SetName(face,"Font collection face index");Children.Add(new TextBlock{Text="Collection face index · starts at 0",TextWrapping=TextWrapping.Wrap});Children.Add(face);
-        async void Resolve(string path)
+        var picker=new ComboBox{DisplayMemberPath=nameof(InstalledFontChoice.Label),Margin=new(0,4,0,6),MaxDropDownHeight=240,IsTextSearchEnabled=true,IsEnabled=false};AutomationProperties.SetName(picker,"Installed fonts");Children.Add(picker);
+        var status=new TextBlock{Text="Loading fonts…",TextWrapping=TextWrapping.Wrap,Margin=new(0,3,0,6)};Children.Add(status);
+        var face=new TextBox{Text=artifact?.FaceIndex.ToString(CultureInfo.InvariantCulture)??"0",Padding=new(8)};AutomationProperties.SetName(face,"Font collection face index");
+        bool populating=true;Button? browse=null;
+        picker.SelectionChanged+=(_,_)=>{if(!populating&&picker.SelectedItem is InstalledFontChoice choice)Resolve(choice.Path,0);};
+        LoadFonts();
+        async void LoadFonts()
         {
-            if(busy)return;if(!int.TryParse(face.Text,out int index)||index<0){error("Face index must be a non-negative whole number.");return;}
-            busy=true;var targetRow=model.Selected;var targetLayer=overlay.SelectedId;var targetDraft=targetRow?.Draft;
+            try
+            {
+                var choices=await fontCatalog.GetAsync(lifetime);if(lifetime.IsCancellationRequested)return;
+                picker.ItemsSource=choices;picker.SelectedItem=artifact is null?null:choices.FirstOrDefault(c=>c.Path.Equals(artifact.OriginalPath,StringComparison.OrdinalIgnoreCase));
+                picker.IsEnabled=true;status.Text=choices.IsEmpty?"Choose a font file in Advanced.":"";populating=false;
+            }
+            catch(OperationCanceledException)when(lifetime.IsCancellationRequested){}
+            catch(Exception e)when(e is not OutOfMemoryException){if(!lifetime.IsCancellationRequested){status.Text="Choose a font file in Advanced.";populating=false;}}
+        }
+        async void Resolve(string path,int index)
+        {
+            if(busy)return;
+            busy=true;picker.IsEnabled=false;if(browse is not null)browse.IsEnabled=false;status.Text="Choosing font…";var targetRow=model.Selected;var targetLayer=overlay.SelectedId;var targetDraft=targetRow?.Draft;
             try
             {
                 var font=await services.Fonts.CaptureAsync(path,index,lifetime);if(lifetime.IsCancellationRequested || model.Selected!=targetRow || overlay.SelectedId!=targetLayer || model.Selected?.Draft!=targetDraft)return;
@@ -136,16 +186,24 @@ public sealed class AnnotationInspector : StackPanel
             }
             catch(OperationCanceledException)when(lifetime.IsCancellationRequested){}
             catch(Exception e)when(e is not OutOfMemoryException){if(!lifetime.IsCancellationRequested)error("Font not selected. "+e.Message);}
-            finally{busy=false;}
+            finally{busy=false;if(!lifetime.IsCancellationRequested){picker.IsEnabled=true;if(browse is not null)browse.IsEnabled=true;status.Text="";}}
         }
-        AddButton("Use selected installed font",()=>{if(picker.SelectedItem is FontChoice choice)Resolve(choice.Path);else throw new ArgumentException("Select an installed font file.");});
-        AddButton("Choose font file…",()=>{var file=new OpenFileDialog{Title="Choose an exact static font face",Filter="TrueType / OpenType fonts|*.ttf;*.otf;*.ttc;*.otc"};if(file.ShowDialog(owner)==true)Resolve(file.FileName);});
+        var advanced=new Expander{Header="Advanced",IsExpanded=false,Margin=new(0,8,0,8)};var advancedBody=new StackPanel();advanced.Content=advancedBody;
+        advancedBody.Children.Add(new TextBlock{Text=artifact is null?"Select a local font file.":Path.GetFileName(artifact.OriginalPath),TextWrapping=TextWrapping.Wrap,Margin=new(0,6,0,8)});
+        advancedBody.Children.Add(new TextBlock{Text="Collection face index · starts at 0",TextWrapping=TextWrapping.Wrap});advancedBody.Children.Add(face);
+        browse=MakeButton("Choose font file…",()=>
+        {
+            if(!int.TryParse(face.Text,out int index)||index<0)throw new ArgumentException("Face index must be a non-negative whole number.");
+            var file=new OpenFileDialog{Title="Choose a font",Filter="Font files|*.ttf;*.otf;*.ttc;*.otc"};if(file.ShowDialog(owner)==true)Resolve(file.FileName,index);
+        });browse.Margin=new(0,8,0,4);advancedBody.Children.Add(browse);Children.Add(advanced);
         if(spec is not null)
         {
-            Field("Font size · output pixels",N(spec.SizePixels),s=>FontSize(Number(s,1,16384),null));Field("Line height · output pixels",N(spec.LineHeight),s=>FontSize(null,Number(s,1,16384)));
+            var size=Field("Font size · output pixels",N(spec.SizePixels),s=>FontSize(Number(s,1,16384),null));var leading=Field("Line height · output pixels",N(spec.LineHeight),s=>FontSize(null,Number(s,1,16384)));
+            FontSpec CurrentFont()=>Recipe.Annotations.FirstOrDefault(a=>a.Id==overlay.SelectedId)?.Style.Font??overlay.NewStyle.Font??spec;
+            TrackValue(size,()=>N(CurrentFont().SizePixels));TrackValue(leading,()=>N(CurrentFont().LineHeight));
             void FontSize(double? size,double? leading){var current=((ImageRecipe)Document.Recipe).Annotations.FirstOrDefault(a=>a.Id==overlay.SelectedId);if(current?.Style.Font is {} f)overlay.ReplaceAnnotation(current with {Style=current.Style with {Font=f with {SizePixels=size??f.SizePixels,LineHeight=leading??f.LineHeight}}});else if(overlay.NewStyle.Font is {} n)overlay.NewStyle=overlay.NewStyle with {Font=n with {SizePixels=size??n.SizePixels,LineHeight=leading??n.LineHeight}};refresh();}
         }
-        Note("Static faces and basic left-to-right text only. Unsupported shaping, combining marks, emoji and missing glyphs produce a visible error. Choose another exact face to resolve a changed or missing font.");
+
     }
     private async void ImportInset()
     {
@@ -167,10 +225,8 @@ public sealed class AnnotationInspector : StackPanel
         };Children.Add(list);
     }
     private static string LayerName(Annotation a)=>a.Geometry switch{StrokeGeometry s=>s.ArrowEnd||s.ArrowStart?"Arrow":"Pen stroke",ShapeGeometry s=>s.Ellipse?"Ellipse":a.Style.Fill.A>0?"Filled box / highlight":"Box",TextGeometry t=>"Text · "+(t.Text.Length>24?t.Text[..24]+"…":t.Text),NumberGeometry n=>"Callout "+n.Number,InsetImageGeometry=>"Inset image",MagnifierGeometry=>"Magnifier",_=>"Layer"};
-    private sealed record FontChoice(string Name,string Path);
-    private static FontChoice[] InstalledFontFiles()
+    private static string FriendlyStyle(string faceName)
     {
-        try{return Directory.EnumerateFiles(Environment.GetFolderPath(Environment.SpecialFolder.Fonts)).Where(p=>new[]{".ttf",".otf",".ttc",".otc"}.Contains(Path.GetExtension(p),StringComparer.OrdinalIgnoreCase)).OrderBy(Path.GetFileName,StringComparer.CurrentCultureIgnoreCase).Select(p=>new FontChoice(Path.GetFileNameWithoutExtension(p),p)).ToArray();}
-        catch(Exception e)when(e is IOException or UnauthorizedAccessException){return [];}
+        var parts=faceName.Split('/');return parts.Length==3&&int.TryParse(parts[0],out int weight)&&int.TryParse(parts[1],out int width)?InstalledFontCatalog.StyleName(weight,parts[2]=="Upright"?0:parts[2]=="Italic"?1:2,width):faceName;
     }
 }
