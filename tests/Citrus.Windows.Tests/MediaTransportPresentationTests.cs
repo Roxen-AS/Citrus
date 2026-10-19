@@ -15,6 +15,63 @@ namespace Citrus.Windows.Tests;
 [Collection("Desktop")]
 public sealed class MediaTransportPresentationTests(DesktopFixture desktop)
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public Task Disposed_owner_tolerates_actual_unload_reload_and_controller_replacement(bool playing) => desktop.RunAsync(async () =>
+    {
+        var control = new MediaTransport();
+        var window = new Window { Width = 800, Height = 420, ShowInTaskbar = false };
+        var doc = new EditorDocument(1, 8, [], [], new AudioRecipe([], 48000, new(["FC"], ["FC"], [1], false), [], null, []),
+            new("wav", null, "test", new QualityGoal(80), MetadataPolicy.StripAll, new(0, 0, 0, 255)));
+        int unloads = 0;
+        control.Unloaded += (_, _) => unloads++;
+        try
+        {
+            window.Show();
+            for (int repeat = 0; repeat < 3; repeat++)
+            {
+                var preparation = new MediaPlaybackTests.Preparation();
+                var sink = new MediaPlaybackTests.Sink();
+                await using var controller = new MediaPreviewController(preparation, () => sink);
+                control.Controller = controller;
+                window.Content = control;
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+                Assert.True(control.IsLoaded);
+                await control.LoadAsync(doc, new(new(1, 30), new(2, 1)), default);
+                if (playing) await controller.ResumeAsync(default);
+                await controller.DisposeAsync();
+                long generation = controller.Generation;
+                // Ownership ends before the real WPF render-priority Unloaded event arrives.
+                window.Content = null;
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+                Assert.False(control.IsLoaded);
+                Assert.Equal(repeat * 2 + 1, unloads);
+                Assert.Equal(generation, controller.Generation);
+                Assert.Equal(MediaPlaybackState.Stopped, controller.State);
+                Assert.All(preparation.Sessions, item => Assert.True(item.Disposed));
+                if (playing) Assert.True(sink.Released);
+
+                // Attach the disposed owner again, then replace it while still loaded.
+                // Detach must be safe even when Unloaded has not run for this attachment.
+                window.Content = control;
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+                await using var replacement = new MediaPreviewController(new MediaPlaybackTests.Preparation(), () => new MediaPlaybackTests.Sink());
+                control.Controller = replacement;
+                await control.LoadAsync(doc, new(new(1, 30), new(2, 1)), default);
+                Assert.Equal(MediaPlaybackState.Paused, replacement.State);
+                Assert.Equal(new RationalTime(1, 30), replacement.Position);
+                window.Content = null;
+                await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+                await replacement.WaitForIdleAsync();
+                Assert.Equal(MediaPlaybackState.Stopped, replacement.State);
+                // Two real unloads occurred in this iteration.
+                Assert.Equal((repeat + 1) * 2, unloads);
+            }
+        }
+        finally { window.Close(); await Dispatcher.Yield(DispatcherPriority.ContextIdle); }
+    });
+
     [Fact]
     public Task Home_key_seeks_to_exact_one_thirtieth_start() => desktop.RunAsync(async () =>
     {

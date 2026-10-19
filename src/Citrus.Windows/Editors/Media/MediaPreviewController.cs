@@ -56,6 +56,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
     private readonly Stopwatch silentClock = new();
     private CancellationTokenSource? active;
     private Task running = Task.CompletedTask;
+    private TaskCompletionSource? disposal;
     private IPreviewAudioSink? sink;
     private Channel<PreviewFrame>? frames;
     private EditorDocument? document;
@@ -92,6 +93,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
     public Task PreparePausedAsync(EditorDocument document, TimeRange range, bool original, CancellationToken ct) => StartAsync(document, range, original, true, ct);
     private async Task StartAsync(EditorDocument document, TimeRange range, bool original, bool paused, CancellationToken ct)
     {
+        lock (sync) ObjectDisposedException.ThrowIf(disposed, this);
         long ticket = StopCurrent(MediaPlaybackState.Stopped);
         await commands.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -118,6 +120,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
         RationalTime target;
         lock (sync)
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             if (frameTimes.IsEmpty) throw new NotSupportedException("Prepare a video selection before frame stepping.");
             int current = -1;
             for (int i = 0; i < frameTimes.Length && frameTimes[i].CompareTo(Position) <= 0; i++) current = i;
@@ -133,6 +136,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
         bool resume;
         lock (sync)
         {
+            ObjectDisposedException.ThrowIf(disposed, this);
             selected = document ?? throw new InvalidOperationException("Load a playback document first.");
             if (position.CompareTo(selection.Start) < 0 || position.CompareTo(selection.End) >= 0) throw new ArgumentOutOfRangeException(nameof(position));
             resume = play ?? playRequested;
@@ -142,7 +146,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
         try
         {
             await WaitForIdleAsync().ConfigureAwait(false);
-            lock (sync) { if (ticket != generation) throw new OperationCanceledException("Superseded seek."); this.position = position; document = selected; if (audition.HasValue) original = audition.Value; }
+            lock (sync) { ObjectDisposedException.ThrowIf(disposed, this); if (ticket != generation) throw new OperationCanceledException("Superseded seek."); this.position = position; document = selected; if (audition.HasValue) original = audition.Value; }
             // Paused seeking prepares one exact displayed frame; the sink never opens.
             await BeginAsync(new(position, selection.End), ct, !resume).ConfigureAwait(false);
         }
@@ -297,12 +301,15 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
         try { present(frame); return true; }
         finally { frame = null; lock (sync) presenting = false; }
     }
-    private long StopCurrent(MediaPlaybackState next)
+    private long StopCurrent(MediaPlaybackState next, bool disposing = false)
     {
         IPreviewAudioSink? release;
         long ticket;
         lock (sync)
         {
+            // The host may dispose before WPF delivers Unloaded. Only the first disposer
+            // invalidates this generation; late Stop/Pause cannot revive or mutate it.
+            if (disposed && !disposing) return generation;
             position = Position;
             ticket = ++generation; active?.Cancel(); release = sink; sink = null;
             silentClock.Stop(); playRequested = false; state = next;
@@ -316,12 +323,42 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
     }
     public Task WaitForIdleAsync() { lock (sync) return running; }
     private void Notify() => StateChanged?.Invoke(this, EventArgs.Empty);
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
-        lock (sync) { if (disposed) return; disposed = true; }
-        Stop(); await commands.WaitAsync().ConfigureAwait(false);
-        try { await WaitForIdleAsync().ConfigureAwait(false); active?.Dispose(); }
-        finally { commands.Release(); }
+        TaskCompletionSource completion;
+        lock (sync)
+        {
+            if (disposal is not null) return new(disposal.Task);
+            disposed = true;
+            disposal = completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        }
+        // Publish the shared completion before invoking callbacks: reentrant/concurrent
+        // disposers must await the same producer, sink and private staging cleanup.
+        _ = DisposeCoreAsync(completion);
+        return new(completion.Task);
+    }
+    private async Task DisposeCoreAsync(TaskCompletionSource completion)
+    {
+        try
+        {
+            StopCurrent(MediaPlaybackState.Stopped, disposing: true);
+            await commands.WaitAsync().ConfigureAwait(false);
+            try
+            {
+                await WaitForIdleAsync().ConfigureAwait(false);
+                lock (sync)
+                {
+                    // The worker has joined, and StopCurrent uses this same lock. No
+                    // cancellation source remains reachable once its lifetime ends.
+                    var cancellation = active;
+                    active = null;
+                    cancellation?.Dispose();
+                }
+            }
+            finally { commands.Release(); }
+            completion.TrySetResult();
+        }
+        catch (Exception ex) { completion.TrySetException(ex); }
     }
     private static RationalTime AddClock(RationalTime start, RationalTime elapsed)
     {

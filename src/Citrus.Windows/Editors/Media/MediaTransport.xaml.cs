@@ -53,9 +53,12 @@ public partial class MediaTransport : UserControl
     }
     private void Detach()
     {
-        timer.Stop(); lifetime.Cancel();
-        if (attached && controller is not null) { controller.StateChanged -= StateChanged; controller.Stop(); }
+        timer.Stop();
+        var detached = attached ? controller : null;
         attached = false;
+        if (detached is not null) detached.StateChanged -= StateChanged;
+        lifetime.Cancel();
+        detached?.Stop();
     }
     private void StateChanged(object? sender, EventArgs e)
     {
@@ -65,7 +68,7 @@ public partial class MediaTransport : UserControl
     }
     private void Refresh()
     {
-        if (controller is null || !IsLoaded) return;
+        if (!attached || controller is null || !IsLoaded) return;
         if (controller.State == MediaPlaybackState.Playing) timer.Start(); else timer.Stop();
         if (!Timeline.IsMouseCaptureWithin && !Timeline.IsKeyboardFocusWithin) Timeline.Value = Seconds(controller.Position);
         Timecode.Text = TimeSpan.FromSeconds(Seconds(controller.Position)).ToString(@"hh\:mm\:ss\.fff");
