@@ -113,22 +113,61 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
         Assert.Equal(Architecture.X64, RuntimeInformation.ProcessArchitecture);
         string root = Environment.GetEnvironmentVariable("CITRUS_GLASS_ARTIFACTS") ?? Path.Combine(AppContext.BaseDirectory, "TestResults", "glass-native");
         Directory.CreateDirectory(root);
-        using var scene = new GlassOwnedScene(); scene.Show();
+        using var scene = new GlassOwnedScene(); scene.Show(activateOwnedBackground: true);
+        var fixtureActivation = new
+        {
+            Experiment = "One normal activation attempt on the owned opaque background before showing the nonactivating wheel; no force or retry",
+            scene.OriginalForeground, scene.BackgroundActivationAttempted, scene.BackgroundActivationReturned,
+            scene.BackgroundActivationSucceeded, scene.BaselineForeground,
+            OwnedBackground = scene.BackgroundHandle.ToInt64(),
+            ForegroundBaselineEstablishedAfterOwnedActivationAttempt = true
+        };
+        // Preserve setup diagnostics even when the unchanged first capture preflight refuses all pixels.
+        File.WriteAllText(Path.Combine(root, "fixture-activation.json"), JsonSerializer.Serialize(fixtureActivation, new JsonSerializerOptions { WriteIndented = true }));
         await scene.WaitForPresentationAsync();
         using var monitor = new MaterialPreferenceMonitor(Dispatcher.CurrentDispatcher, () => new());
         using var controller = new WheelBackdropController(nativeCompanionValidated: true);
         controller.Attach(scene.WheelHandle);
-        scene.SetShellTransparent(true);
+        controller.Invalidated += () => scene.SetShellState(controller.Result.State);
+        // Product presentation has its own gated controller. Finish its bounded solid-first
+        // callbacks before explicitly exposing the native tint as the no-helper measurement control.
+        async Task DrainProductPresentationAsync()
+        {
+            for (int i = 0; i < 100 && scene.Wheel.MaterialPresentationPending; i++) await Task.Delay(10);
+            Assert.False(scene.Wheel.MaterialPresentationPending, "Product material presentation did not settle before the controlled capture.");
+        }
+        await DrainProductPresentationAsync();
+        scene.SetShellState(BackdropState.ConfiguredNativeAcrylic);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        File.WriteAllText(Path.Combine(root, "01-owned-stripes-no-companion.state.json"), JsonSerializer.Serialize(new
+        {
+            Purpose = "Native-tint-only measurement control on the actual Shell, not an optical native-material claim",
+            ShellState = scene.Wheel.MaterialState.ToString(), Helper = controller.CompanionHandle.ToInt64(),
+            CaptureStillRequiresOwnershipPreflight = true
+        }, new JsonSerializerOptions { WriteIndented = true }));
         using var baseline = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "01-owned-stripes-no-companion.png"));
         var result = controller.Synchronize(1, scene.Bounds, scene.DpiScale, true, monitor.Decision, false);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         await Task.Delay(300); // Bounded native compositor settle, never an application animation loop.
+        // The external proof controller's native placement can invalidate the product controller.
+        // Drain that callback, then use the proof controller's actual result, never an alpha guess.
+        await DrainProductPresentationAsync();
+        result = controller.Result;
+        scene.SetShellState(result.State);
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        result = controller.Result;
+        var configuredShellState = scene.Wheel.MaterialState;
+        Assert.Equal(result.State, configuredShellState);
         using var configured = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "02-disabled-clipped-native.png"));
         scene.AssertWheelOwnsClip(controller.CompanionHandle);
         scene.SetPattern(true);
         await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
         await Task.Delay(300);
+        await DrainProductPresentationAsync();
+        scene.SetShellState(controller.Result.State);
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        var changedShellState = scene.Wheel.MaterialState;
+        Assert.Equal(controller.Result.State, changedShellState);
         using var changed = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "03-live-owned-background-change.png"));
         nint helper = controller.CompanionHandle;
         nint immediatelyAboveHelper = helper == 0 ? 0 : BackdropNativeMethods.GetWindow(helper, 3);
@@ -152,7 +191,11 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
         double baselineEdges = GlassCompositorCapture.EdgeEnergy(baseline, scene.DpiScale);
         double configuredEdges = GlassCompositorCapture.EdgeEnergy(configured, scene.DpiScale);
         double liveDifference = GlassCompositorCapture.LiveDifference(configured, changed, scene.DpiScale);
-        bool opticalCandidate = result.IsNative && baselineEdges > 5 && configuredEdges < baselineEdges * .75 && liveDifference > 3;
+        bool opticalCandidate = result.IsNative && configuredShellState == BackdropState.ConfiguredNativeAcrylic && changedShellState == BackdropState.ConfiguredNativeAcrylic && baselineEdges > 5 && configuredEdges < baselineEdges * .75 && liveDifference > 3;
+        controller.Hide(1); scene.SetShellState(controller.Result.State);
+        Assert.Equal(BackdropState.Solid, scene.Wheel.MaterialState);
+        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+        using var solid = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "04-opaque-fallback.png"));
         var metadata = new
         {
             CaptureOwnership = "Each frame has a preflight JSON; full crop checked before every screen read",
@@ -164,17 +207,24 @@ public sealed class GlassNativeProofTests(DesktopFixture desktop)
             HelperOwner = helper == 0 ? 0 : BackdropNativeMethods.GetWindow(helper, 4).ToInt64(),
             WindowImmediatelyAboveHelper = immediatelyAboveHelper.ToInt64(),
             Style = styles, ExtendedStyle = extended, RegionKind = regionKind, RegionBounds = regionBounds.ToScreenRect(), CenterIncluded = centerIncluded, CornerIncluded = cornerIncluded,
+            FixtureActivation = fixtureActivation,
             ForegroundBefore = scene.ForegroundBefore.ToInt64(), ForegroundAfter = BackdropNativeMethods.GetForegroundWindow().ToInt64(),
             WholeEllipseWindowFromPoint = "passed", OleAdmission = "Synthetic callback on real registered OLE HWND; external drag not proven",
             BaselineEdgeEnergy = baselineEdges, ConfiguredEdgeEnergy = configuredEdges, LiveBackgroundDifference = liveDifference,
             Eligibility = opticalCandidate ? "OpticalCandidateRequiresHumanFrameReview" : "UnprovenOrSuppressedSolidGateRemainsFalse",
+            ShellPresentation = new
+            {
+                Baseline = "Explicit native-tint-only measurement control on the real Shell; no helper and no optical eligibility claim",
+                BaselineShellState = BackdropState.ConfiguredNativeAcrylic.ToString(),
+                ConfiguredShellState = configuredShellState.ToString(),
+                LiveBackgroundShellState = changedShellState.ToString(),
+                Fallback = "Controller.Hide result drives the real Shell; neutral-center backing is unchanged",
+                FallbackShellState = scene.Wheel.MaterialState.ToString()
+            },
             ProductionCompanionValidated = false,
             Limitation = "SetWindowRgn/WS_DISABLED may suppress Acrylic. S_OK never enables the production gate. No OS transparency settings were changed."
         };
         File.WriteAllText(Path.Combine(root, "metadata.json"), JsonSerializer.Serialize(metadata, new JsonSerializerOptions { WriteIndented = true }));
-        controller.Hide(1); scene.SetShellTransparent(false);
-        await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-        using var solid = GlassCompositorCapture.Capture(scene, controller.CompanionHandle, Path.Combine(root, "04-opaque-fallback.png"));
         Assert.True(baselineEdges > 5, "Capture must contain the live owned stripe scene, not a blank/opaque/noninteractive desktop.");
         Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
         Assert.False(BackdropNativeMethods.IsWindowVisible(helper));

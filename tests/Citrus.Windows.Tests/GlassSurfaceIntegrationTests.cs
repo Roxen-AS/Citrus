@@ -125,6 +125,83 @@ public sealed class GlassSurfaceIntegrationTests(DesktopFixture desktop)
         finally { window.Dispose(); window.Close(); theme.ApplyTypography(1); }
     });
 
+    [Theory]
+    [InlineData(420, 330)]
+    [InlineData(340, 250)]
+    public Task Twice_text_scale_keeps_shelf_references_and_actions_reachable(int width, int height) => desktop.RunAsync(async () =>
+    {
+        using var theme = new ThemeManager(Application.Current);
+        using var files = new NativeFiles();
+        string path = files.File("shelf-reference.txt", "owned physical reference");
+        theme.Apply(ThemeChoice.Light, true);
+        theme.ApplyTypography(2);
+        using var shelf = new ShelfWindow { Width = width, Height = height, ShowActivated = false };
+        try
+        {
+            shelf.AddPaths([path]); shelf.Show(); shelf.UpdateLayout();
+            var list = (System.Windows.Controls.ListBox)shelf.FindName("References");
+            Assert.True(list.ActualHeight >= 120, "Large text must not consume the reference viewport.");
+            list.SelectedItem = path; list.ScrollIntoView(path);
+            var item = (ListBoxItem)list.ItemContainerGenerator.ContainerFromItem(path);
+            item.BringIntoView();
+            await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+            Assert.Equal(path, list.SelectedItem);
+            Assert.True(item.IsSelected);
+            VisualArtifacts.AssertInside(item, (FrameworkElement)shelf.Content);
+            VisualArtifacts.Capture((FrameworkElement)shelf.Content, $"shelf-{width}x{height}-text200-reference", 1, ThemeChoice.Light,
+                new { textScaleFactor = 2, width, height });
+            foreach (string name in new[] { "CopyReferences", "RemoveReferences" })
+            {
+                var button = (System.Windows.Controls.Button)shelf.FindName(name);
+                button.BringIntoView();
+                await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                Assert.True(button.IsEnabled);
+                VisualArtifacts.AssertInside(button, (FrameworkElement)shelf.Content);
+                VisualArtifacts.Capture((FrameworkElement)shelf.Content, $"shelf-{width}x{height}-text200-{name}", 1, ThemeChoice.Light,
+                    new { textScaleFactor = 2, width, height });
+            }
+            ((System.Windows.Controls.Button)shelf.FindName("RemoveReferences")).RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+            Assert.Empty(shelf.Paths); // Reachable selection still drives the existing real action.
+        }
+        finally { shelf.Dispose(); theme.ApplyTypography(1); }
+    });
+
+    [Fact]
+    public Task Owned_fixture_activation_establishes_baseline_before_nonactivating_wheel() => desktop.RunAsync(() =>
+    {
+        using var scene = new GlassOwnedScene();
+        nint original = BackdropNativeMethods.GetForegroundWindow();
+        scene.Show(activateOwnedBackground: true);
+        Assert.Equal(original.ToInt64(), scene.OriginalForeground!.Handle);
+        Assert.True(scene.BackgroundActivationAttempted);
+        Assert.Equal(scene.BackgroundHandle == scene.ForegroundBefore, scene.BackgroundActivationSucceeded);
+        Assert.Equal(scene.ForegroundBefore.ToInt64(), scene.BaselineForeground!.Handle);
+        Assert.Equal(scene.ForegroundBefore, BackdropNativeMethods.GetForegroundWindow());
+        long wheelStyle = BackdropNativeMethods.GetWindowLongPtr(scene.WheelHandle, -20).ToInt64();
+        Assert.NotEqual(0, wheelStyle & BackdropNativeMethods.WsExNoActivate);
+        // Activation may be refused by Windows; the unmodified capture guard still decides eligibility.
+        return Task.CompletedTask;
+    });
+
+    [Fact]
+    public Task Compositor_fixture_changes_named_shell_state_and_preserves_opaque_center() => desktop.RunAsync(() =>
+    {
+        using var scene = new GlassOwnedScene();
+        var shell = (MaterialSurface)scene.Wheel.FindName("Shell");
+        var center = ((Canvas)scene.Wheel.FindName("Presentation")).Children.OfType<System.Windows.Shapes.Ellipse>().Single();
+        var centerFill = center.Fill;
+        scene.SetShellState(BackdropState.ConfiguredNativeAcrylic);
+        Assert.Equal(BackdropState.ConfiguredNativeAcrylic, shell.State);
+        Assert.True(((SolidColorBrush)shell.EffectiveTint).Color.A < 255);
+        Assert.Same(centerFill, center.Fill);
+        Assert.Equal(255, ((SolidColorBrush)center.Fill).Color.A);
+        scene.SetShellState(BackdropState.Solid);
+        Assert.Equal(BackdropState.Solid, shell.State);
+        Assert.Equal(255, ((SolidColorBrush)shell.EffectiveTint).Color.A);
+        Assert.Same(centerFill, center.Fill);
+        return Task.CompletedTask;
+    });
+
     [Fact]
     public Task Caption_and_hint_have_opaque_backing_within_existing_bounds() => desktop.RunAsync(() =>
     {

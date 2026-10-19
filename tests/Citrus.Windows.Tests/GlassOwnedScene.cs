@@ -5,7 +5,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Interop;
 using System.Windows.Media;
-using System.Windows.Shapes;
 using Citrus.Core;
 using Citrus.Windows.Presentation;
 using Point = System.Windows.Point;
@@ -24,6 +23,11 @@ internal sealed class GlassOwnedScene : IDisposable
     public nint WheelHandle => new WindowInteropHelper(Wheel).Handle;
     public nint BackgroundHandle => new WindowInteropHelper(background).Handle;
     public nint ForegroundBefore { get; private set; }
+    public GlassWindowIdentity? OriginalForeground { get; private set; }
+    public GlassWindowIdentity? BaselineForeground { get; private set; }
+    public bool BackgroundActivationAttempted { get; private set; }
+    public bool BackgroundActivationReturned { get; private set; }
+    public bool BackgroundActivationSucceeded { get; private set; }
     public double DpiScale => BackdropNativeMethods.GetDpiForWindow(WheelHandle) / 96d;
     public ScreenRect Bounds
     {
@@ -44,10 +48,21 @@ internal sealed class GlassOwnedScene : IDisposable
         SetPattern(false);
         Wheel.ApplySettings(new CitrusSettings { ReduceMotion = true, SoundEnabled = false });
     }
-    public void Show()
+    public void Show(bool activateOwnedBackground = false)
     {
-        ForegroundBefore = BackdropNativeMethods.GetForegroundWindow();
+        nint originalForeground = BackdropNativeMethods.GetForegroundWindow();
+        OriginalForeground = GlassNativeDesktopProbe.Describe(originalForeground);
         background.Show();
+        if (activateOwnedBackground)
+        {
+            // One normal activation of our opaque test window is fixture setup, never wheel activation.
+            // No force, retry, foreign-window interaction, desktop switch or OS preference change.
+            BackgroundActivationAttempted = true;
+            BackgroundActivationReturned = background.Activate();
+        }
+        ForegroundBefore = activateOwnedBackground ? BackdropNativeMethods.GetForegroundWindow() : originalForeground;
+        BackgroundActivationSucceeded = BackgroundActivationAttempted && ForegroundBefore == BackgroundHandle;
+        BaselineForeground = GlassNativeDesktopProbe.Describe(ForegroundBefore);
         Wheel.ShowAtPointer(OperationMode.Convert);
         var surface = (Canvas)Wheel.FindName("Surface");
         var data = new System.Windows.DataObject(System.Windows.DataFormats.FileDrop, new[] { sample });
@@ -67,11 +82,10 @@ internal sealed class GlassOwnedScene : IDisposable
         Assert.False(((TextBlock)Wheel.FindName("Hint")).Text.StartsWith("Preparing", StringComparison.Ordinal));
         await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
     }
-    public void SetShellTransparent(bool transparent)
+    public void SetShellState(BackdropState state)
     {
-        var presentation = (Canvas)Wheel.FindName("Presentation");
-        presentation.Children.OfType<Ellipse>().First().Fill = transparent
-            ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(24, 255, 255, 255)) : Brushes.White;
+        // The neutral-center ellipse remains opaque; only the actual production shell changes material.
+        ((MaterialSurface)Wheel.FindName("Shell")).State = state;
     }
     public void SetPattern(bool alternate)
     {
