@@ -9,8 +9,10 @@ outside the calling UI thread. The job queue controls concurrency.
   BOM and uses LF. BOM/CRLF inputs, multiline text, hours above 24, comma/dot
   milliseconds, and WebVTT short timestamps are supported. Malformed timestamps
   report a line number. VTT identifiers/settings survive VTT output; SRT gets
-  sequential indices and omits VTT-only settings. NOTE/STYLE/REGION blocks and
-  header metadata are not cue text and are omitted. TXT retains cue text (including
+  sequential indices and omits VTT-only settings. VTT output preserves REGION
+  definitions before cues; SRT/TXT omit them. Every nonempty VTT payload line,
+  including whitespace-only lines, is preserved. NOTE/STYLE blocks and header
+  metadata are omitted. TXT retains cue text (including
   any inline markup) with a blank line between cues.
 - `archive.zip` and `archive.tar` are explicit group conversions of selected regular
   files, stored by basename in selection order. Duplicate basenames are rejected.

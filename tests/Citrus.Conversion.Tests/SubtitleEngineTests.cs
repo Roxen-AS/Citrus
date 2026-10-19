@@ -62,4 +62,43 @@ public sealed class SubtitleEngineTests : IDisposable
         string result = await Convert("1\n00:00:01,000 --> 00:00:02,000\nFirst\nSecond\n\n2\n00:00:03,000 --> 00:00:04,000\nThird\n", ".srt", "subtitle.txt");
         Assert.Equal("First\nSecond\n\nThird\n", result);
     }
+
+    [Fact]
+    public async Task Vtt_region_definition_and_cue_reference_survive_round_trip()
+    {
+        const string region = "REGION\nid:bottom\nwidth:40%\nlines:3\nregionanchor:0%,100%\nviewportanchor:10%,90%\n";
+        const string content = "WEBVTT\n\n" + region + "\ncue-A\n00:00:01.000 --> 00:00:02.000 region:bottom\nFirst\n\n";
+        string result = await Convert(content, ".vtt", "subtitle.vtt");
+        Assert.Equal(content, result);
+        Assert.Equal(result, await Convert(result, ".vtt", "subtitle.vtt"));
+    }
+
+    [Theory]
+    [InlineData("subtitle.srt", "1\n00:00:01,000 --> 00:00:02,000\nFirst\n\n")]
+    [InlineData("subtitle.txt", "First\n")]
+    public async Task Vtt_regions_are_omitted_from_srt_and_txt(string operation, string expected)
+    {
+        string result = await Convert("WEBVTT\n\nREGION\nid:bottom\nwidth:40%\nlines:3\n\n00:00:01.000 --> 00:00:02.000 region:bottom\nFirst\n", ".vtt", operation);
+        Assert.Equal(expected, result);
+    }
+
+    [Theory]
+    [InlineData("First\n \nSecond")]
+    [InlineData("First\n  ")]
+    [InlineData("First\n\u00a0")]
+    [InlineData("First\n \nSecond\n\u00a0")]
+    public async Task Vtt_preserves_each_nonempty_payload_line_exactly(string payload)
+    {
+        string content = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n" + payload + "\n\n";
+        Assert.Equal(content, await Convert(content, ".vtt", "subtitle.vtt"));
+        Assert.Equal(payload + "\n", await Convert(content, ".vtt", "subtitle.txt"));
+    }
+
+    [Fact]
+    public async Task Srt_whitespace_separator_policy_is_unchanged()
+    {
+        string content = "1\n00:00:01,000 --> 00:00:02,000\nFirst\n \n2\n00:00:03,000 --> 00:00:04,000\nSecond\n";
+        Assert.Equal("First\n\nSecond\n", await Convert(content, ".srt", "subtitle.txt"));
+    }
+
 }

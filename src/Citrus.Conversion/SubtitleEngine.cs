@@ -32,13 +32,19 @@ public sealed class SubtitleEngine : IConversionEngine
             string input = request.Inputs[0];
             string content = await File.ReadAllTextAsync(input, new UTF8Encoding(false, true), cancellationToken).ConfigureAwait(false);
             bool vtt = Path.GetExtension(input).Equals(".vtt", StringComparison.OrdinalIgnoreCase);
-            var cues = Parse(content, vtt, cancellationToken);
+            var document = Parse(content, vtt, cancellationToken);
+            var cues = document.Cues;
             var operation = Operations.Single(o => o.Id == request.Operation.Id);
             string desired = Path.Combine(request.DestinationDirectory ?? Path.GetDirectoryName(input)!, Path.GetFileNameWithoutExtension(input) + operation.OutputExtension);
             string output = await writer.WriteFileAsync(desired, async (temporary, token) =>
             {
                 await using var text = new StreamWriter(temporary, false, new UTF8Encoding(false)) { NewLine = "\n" };
-                if (operation.Id == "subtitle.vtt") await text.WriteAsync("WEBVTT\n\n".AsMemory(), token).ConfigureAwait(false);
+                if (operation.Id == "subtitle.vtt")
+                {
+                    await text.WriteAsync("WEBVTT\n\n".AsMemory(), token).ConfigureAwait(false);
+                    foreach (string region in document.Regions)
+                        await text.WriteAsync((region + "\n\n").AsMemory(), token).ConfigureAwait(false);
+                }
                 for (int index = 0; index < cues.Count; index++)
                 {
                     token.ThrowIfCancellationRequested();
@@ -56,26 +62,34 @@ public sealed class SubtitleEngine : IConversionEngine
             return new ConversionResult([output]);
         }, cancellationToken);
 
-    private static List<Cue> Parse(string content, bool vtt, CancellationToken token)
+    private static SubtitleDocument Parse(string content, bool vtt, CancellationToken token)
     {
         string[] lines = content.TrimStart('\uFEFF').Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        // WebVTT ends a block only at an empty line; nonempty whitespace is cue payload.
+        bool IsSeparator(string line) => vtt ? line.Length == 0 : string.IsNullOrWhiteSpace(line);
         int position = 0;
         if (vtt)
         {
             if (lines.Length == 0 || !(lines[0] == "WEBVTT" || lines[0].StartsWith("WEBVTT ", StringComparison.Ordinal) || lines[0].StartsWith("WEBVTT\t", StringComparison.Ordinal)))
                 throw Malformed(1, "Expected WEBVTT header.");
-            while (position < lines.Length && !string.IsNullOrWhiteSpace(lines[position])) position++;
+            while (position < lines.Length && !IsSeparator(lines[position])) position++;
         }
         var cues = new List<Cue>();
+        var regions = new List<string>();
         while (position < lines.Length)
         {
             token.ThrowIfCancellationRequested();
-            if (string.IsNullOrWhiteSpace(lines[position])) { position++; continue; }
+            if (IsSeparator(lines[position])) { position++; continue; }
             int start = position;
-            while (position < lines.Length && !string.IsNullOrWhiteSpace(lines[position])) position++;
+            while (position < lines.Length && !IsSeparator(lines[position])) position++;
             int end = position;
             string first = lines[start];
-            if (vtt && (first == "NOTE" || first.StartsWith("NOTE ", StringComparison.Ordinal) || first.StartsWith("NOTE\t", StringComparison.Ordinal) || first is "STYLE" or "REGION")) continue;
+            if (vtt && first == "REGION")
+            {
+                regions.Add(string.Join('\n', lines[start..end]));
+                continue;
+            }
+            if (vtt && (first == "NOTE" || first.StartsWith("NOTE ", StringComparison.Ordinal) || first.StartsWith("NOTE\t", StringComparison.Ordinal) || first == "STYLE")) continue;
             string? identifier = null;
             if (!first.Contains("-->", StringComparison.Ordinal)) { identifier = vtt ? first : null; start++; }
             if (start >= end) throw Malformed(start + 1, "Missing cue timestamps.");
@@ -89,7 +103,7 @@ public sealed class SubtitleEngine : IConversionEngine
             cues.Add(new(from, to, string.Join('\n', lines[(start + 1)..end]), identifier, settings.Length == 0 || !vtt ? "" : " " + settings));
         }
         if (cues.Count == 0) throw Malformed(1, "No subtitle cues found.");
-        return cues;
+        return new(cues, regions);
     }
 
     private static long ParseTimestamp(string text, int line)
@@ -110,5 +124,6 @@ public sealed class SubtitleEngine : IConversionEngine
     private static string Format(long milliseconds, char separator) =>
         FormattableString.Invariant($"{milliseconds / 3600000:D2}:{milliseconds / 60000 % 60:D2}:{milliseconds / 1000 % 60:D2}{separator}{milliseconds % 1000:D3}");
     private static InvalidDataException Malformed(int line, string detail) => new($"Malformed subtitle at line {line}: {detail}");
+    private sealed record SubtitleDocument(List<Cue> Cues, List<string> Regions);
     private sealed record Cue(long Start, long End, string Text, string? Identifier, string Settings);
 }
