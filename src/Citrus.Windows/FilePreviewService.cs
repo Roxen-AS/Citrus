@@ -12,11 +12,10 @@ public interface IFilePreviewService
 
 public sealed class FilePreviewService : IFilePreviewService
 {
-    private static readonly SemaphoreSlim decoders = new(2);
     public async Task<ImageSource?> LoadAsync(string path, int pixelLimit, CancellationToken cancellationToken)
     {
         int limit = Math.Clamp(pixelLimit, 1, 2048);
-        await decoders.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var lease = await Citrus.Core.Editing.PreviewWorkScheduler.AcquireAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             return await Task.Run<ImageSource?>(() =>
@@ -68,7 +67,7 @@ public sealed class FilePreviewService : IFilePreviewService
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException or NotSupportedException or ArgumentException or System.Runtime.InteropServices.COMException or FileFormatException) { return null; }
             }, cancellationToken).ConfigureAwait(false);
         }
-        finally { decoders.Release(); }
+        finally { lease.Dispose(); }
     }
 
     private static int ReadOrientation(BitmapMetadata? metadata)

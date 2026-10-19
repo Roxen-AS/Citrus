@@ -67,9 +67,8 @@ public class FilePreviewTests(DesktopFixture desktop)
     {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".png");
         // Occupy the real shared limiter from test code; no injected production hooks or OS preference changes.
-        var limiter = (SemaphoreSlim)typeof(FilePreviewService).GetField("decoders", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
-        await limiter.WaitAsync();
-        await limiter.WaitAsync();
+        using var first = await Citrus.Core.Editing.PreviewWorkScheduler.AcquireAsync(default);
+        using var second = await Citrus.Core.Editing.PreviewWorkScheduler.AcquireAsync(default);
         Task<System.Windows.Media.ImageSource?>? queued = null;
         try
         {
@@ -79,7 +78,7 @@ public class FilePreviewTests(DesktopFixture desktop)
             File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.Offline);
             Assert.True(File.GetAttributes(path).HasFlag(FileAttributes.Offline));
         }
-        finally { limiter.Release(2); }
+        finally { first.Dispose(); second.Dispose(); }
         try { Assert.Null(await queued!); }
         finally { if (File.Exists(path)) { File.SetAttributes(path, FileAttributes.Normal); File.Delete(path); } }
     });
