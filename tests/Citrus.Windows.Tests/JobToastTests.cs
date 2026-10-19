@@ -10,7 +10,8 @@ public sealed class JobToastTests(DesktopFixture desktop)
     [Fact]
     public Task Progress_and_completion_do_not_activate_or_dispatch_work() => desktop.RunAsync(async () =>
     {
-        nint foreground = GetForegroundWindow();
+        using var host = new OwnedForegroundHost();
+        nint foreground = await host.EstablishAsync();
         int views = 0, reveals = 0;
         bool allowed = true;
         using var toast = new JobToastWindow(() => views++, _ => { reveals++; return Task.CompletedTask; }, () => allowed);
@@ -33,12 +34,14 @@ public sealed class JobToastTests(DesktopFixture desktop)
     [Fact]
     public Task A_visible_toast_reanchors_when_a_long_error_increases_its_height() => desktop.RunAsync(async () =>
     {
+        using var host = new OwnedForegroundHost();
+        nint foreground = await host.EstablishAsync();
         using var toast = new JobToastWindow(() => { }, _ => Task.CompletedTask, () => true);
         try
         {
             toast.Update("Checking inputs…", true);
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
-            nint foreground = GetForegroundWindow();
+            Assert.Equal(foreground, GetForegroundWindow());
             nint handle = new WindowInteropHelper(toast).Handle;
             Assert.True(GetWindowRect(handle, out var before));
             toast.Update(string.Join(" ", Enumerable.Repeat("The selected file could not be read. View jobs to recover your work.", 8)), false, ["output.png"]);
@@ -57,6 +60,27 @@ public sealed class JobToastTests(DesktopFixture desktop)
         }
         finally { toast.Close(); }
     });
+    private sealed class OwnedForegroundHost : IDisposable
+    {
+        private readonly System.Windows.Window window = new()
+        {
+            Title = "Citrus toast nonactivation fixture", Width = 320, Height = 160,
+            ShowActivated = false, ShowInTaskbar = false,
+            Content = new System.Windows.Controls.TextBlock { Text = "Owned foreground for toast assertions" }
+        };
+        public async Task<nint> EstablishAsync()
+        {
+            window.Show();
+            bool activated = window.Activate(); // One normal owned-window attempt; never force or retry.
+            await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+            nint handle = new WindowInteropHelper(window).Handle;
+            Assert.NotEqual(0, handle);
+            Assert.True(activated, "The owned foreground fixture must activate before testing a nonactivating toast.");
+            Assert.Equal(handle, GetForegroundWindow());
+            return handle;
+        }
+        public void Dispose() => window.Close();
+    }
     [DllImport("user32.dll")] private static extern bool GetWindowRect(nint window, out NativeMethods.Rect bounds);
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
 }
