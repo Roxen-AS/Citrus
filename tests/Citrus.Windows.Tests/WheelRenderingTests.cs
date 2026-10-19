@@ -35,7 +35,7 @@ public sealed class WheelRenderingTests(DesktopFixture desktop)
         try
         {
             await fixture.Enter([fixture.Root]); // Real admitted directory, empty Convert catalog.
-            fixture.Capture(prefix + "-empty", scale, theme);
+            fixture.Capture(prefix + "-empty", scale, theme, expectPreview: false);
             Assert.Empty(fixture.Petals);
             Assert.Null(fixture.Preview.Source);
 
@@ -189,11 +189,27 @@ public sealed class WheelRenderingTests(DesktopFixture desktop)
         }
         public void Raise(DragEventArgs args) { args.Handled = false; args.Effects = DragDropEffects.None; Surface.RaiseEvent(args); }
         public DragEventArgs Hover(Point point) { var args = Args(DragDrop.PreviewDragOverEvent,point); Raise(args); return args; }
-        public void Capture(string name, double scale, ThemeChoice theme)
+        public void Capture(string name, double scale, ThemeChoice theme, bool expectPreview = true)
         {
             VisualArtifacts.Capture(Surface,name,scale,theme); // Save before bounds assertions, for failure inspection.
             Assert.Equal(368, Surface.ActualWidth); Assert.Equal(414, Surface.ActualHeight);
-            foreach (string child in new[] { "Preview", "Caption", "Hint", "ModeLabel", "Badge" })
+            var glyph = (FrameworkElement)Wheel.FindName("FileGlyph");
+            if (expectPreview)
+            {
+                Assert.NotNull(Preview.Source);
+                Assert.True(Preview.IsVisible);
+                Assert.Equal(Visibility.Hidden, glyph.Visibility);
+                VisualArtifacts.AssertInside(Preview,Surface);
+            }
+            else
+            {
+                // A source-less WPF Image may have zero RenderSize; the visible file glyph owns this state.
+                Assert.Null(Preview.Source);
+                Assert.Equal(Visibility.Visible, glyph.Visibility);
+                Assert.True(glyph.IsVisible);
+                VisualArtifacts.AssertInside(glyph,Surface);
+            }
+            foreach (string child in new[] { "Caption", "Hint", "ModeLabel", "Badge" })
                 VisualArtifacts.AssertInside((FrameworkElement)Wheel.FindName(child),Surface);
             foreach (var petal in Petals)
             {
