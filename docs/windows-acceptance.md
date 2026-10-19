@@ -1,10 +1,38 @@
-# Windows acceptance — pending
+# Windows acceptance — executed harnesses and remaining checks
 
-No checkbox below has been executed on a native Windows host for this candidate.
-Record OS build, account type, candidate SHA256, tester/date and actual outcome
-when running it on Windows 10 22H2 and Windows 11 x64. Linux compilation and host
-codec tests do not check these items. CI results supplement, not replace, real
-Explorer, accessibility and clean-machine checks.
+Checked items identify the hosted Windows harness scope actually executed at
+`cb8313c84492badc425e3c42b2db85ba1f6befd8` on 2026-10-19, unless an earlier
+installer checkpoint is explicitly named. Unchecked items remain
+manual or unverified acceptance; record OS build, account type, candidate SHA256,
+tester/date and actual outcome on Windows 10 22H2 and Windows 11 x64. No current
+candidate is recorded as installed on the user's PC. CI/WPF evidence does not
+replace physical Explorer, actual display/accessibility or clean-machine checks.
+See [the exact runs and results](verification.md).
+
+## Recorded native harness scope
+
+- [x] Material/control interaction (8), annotation interaction (8), image-editor
+  windows (6), wheel UI Automation (2) and Light/Dark populated-history stress (2)
+  passed at cb8313c. These exercise actual WPF controls and renderer-backed outputs
+  with synthetic routed/UIA interaction rather than physical Explorer dragging.
+- [x] Expander header/access-key cases (3) passed (Dark 100/200% and forced application
+  High Contrast 200%); the same three cases also passed at 71fb, whose header PNGs
+  were inspected. Documented WPF ProcessKey dispatch and forced palette coverage
+  are not physical Alt+B or an actual OS High Contrast session.
+- [x] Media teardown (4), real job-history template (1) and toast cases (2) passed.
+  Device audio remains skipped without an opted-in endpoint; no audible playback
+  result follows from teardown/stream tests.
+- [x] Five guarded compositor cases, including ordinary-window capture, passed on
+  the x64 desktop. This records capture assertions, not optical eligibility.
+
+Core passed 171; Conversion passed 485 with three Linux-only surrogate skips.
+Both Windows runs passed 281, failed 0 and skipped 4 of 285. The earlier 71fb
+host-probe failure (geometric endpoint 360 versus native raster bound 359) is
+closed by reviewed strict EqualRgn fix `889c372`, integrated as cb8313c. Both
+host-probe variants now complete guarded captures and measurements. They show
+visible target presentation but zero live host response on Windows Server 26100
+x64; this does not establish Windows 11 client behavior. The production native
+wheel gate remains false.
 
 ## Highest-risk interaction
 
@@ -77,7 +105,7 @@ they are not an OS-handle sandbox against same-account races.
 - [ ] Launch app while installer owns gate: fails clearly without opening resident UI; guard releases on finish/cancel/failure. Installer/uninstaller running concurrently are excluded.
 - [ ] `/S` guard failures exit nonzero without waiting for a dialog. Uninstaller's copied temporary executable and current directory permit clean root removal when empty.
 
-## Native recovery failure-injection procedure — pending
+## Native recovery harness — executed; additional scenarios pending
 
 On a disposable Windows account with no Citrus directory or registration, publish
 normally and run `pwsh ./packaging/test-install-recovery.ps1`. The harness compiles
@@ -88,13 +116,15 @@ unrelated tree and wrong receipt, the partial payload and bootstrapped uninstall
 successful retry with the normal installer, every installed payload hash, and
 uninstall preserving root/nested user-output fixtures. It removes only exact
 fixture files and empty directories after success; on failure it retains evidence.
-The complete Windows workflow now runs this harness. It has **not run on Linux**.
+The complete Windows workflow runs this harness. At exact 71fb, NSIS compilation
+and the native harness passed on Windows at **10:33:30 UTC**. This is hosted
+installer/recovery execution, not an end-user installation or a Linux simulation.
 
-- [ ] Execute the native harness on supported Windows and record results, including first-file interruption/retry and unknown-file preservation.
+- [x] Hosted Windows native harness at 71fb: first-file interruption, unrelated/wrong-receipt refusal, same-payload retry, owned uninstall and root/nested user-output preservation passed. Additional bootstrap/disk-full scenarios below remain unchecked.
 - [ ] Interrupt during initial receipt write/flush, root creation and uninstaller write (for example with controlled disk/access failures). If no tree was created, ordinary retry works; if a tree exists, the matching receipt permits same-candidate recovery. A partial uninstaller is replaced on retry.
 - [ ] After first-file interruption, run the bootstrapped uninstaller directly without first completing setup; owned partial files are removed and unknown files survive. Native registry flushing, silent exit codes and real disk-full behavior remain pending.
 
-## Interface evidence harness — native execution pending
+## Interface evidence harness — native execution recorded
 
 Run `dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore
 --logger trx --results-directory TestResults/windows` on Windows after the locked
@@ -113,8 +143,9 @@ the actual inspector Run button into view.
 Exports at 100%, 150% and 200% are **RenderTargetBitmap raster scales of the current
 WPF layout**, not actual native DPI transitions. Sidecars record actual visual DPI,
 OS high contrast, animation capability and requested theme. High contrast overrides
-light/dark when already enabled; the harness never changes system settings and
-cannot claim high-contrast coverage when the runner has it disabled.
+light/dark when already enabled. Dedicated control/header cases additionally
+force the application palette branch; they do not establish an actual OS High
+Contrast session. The harness never changes system accessibility/display settings.
 `wheel-hover-performance.json` reports five warm repeated-hover samples, dispatcher
 thread allocation and elapsed time. Preallocated synthetic routed events exercise
 real hit testing and selection with motion/audio disabled. The measurements exclude
@@ -138,9 +169,17 @@ layout substitute or altered OS display setting is used.
 ## Native glass and lifecycle acceptance
 
 Use [the native evidence procedure](native-glass/README.md) on the exact reviewed
-commit. The production wheel remains explicitly solid until disabled/clipped
-companion frosting has accepted compositor evidence. Ordinary `ConfiguredNativeAcrylic`
-is configuration only. Keep WPF raster images separate from native compositor crops.
+commit. The production wheel gate remains false until disabled/clipped companion
+frosting has accepted compositor evidence. Ordinary `ConfiguredNativeAcrylic` and
+the host probe's successful COM configuration are configuration only. At 71fb the
+probe stopped before configured capture. At cb8313c both variants complete six
+guarded PNGs each, including matching no-helper baselines and a visible magenta
+target control. Measured host A/B change is zero despite baseline change
+222.10698; outside-ellipse and protected hub/caption differences are zero. This
+records no observed host sampling on that Server 26100 x64 scene, not an accepted
+optical result or a Windows 11 client failure. The ARM client filter excludes this
+experiment. Keep WPF raster images, guarded capture assertions and accepted
+optical behavior distinct.
 
 - [ ] Guarded ordinary-window and wheel fine/broad-pattern captures: full desktop,
   station/session, visual z order and every crop input pixel verified before reads;
@@ -149,9 +188,10 @@ is configuration only. Keep WPF raster images separate from native compositor cr
   content and caption backing; no global transparency or accessibility writes.
 - [ ] Confirm/cancel/reopen, theme and accessibility transitions visually reviewed
   on real composition, including hidden intervals; no bare helper or clipping seam.
-- [ ] Actual resident QuitAsync/OnExit clears wheel HWND/helper, pending material
-  callback, attached animator, active/retained channels and Rendering subscription;
-  configuration tests independently destroy native helper and hidden owner on close.
+- [x] Automated resident QuitAsync/OnExit and lifecycle cases (6/6) at cb8313c: wheel/helper,
+  pending callbacks, animator channels/Rendering subscription and owned native
+  objects clean up in the controlled diagnostic processes. Manual multi-session
+  resident behavior remains in the checklist above.
 - [ ] Actual mixed-monitor DPI and negative-coordinate placement/input ownership;
   actual 200% text, high contrast and reduced motion; genuine external OLE drag.
 - [ ] Review ordinary and wheel optical eligibility separately; retain explicit
@@ -160,4 +200,6 @@ is configuration only. Keep WPF raster images separate from native compositor cr
 The xUnit 2 harness reports runtime capture capability refusal as a nonzero test
 failure with diagnostic JSON, not a passing optical skip. One normal activation of
 the owned opaque background is permitted fixture setup; failure does not weaken
-capture guards. Source-only checks cannot mark any of these manual/native boxes done.
+capture guards. Only the named executed harness scope is checked here. Source-only
+checks, WPF raster exports and successful COM configuration cannot satisfy the
+remaining physical input/display, OS accessibility or optical acceptance items.

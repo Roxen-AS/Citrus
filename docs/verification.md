@@ -1,16 +1,17 @@
 # Candidate verification record
 
-Status: **0.3.0-preview.1 source candidate; current Windows UI acceptance pending**.
+Status: **0.3.0-preview.1 source candidate; native UI/control harnesses executed; manual interaction and optical acceptance pending**.
 This record is committed product documentation so evidence survives cleanup of
-local development reports. Artifacts are `dist/Citrus-Setup.exe`,
+local development reports. Build outputs use `dist/Citrus-Setup.exe`,
 `dist/Citrus-win-x64/`, and `dist/SHA256SUMS`. The source archive inside the payload
 is corresponding media source, not the Citrus application source ZIP.
 
 Environment: Linux x64; .NET SDK 10.0.402, runtime 10.0.13; Python 3.12;
-NSIS 3.11. No Windows desktop session was available. Earlier bounded Wine attempts
+NSIS 3.11. No local Windows desktop session was available; hosted Windows results
+are recorded separately below. Earlier bounded Wine attempts
 could not start the shipped runtime; no further Wine attempt is used as evidence.
 
-## Current source checks — 0.3 preview
+## Source checks — named 0.3 preview revisions
 
 The combined editor and presentation source at `c1ec51c` passed a locked Release
 solution build with zero warnings/errors. Core: **170 passed, one Windows-only
@@ -24,72 +25,104 @@ using the bundled FFmpeg/FFprobe 9.0.2 executables in run
 [39220122966](https://github.com/Skytuhua/Citrus/actions/runs/39220122966).
 That focused result is distinct from the combined Windows checks below.
 
-At `db93897`, Windows run
-[39226665887](https://github.com/Skytuhua/Citrus/actions/runs/39226665887) passed
-**171 Core tests** and **447 Conversion tests, with three explicit Linux-only
-surrogate skips**. The 450 Windows total versus 454 Linux total is explained by
-two skipped theories not expanding into their six Linux data rows. All other
-case names and multiplicities match. All four image-policy tests, all 49 focused
-media cases, and all four native AVIF lifetime scenarios passed. The real
-self-contained payload, native hashes/notices, 586 owned files, media smoke,
-five package-negative cases and two portable recovery cases also passed. The
-official Chocolatey NSIS feed subsequently returned HTTP 503, so current Windows
-installer compilation and native installer recovery did not run.
+## Executed hosted Windows checks — exact cb8313c candidate
 
-The neutral Light/Dark visual rework replaces the earlier brown palette, keeps
-the workspace action footer pinned, and adapts wheel metadata to enlarged text.
-The standard Light/Dark minimum-size and enlarged-text WPF images have been
-inspected. Actual full-name wheel UI Automation regressions passed twice on
-Windows. At `7c29284`, both populated-history/warnings stress cases passed,
-including 200% text, with all eight Light/Dark screenshots inspected. The actual
-failure was a TwoWay ProgressBar binding to the read-only job Percent property;
-the production binding now explicitly uses OneWay. The pinned action, reachable
-retry controls and full warning text remain visible through scrolling.
+Candidate `cb8313c84492badc425e3c42b2db85ba1f6befd8`, 2026-10-19:
+[general run 39238359290](https://github.com/Skytuhua/Citrus/actions/runs/39238359290)
+and [desktop run 39238359292](https://github.com/Skytuhua/Citrus/actions/runs/39238359292).
+Original TRX, PNG/JSON and available completed logs were retained with verified
+artifact hashes.
 
-That run then exposed a separate late media-control Unloaded event cancelling
-an already disposed CancellationTokenSource. The reviewed correction at
-`c1ec51c` makes disposal joinable and late Stop/Pause idempotent, with four causal
-portable regressions. Real paused/playing unload/reload/replacement cases are
-included in the next native run. This source also integrates the reviewed image
-annotation/manual-mask host, exact text geometry and readable installed-font
-catalog. Windows run
-[39230998084](https://github.com/Skytuhua/Citrus/actions/runs/39230998084)
-completed without a fatal dispatcher exit or quarantine: **265 passed, four
-failed, four skipped**. All eight annotation tests, four media teardown tests,
-the real job template, six image-editor window tests and both history stress
-cases passed. The four remaining failures were obsolete route and immutable-array
-comparison assertions; their reviewed test-only corrections preserve the source
-identity and real capability contracts. The actual editor images exposed an
-unreadable native ComboBox face in Dark mode. A reviewed control/material polish
-now supplies consistent dropdown, checkbox and scrollbar surfaces, plus opaque
-directional wheel shading and a recessed hub. Corrected native execution and
-fresh visual acceptance remain pending. The whole interface suite is not yet
-accepted.
+| Suite | Passed | Failed | Skipped | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Core | 171 | 0 | 0 | 171 |
+| Conversion, bundled Windows FFmpeg/FFprobe 9.0.2 | 485 | 0 | 3 | 488 |
+| Windows, independently in general and desktop runs | 281 | 0 | 4 | 285 |
 
-Native glass run
-[39226665695](https://github.com/Skytuhua/Citrus/actions/runs/39226665695)
-passed all six lifecycle tests, including actual Quit cleanup. Seven screen
-captures were refused because an unrelated foreground window owned the first
-pixel, and the real-pointer check explicitly refused unowned input before any
-injection. There are zero optical glass proof images. The wheel's production
-native-backdrop gate remains disabled; WPF images and DWM return codes are not
-optical blur evidence. Actual device audio, physical Explorer drag behavior and
-mixed-monitor transitions also remain unobserved.
+The three Conversion skips are explicit Linux-only source-link surrogates.
+The four Windows skips are actual WASAPI opt-in/endpoint, second-volume Shell
+move and two animation-capability cases. They establish no device-audio,
+second-volume or native-animation success.
 
-The later `c1ec51c` x64 desktop run produced 22 owned compositor frames as well as
-103 WPF renders. Those raw frames have not established optical eligibility:
-the measured live-background difference is zero and the production companion
-gate stays false. The separate ARM workflow still refused its seven captures
-and real-pointer action before reading/injecting. The compositor test's fixed
-Host description mentions ARM even when executed by the x64 desktop workflow;
-the recorded runtime architecture and workflow identify the actual environment.
+Executed passing cases include material/control interaction **8/8**, annotation
+interaction **8/8**, image-editor windows **6/6**, media teardown **4/4**, the real
+job-history template **1/1**, full-name wheel UI Automation **2/2**, populated
+Light/Dark history/warning stress **2/2**, Expander headers/access keys **3/3**,
+and toast behavior **2/2**. The neutral Light/Dark controls, pinned action/footer,
+actual renderer-backed annotation exports, exact text bounds, readable font
+selection and scrolling history are exercised by these tests. The four obsolete
+route/container assertions observed at `c1ec51c` are corrected and pass here.
+No fatal dispatcher exit or quarantine was recorded.
+
+All three header PNGs at earlier exact
+`71fbdbb4e4c405f0e600b71415331b99a62bc3bb` were inspected: Dark 100%, Dark 200% and
+forced application High Contrast 200% have readable source/Batch/Save/custom
+headers. The same three cases pass again at cb8313c. The access-key
+cases use the actual WPF PresentationSource and documented ProcessKey dispatch;
+they do not inject physical Alt+B. WPF images and application text/raster scales
+are evidence of their recorded layouts, not physical monitor DPI, actual OS
+High Contrast or frame pacing. Full clean-machine/accessibility/Explorer
+acceptance remains in [windows-acceptance.md](windows-acceptance.md).
+
+Glass lifecycle **6/6** and all five guarded compositor cases, including the
+ordinary-window pattern capture, pass on the x64 hosted desktop. These are
+executed capture/lifetime assertions, not accepted optical blur. The earlier
+`c1ec51c` run retained 22 owned compositor frames with measured live-background
+difference **0**, so its production companion eligibility also stayed false.
+The separate [ARM-host glass run 39238359274](https://github.com/Skytuhua/Citrus/actions/runs/39238359274)
+remains **76 passed / eight capability refusals** (seven capture ownership and
+one pointer preflight); it emitted no unowned input or refused-frame screen read.
+Its filter does not include the raw host-backdrop probe, so it supplies no
+Windows 11 client host-sampling result.
+
+### Host-backdrop probe and current source
+
+At earlier exact 71fb, the test probe stopped after successful COM configuration
+but before configured-host capture: requested geometric right endpoint **360**
+versus native raster bounding-box right edge **359**. Reviewed test-only fix
+`889c3726be5b258620ab9ecfd9786b7c0eea39ac`, integrated as cb8313c, now passes strict
+EqualRgn shape and native-reference raster-bound comparisons. Requested
+Composition geometry remains separately exact; no tolerance or ownership guard
+was relaxed.
+
+Both cb8313c x64 runs completed the two host variants (original redirection and
+no-redirection-bitmap), with **12 guarded PNGs per run**, complete raw
+measurements and cleanup. In both variants, live host A-to-B change is **0**,
+while the matching no-helper baseline changes by **222.10698** mean RGB units.
+The opaque magenta control is visible (**356.12454** mean difference from its
+matching baseline), demonstrating target presentation. Measured outside-ellipse
+leakage and protected hub/caption changes are **0**. Owned objects/queue clean up
+and the shell returns to Solid with unchanged foreground.
+
+The observed Windows Server build 26100 x64 scene therefore shows no host
+sampling/live response despite successful target presentation. This is neither
+accepted optical glass nor a Windows 11 client failure claim; the ARM client
+workflow did not run this experiment. The production native wheel gate remains
+**false**. WPF material images, successful COM/API setup and ordinary capture
+assertions do not independently establish host-backdrop eligibility.
+
+### Installer checkpoint
+
+The earlier exact 71fb general job
+[39236830130](https://github.com/Skytuhua/Citrus/actions/runs/39236830130) passed
+prepared-payload/native hash and media smoke verification, five negative packaging checks, two portable recovery contracts,
+official NSIS acquisition and installer compilation. At **10:33:30 UTC** its
+native recovery harness passed first-file interruption, receipt refusal, retry,
+owned uninstall and byte-preserving user-output checks. These are actual
+Windows installer/recovery results, not a Linux simulation. Its checksum log
+records **587 artifacts**. That run's success-only large candidate upload was
+skipped because of its probe failure. The cb8313c installer/recovery execution is
+still in progress at this record; no current candidate is recorded as installed
+on the user's PC. General clean-machine installation, sign-in, multi-session and
+the remaining failure-injection scenarios are still manual acceptance items.
 
 The older installer and test counts below are retained baseline evidence. They do
 not identify a rebuilt 0.3 installer or establish acceptance of the current UI.
 
 ## Earlier 0.2 baseline checks and interpretation
 
-Checks executed on 2026-10-19. Native Windows items remain pending:
+Historical baseline checks executed on 2026-10-19; current native results are
+recorded above. This table does not replace the remaining manual checklist:
 
 | Check | Status |
 | --- | --- |
@@ -100,8 +133,8 @@ Checks executed on 2026-10-19. Native Windows items remain pending:
 | Package negative and ownership checks | PASS: five tests, including 12 missing-asset subcases (prior Task 8 evidence; packaging code unchanged in the final source/naming fix). Empty/missing app, runtime, image/PDF/archive/media native, license and source assets reject. Literal owned-file deletes preserve unknown root and nested outputs; unsafe paths/links reject. Initial interface red preceded implementation. |
 | Self-contained Windows publish / NSIS compile | PASS: 579 payload files inventoried; NSIS 3.11 x86-unicode installer and uninstaller compiled |
 | Native payload hashes, source provenance and notices | PASS: image/PDF/archive/media native hashes, every bundled notice and media source provenance verified; archive-only reconstruction matches all recipe inputs |
-| Windows CI / actual shipped PE smoke / Windows tests | Configured, not executed here |
-| Standard-user installer/uninstaller and Explorer acceptance | Pending every item in windows-acceptance.md |
+| Windows CI / actual shipped PE smoke / Windows tests | At this earlier baseline: configured; current executed results are recorded above |
+| Standard-user installer/uninstaller and Explorer acceptance | Hosted recovery scope is recorded above; remaining manual checks are in windows-acceptance.md |
 
 The Windows workflow runs all core/conversion/desktop tests and the independent
 shipped-media smoke test. Managed media fixture paths are explicitly the published
@@ -138,8 +171,9 @@ The source archive SHA256 is
 `9411fb1d2b78bc56af3255777dcac70396c5f067b1d5f2ec2eb62c94b5cd5803`.
 Application/installer identities belong to the generated SHA256SUMS, avoiding a
 self-referential checksum embedded inside the installer. The final payload
-includes this record; no native Windows test or manual checkbox is represented
-as passed. Final whole-branch review is a separate delivery gate.
+includes this record. Current executed native harness results are identified
+above; they do not certify unchecked manual acceptance. Final whole-branch review
+is a separate delivery gate.
 
 ## First-install interruption correction (T8-I1)
 
@@ -162,10 +196,10 @@ NSIS fault-recovery execution**. Unchanged .NET suites were not rerun for this f
 
 `packaging/test-install-recovery.ps1` compiles a separate fault-injection installer
 and exercises actual interruption, refusal, retry, payload hashes and uninstall on
-Windows. The full Windows workflow invokes it. Native execution and bootstrap
-failure scenarios remain unchecked in windows-acceptance.md. The actual ordinary
-installer is rebuilt and its payload/checksums verified after the fix; no Windows
-success is inferred from that compilation.
+Windows. The full Windows workflow invokes it; its first-file interruption,
+receipt refusal, retry and output-preserving uninstall passed at 71fb as recorded
+above. Earlier bootstrap/disk-full failure scenarios remain unchecked in
+windows-acceptance.md; compilation alone does not establish those scenarios.
 
 ## Final source and output naming correction (F-I1, M1, M3)
 
@@ -204,9 +238,9 @@ The six file-symlink cases are explicitly Linux-only host surrogates and skip on
 other operating systems. They are **not Cloud Files runtime tests**. Pending native
 Windows acceptance records actual downloaded/pinned cloud attributes, archive
 creation, cloud-hosted outer-archive extraction, subtitle conversion, and rejection
-of online-only/recall files without data access. Windows long-component behavior,
-actual shipped PE/native loading, Explorer and installer execution also remain
-pending. No Wine attempt or Windows CI success is claimed.
+of online-only/recall files without data access. Cloud-provider behavior, physical
+Explorer and clean-machine checks remain pending. Current native PE/loading and
+installer-harness results are recorded separately above; Wine supplies no acceptance evidence.
 
 This verification text is finalized before the corrected candidate's single
 `packaging/publish.sh` run, which rebuilds the actual self-contained app and NSIS
@@ -234,17 +268,17 @@ artifacts below `tests/Citrus.Windows.Tests/bin/.../TestResults/workspace`.
 
 Images span light/dark and 100/150/200% **raster export scales**. JSON records actual
 visual DPI and OS high-contrast/animation capabilities. No monitor DPI or system
-accessibility setting is changed. High contrast is exercised only if already
-active. The hover JSON records warm synchronous callback time and dispatcher-thread
-allocation without timing thresholds or frame-pacing claims. It excludes native
+accessibility setting is changed. Specific control/header cases also force the
+application High Contrast palette; that is not an actual OS setting change. The
+hover JSON records warm synchronous callback time and dispatcher-thread allocation without timing thresholds or frame-pacing claims. It excludes native
 OLE initiation, rasterization/composition, preview decode and other-thread memory.
 
-Native rendering and new-test behavioral red/green are **pending Windows execution**;
-Linux compilation cannot produce these WPF images. Actual Explorer, mixed-monitor
-DPI, animation, sound and accessibility checks remain in windows-acceptance.md.
-Earlier verification counts above belong to their named candidate revisions and
-are not a native pass claim for this harness. Packaging and installer generation
-are unchanged by Task 4 and remain separate controller delivery checks.
+Native rendering and the named WPF/UIA cases **executed at cb8313c** as recorded
+above; Linux compilation did not produce those images. Actual Explorer,
+mixed-monitor DPI, device sound and OS accessibility checks remain in
+windows-acceptance.md. Recorded WPF/dispatch results do not establish physical
+input, optical frosting or complete UI acceptance. Installer-harness execution
+has its separate checkpoint above.
 
 Workspace file names contain the **requested** window size. The window can be
 clamped by the hosted desktop; JSON records requested size, actual window/content
@@ -277,4 +311,5 @@ failure. Runtime guard refusal remains a nonzero xUnit 2 result with truthful
 capability metadata and no refused-frame PNG. Numeric measurements have no invented
 cross-OS optical pass threshold. The production wheel gate remains false and SDK
 projection redistribution licensing remains separately unresolved. Exact revision
-build/test results belong in the task report and CI artifacts, not inferred here.
+results are recorded above; original task reports and CI artifacts retain the
+per-case diagnostics and capture limitations.
