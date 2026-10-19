@@ -1,0 +1,54 @@
+-- Configuring tesseract version 5.5.3...
+-- IPO / LTO supported
+-- CMAKE_SYSTEM_PROCESSOR=<x86_64>
+-- Found leptonica version: 1.87.0
+Leptonica was build without TIFF support! Disabling TIFF support...
+-- TIFF support disabled.
+-- LibArchive support disabled.
+-- CURL support disabled.
+ScrollView debugging disabled.
+-- 
+-- General configuration for Tesseract 5.5.3
+-- --------------------------------------------------------
+-- Build type: Release 64 bits
+-- Compiler: GNU
+-- Compiler version: 14.0.0
+-- Used standard: C++20
+-- CXX compiler options:  -O3 -DNDEBUG
+-- Compile definitions = HAVE_AVX;HAVE_AVX2;HAVE_AVX512F;HAVE_FMA;HAVE_SSE4_1;OPENMP_SIMD;CMAKE_BUILD;HAVE_CONFIG_H
+-- Linker options: -static-libgcc -static-libstdc++ 
+-- Install directory: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix
+-- HAVE_AVX: 1
+-- HAVE_AVX2: 1
+-- HAVE_AVX512F: 1
+-- HAVE_FMA: 1
+-- HAVE_SSE4_1: 1
+-- MARCH_NATIVE_OPT: OFF
+-- HAVE_NEON: FALSE
+-- Link-time optimization: FALSE
+-- --------------------------------------------------------
+-- Build with openmp support [OPENMP_BUILD]: OFF
+-- Build with libarchive support [HAVE_LIBARCHIVE]: OFF
+-- Build with libcurl support [HAVE_LIBCURL]: OFF
+-- Enable float for LSTM [FAST_FLOAT]: ON
+-- Enable optimization for host CPU (could break HW compatibility) [ENABLE_NATIVE]: OFF
+-- Disable disable graphics (ScrollView) [GRAPHICS_DISABLED]: ON
+-- Disable the legacy OCR engine [DISABLED_LEGACY_ENGINE]: ON
+-- Build training tools [BUILD_TRAINING_TOOLS]: OFF
+-- Build tests [BUILD_TESTS]: OFF
+-- Use system ICU Library [USE_SYSTEM_ICU]: OFF
+-- Install tesseract configs [INSTALL_CONFIGS]: OFF
+-- --------------------------------------------------------
+-- Modern build optimizations:
+-- Unity build [ENABLE_UNITY_BUILD]: OFF
+-- Precompiled headers [ENABLE_PRECOMPILED_HEADERS]: OFF
+-- ccache [ENABLE_CCACHE]: OFF
+-- Ninja job pools [ENABLE_NINJA_POOL]: Disabled (not using Ninja)
+-- --------------------------------------------------------
+-- 
+-- Configuring done (0.7s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/Citrus/.tools/ocr-minimal-experiment/build-tesseract
+[  1%] Linking CXX shared library bin/libtesseract55.dll
+[100%] Built target libtesseract
+-- Install configuration: "Release"

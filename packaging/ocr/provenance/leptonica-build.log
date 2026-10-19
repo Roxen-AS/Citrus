@@ -1,0 +1,284 @@
+-- The C compiler identification is GNU 14.0.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /workspace/.citrus-tools/apt/root/usr/bin/x86_64-w64-mingw32-gcc-posix - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Looking for sin in m
+-- Looking for sin in m - found
+CMAKE_BUILD_TYPE = Release
+-- Looking for include file dlfcn.h
+-- Looking for include file dlfcn.h - not found
+-- Looking for include file inttypes.h
+-- Looking for include file inttypes.h - found
+-- Looking for include file memory.h
+-- Looking for include file memory.h - found
+-- Looking for include file stdint.h
+-- Looking for include file stdint.h - found
+-- Looking for include file stdlib.h
+-- Looking for include file stdlib.h - found
+-- Looking for include file strings.h
+-- Looking for include file strings.h - found
+-- Looking for include file string.h
+-- Looking for include file string.h - found
+-- Looking for include file sys/stat.h
+-- Looking for include file sys/stat.h - found
+-- Looking for include file sys/types.h
+-- Looking for include file sys/types.h - found
+-- Looking for include file unistd.h
+-- Looking for include file unistd.h - found
+-- Looking for fmemopen
+-- Looking for fmemopen - not found
+-- Looking for fstatat
+-- Looking for fstatat - not found
+-- 
+-- General configuration for Leptonica 1.87.0
+-- --------------------------------------------------------
+-- Build type: Release
+-- Compiler: GNU
+-- C compiler options:  
+-- Linker options: -static-libgcc -static-libstdc++ 
+-- Install directory: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix
+-- 
+-- Build with sw [SW_BUILD]: OFF
+-- Build utility programs [BUILD_PROG]: OFF
+-- Used ZLIB library: 
+-- Used PNG library:  
+-- Used JPEG library: 
+-- Used OpenJPEG library: 
+-- Used TIFF library: 
+-- Used GIF library:  
+-- Used WebP library: 
+-- --------------------------------------------------------
+-- 
+-- Configuring done (1.4s)
+-- Generating done (0.0s)
+-- Build files have been written to: /workspace/Citrus/.tools/ocr-minimal-experiment/build-leptonica
+[  0%] Building C object src/CMakeFiles/leptonica.dir/adaptmap.c.obj
+[  1%] Building C object src/CMakeFiles/leptonica.dir/affine.c.obj
+[  1%] Building C object src/CMakeFiles/leptonica.dir/affinecompose.c.obj
+[  2%] Building C object src/CMakeFiles/leptonica.dir/arrayaccess.c.obj
+[  2%] Building C object src/CMakeFiles/leptonica.dir/bardecode.c.obj
+[  3%] Building C object src/CMakeFiles/leptonica.dir/baseline.c.obj
+[  3%] Building C object src/CMakeFiles/leptonica.dir/bbuffer.c.obj
+[  4%] Building C object src/CMakeFiles/leptonica.dir/bilateral.c.obj
+[  4%] Building C object src/CMakeFiles/leptonica.dir/bilinear.c.obj
+[  5%] Building C object src/CMakeFiles/leptonica.dir/binarize.c.obj
+[  6%] Building C object src/CMakeFiles/leptonica.dir/binreduce.c.obj
+[  6%] Building C object src/CMakeFiles/leptonica.dir/binexpand.c.obj
+[  7%] Building C object src/CMakeFiles/leptonica.dir/blend.c.obj
+[  7%] Building C object src/CMakeFiles/leptonica.dir/bmf.c.obj
+[  8%] Building C object src/CMakeFiles/leptonica.dir/bmpio.c.obj
+[  8%] Building C object src/CMakeFiles/leptonica.dir/bmpiostub.c.obj
+[  9%] Building C object src/CMakeFiles/leptonica.dir/bootnumgen1.c.obj
+[  9%] Building C object src/CMakeFiles/leptonica.dir/bootnumgen2.c.obj
+[ 10%] Building C object src/CMakeFiles/leptonica.dir/bootnumgen3.c.obj
+[ 10%] Building C object src/CMakeFiles/leptonica.dir/bootnumgen4.c.obj
+[ 11%] Building C object src/CMakeFiles/leptonica.dir/boxbasic.c.obj
+[ 12%] Building C object src/CMakeFiles/leptonica.dir/boxfunc1.c.obj
+[ 12%] Building C object src/CMakeFiles/leptonica.dir/boxfunc2.c.obj
+[ 13%] Building C object src/CMakeFiles/leptonica.dir/boxfunc3.c.obj
+[ 13%] Building C object src/CMakeFiles/leptonica.dir/boxfunc4.c.obj
+[ 14%] Building C object src/CMakeFiles/leptonica.dir/boxfunc5.c.obj
+[ 14%] Building C object src/CMakeFiles/leptonica.dir/bytearray.c.obj
+[ 15%] Building C object src/CMakeFiles/leptonica.dir/ccbord.c.obj
+[ 15%] Building C object src/CMakeFiles/leptonica.dir/ccthin.c.obj
+[ 16%] Building C object src/CMakeFiles/leptonica.dir/checkerboard.c.obj
+[ 16%] Building C object src/CMakeFiles/leptonica.dir/classapp.c.obj
+[ 17%] Building C object src/CMakeFiles/leptonica.dir/colorcontent.c.obj
+[ 18%] Building C object src/CMakeFiles/leptonica.dir/colorfill.c.obj
+[ 18%] Building C object src/CMakeFiles/leptonica.dir/coloring.c.obj
+[ 19%] Building C object src/CMakeFiles/leptonica.dir/colormap.c.obj
+[ 19%] Building C object src/CMakeFiles/leptonica.dir/colormorph.c.obj
+[ 20%] Building C object src/CMakeFiles/leptonica.dir/colorquant1.c.obj
+[ 20%] Building C object src/CMakeFiles/leptonica.dir/colorquant2.c.obj
+[ 21%] Building C object src/CMakeFiles/leptonica.dir/colorseg.c.obj
+[ 21%] Building C object src/CMakeFiles/leptonica.dir/colorspace.c.obj
+[ 22%] Building C object src/CMakeFiles/leptonica.dir/compare.c.obj
+[ 22%] Building C object src/CMakeFiles/leptonica.dir/conncomp.c.obj
+[ 23%] Building C object src/CMakeFiles/leptonica.dir/convertfiles.c.obj
+[ 24%] Building C object src/CMakeFiles/leptonica.dir/convolve.c.obj
+[ 24%] Building C object src/CMakeFiles/leptonica.dir/correlscore.c.obj
+[ 25%] Building C object src/CMakeFiles/leptonica.dir/dewarp1.c.obj
+[ 25%] Building C object src/CMakeFiles/leptonica.dir/dewarp2.c.obj
+[ 26%] Building C object src/CMakeFiles/leptonica.dir/dewarp3.c.obj
+[ 26%] Building C object src/CMakeFiles/leptonica.dir/dewarp4.c.obj
+[ 27%] Building C object src/CMakeFiles/leptonica.dir/dnabasic.c.obj
+[ 27%] Building C object src/CMakeFiles/leptonica.dir/dnafunc1.c.obj
+[ 28%] Building C object src/CMakeFiles/leptonica.dir/dnahash.c.obj
+[ 28%] Building C object src/CMakeFiles/leptonica.dir/dwacomb.2.c.obj
+[ 29%] Building C object src/CMakeFiles/leptonica.dir/dwacomblow.2.c.obj
+[ 30%] Building C object src/CMakeFiles/leptonica.dir/edge.c.obj
+[ 30%] Building C object src/CMakeFiles/leptonica.dir/encoding.c.obj
+[ 31%] Building C object src/CMakeFiles/leptonica.dir/enhance.c.obj
+[ 31%] Building C object src/CMakeFiles/leptonica.dir/fhmtauto.c.obj
+[ 32%] Building C object src/CMakeFiles/leptonica.dir/fhmtgen.1.c.obj
+[ 32%] Building C object src/CMakeFiles/leptonica.dir/fhmtgenlow.1.c.obj
+[ 33%] Building C object src/CMakeFiles/leptonica.dir/finditalic.c.obj
+[ 33%] Building C object src/CMakeFiles/leptonica.dir/flipdetect.c.obj
+[ 34%] Building C object src/CMakeFiles/leptonica.dir/fmorphauto.c.obj
+[ 34%] Building C object src/CMakeFiles/leptonica.dir/fmorphgen.1.c.obj
+[ 35%] Building C object src/CMakeFiles/leptonica.dir/fmorphgenlow.1.c.obj
+[ 36%] Building C object src/CMakeFiles/leptonica.dir/fpix1.c.obj
+[ 36%] Building C object src/CMakeFiles/leptonica.dir/fpix2.c.obj
+[ 37%] Building C object src/CMakeFiles/leptonica.dir/gifio.c.obj
+[ 37%] Building C object src/CMakeFiles/leptonica.dir/gifiostub.c.obj
+[ 38%] Building C object src/CMakeFiles/leptonica.dir/gplot.c.obj
+[ 38%] Building C object src/CMakeFiles/leptonica.dir/graphics.c.obj
+[ 39%] Building C object src/CMakeFiles/leptonica.dir/graymorph.c.obj
+[ 39%] Building C object src/CMakeFiles/leptonica.dir/grayquant.c.obj
+[ 40%] Building C object src/CMakeFiles/leptonica.dir/hashmap.c.obj
+[ 40%] Building C object src/CMakeFiles/leptonica.dir/heap.c.obj
+[ 41%] Building C object src/CMakeFiles/leptonica.dir/jbclass.c.obj
+[ 42%] Building C object src/CMakeFiles/leptonica.dir/jp2kheader.c.obj
+[ 42%] Building C object src/CMakeFiles/leptonica.dir/jp2kheaderstub.c.obj
+[ 43%] Building C object src/CMakeFiles/leptonica.dir/jp2kio.c.obj
+[ 43%] Building C object src/CMakeFiles/leptonica.dir/jp2kiostub.c.obj
+[ 44%] Building C object src/CMakeFiles/leptonica.dir/jpegio.c.obj
+[ 44%] Building C object src/CMakeFiles/leptonica.dir/jpegiostub.c.obj
+[ 45%] Building C object src/CMakeFiles/leptonica.dir/kernel.c.obj
+[ 45%] Building C object src/CMakeFiles/leptonica.dir/leptwin.c.obj
+[ 46%] Building C object src/CMakeFiles/leptonica.dir/libversions.c.obj
+[ 46%] Building C object src/CMakeFiles/leptonica.dir/list.c.obj
+[ 47%] Building C object src/CMakeFiles/leptonica.dir/maze.c.obj
+[ 48%] Building C object src/CMakeFiles/leptonica.dir/map.c.obj
+[ 48%] Building C object src/CMakeFiles/leptonica.dir/morph.c.obj
+[ 49%] Building C object src/CMakeFiles/leptonica.dir/morphapp.c.obj
+[ 49%] Building C object src/CMakeFiles/leptonica.dir/morphdwa.c.obj
+[ 50%] Building C object src/CMakeFiles/leptonica.dir/morphseq.c.obj
+[ 50%] Building C object src/CMakeFiles/leptonica.dir/numabasic.c.obj
+[ 51%] Building C object src/CMakeFiles/leptonica.dir/numafunc1.c.obj
+[ 51%] Building C object src/CMakeFiles/leptonica.dir/numafunc2.c.obj
+[ 52%] Building C object src/CMakeFiles/leptonica.dir/pageseg.c.obj
+[ 53%] Building C object src/CMakeFiles/leptonica.dir/paintcmap.c.obj
+[ 53%] Building C object src/CMakeFiles/leptonica.dir/parseprotos.c.obj
+[ 54%] Building C object src/CMakeFiles/leptonica.dir/partify.c.obj
+[ 54%] Building C object src/CMakeFiles/leptonica.dir/partition.c.obj
+[ 55%] Building C object src/CMakeFiles/leptonica.dir/pdfapp.c.obj
+[ 55%] Building C object src/CMakeFiles/leptonica.dir/pdfappstub.c.obj
+[ 56%] Building C object src/CMakeFiles/leptonica.dir/pdfio1.c.obj
+[ 56%] Building C object src/CMakeFiles/leptonica.dir/pdfio1stub.c.obj
+[ 57%] Building C object src/CMakeFiles/leptonica.dir/pdfio2.c.obj
+[ 57%] Building C object src/CMakeFiles/leptonica.dir/pdfio2stub.c.obj
+[ 58%] Building C object src/CMakeFiles/leptonica.dir/pix1.c.obj
+[ 59%] Building C object src/CMakeFiles/leptonica.dir/pix2.c.obj
+[ 59%] Building C object src/CMakeFiles/leptonica.dir/pix3.c.obj
+[ 60%] Building C object src/CMakeFiles/leptonica.dir/pix4.c.obj
+[ 60%] Building C object src/CMakeFiles/leptonica.dir/pix5.c.obj
+[ 61%] Building C object src/CMakeFiles/leptonica.dir/pixabasic.c.obj
+[ 61%] Building C object src/CMakeFiles/leptonica.dir/pixacc.c.obj
+[ 62%] Building C object src/CMakeFiles/leptonica.dir/pixafunc1.c.obj
+[ 62%] Building C object src/CMakeFiles/leptonica.dir/pixafunc2.c.obj
+[ 63%] Building C object src/CMakeFiles/leptonica.dir/pixalloc.c.obj
+[ 63%] Building C object src/CMakeFiles/leptonica.dir/pixarith.c.obj
+[ 64%] Building C object src/CMakeFiles/leptonica.dir/pixcomp.c.obj
+[ 65%] Building C object src/CMakeFiles/leptonica.dir/pixconv.c.obj
+[ 65%] Building C object src/CMakeFiles/leptonica.dir/pixlabel.c.obj
+[ 66%] Building C object src/CMakeFiles/leptonica.dir/pixtiling.c.obj
+[ 66%] Building C object src/CMakeFiles/leptonica.dir/pngio.c.obj
+[ 67%] Building C object src/CMakeFiles/leptonica.dir/pngiostub.c.obj
+[ 67%] Building C object src/CMakeFiles/leptonica.dir/pnmio.c.obj
+[ 68%] Building C object src/CMakeFiles/leptonica.dir/pnmiostub.c.obj
+[ 68%] Building C object src/CMakeFiles/leptonica.dir/projective.c.obj
+[ 69%] Building C object src/CMakeFiles/leptonica.dir/psio1.c.obj
+[ 69%] Building C object src/CMakeFiles/leptonica.dir/psio1stub.c.obj
+[ 70%] Building C object src/CMakeFiles/leptonica.dir/psio2.c.obj
+[ 71%] Building C object src/CMakeFiles/leptonica.dir/psio2stub.c.obj
+[ 71%] Building C object src/CMakeFiles/leptonica.dir/ptabasic.c.obj
+[ 72%] Building C object src/CMakeFiles/leptonica.dir/ptafunc1.c.obj
+[ 72%] Building C object src/CMakeFiles/leptonica.dir/ptafunc2.c.obj
+[ 73%] Building C object src/CMakeFiles/leptonica.dir/ptra.c.obj
+[ 73%] Building C object src/CMakeFiles/leptonica.dir/quadtree.c.obj
+[ 74%] Building C object src/CMakeFiles/leptonica.dir/queue.c.obj
+[ 74%] Building C object src/CMakeFiles/leptonica.dir/rank.c.obj
+[ 75%] Building C object src/CMakeFiles/leptonica.dir/rbtree.c.obj
+[ 75%] Building C object src/CMakeFiles/leptonica.dir/readbarcode.c.obj
+[ 76%] Building C object src/CMakeFiles/leptonica.dir/readfile.c.obj
+[ 77%] Building C object src/CMakeFiles/leptonica.dir/recogbasic.c.obj
+[ 77%] Building C object src/CMakeFiles/leptonica.dir/recogdid.c.obj
+[ 78%] Building C object src/CMakeFiles/leptonica.dir/recogident.c.obj
+[ 78%] Building C object src/CMakeFiles/leptonica.dir/recogtrain.c.obj
+[ 79%] Building C object src/CMakeFiles/leptonica.dir/regutils.c.obj
+[ 80%] Building C object src/CMakeFiles/leptonica.dir/renderpdf.c.obj
+[ 80%] Building C object src/CMakeFiles/leptonica.dir/rop.c.obj
+[ 80%] Building C object src/CMakeFiles/leptonica.dir/roplow.c.obj
+[ 81%] Building C object src/CMakeFiles/leptonica.dir/rotate.c.obj
+[ 81%] Building C object src/CMakeFiles/leptonica.dir/rotateam.c.obj
+[ 82%] Building C object src/CMakeFiles/leptonica.dir/rotateorth.c.obj
+[ 83%] Building C object src/CMakeFiles/leptonica.dir/rotateshear.c.obj
+[ 83%] Building C object src/CMakeFiles/leptonica.dir/runlength.c.obj
+[ 84%] Building C object src/CMakeFiles/leptonica.dir/sarray1.c.obj
+[ 84%] Building C object src/CMakeFiles/leptonica.dir/sarray2.c.obj
+[ 85%] Building C object src/CMakeFiles/leptonica.dir/scale1.c.obj
+[ 85%] Building C object src/CMakeFiles/leptonica.dir/scale2.c.obj
+[ 86%] Building C object src/CMakeFiles/leptonica.dir/seedfill.c.obj
+[ 86%] Building C object src/CMakeFiles/leptonica.dir/sel1.c.obj
+[ 87%] Building C object src/CMakeFiles/leptonica.dir/sel2.c.obj
+[ 87%] Building C object src/CMakeFiles/leptonica.dir/selgen.c.obj
+[ 88%] Building C object src/CMakeFiles/leptonica.dir/shear.c.obj
+[ 89%] Building C object src/CMakeFiles/leptonica.dir/skew.c.obj
+[ 89%] Building C object src/CMakeFiles/leptonica.dir/spixio.c.obj
+[ 90%] Building C object src/CMakeFiles/leptonica.dir/stack.c.obj
+[ 90%] Building C object src/CMakeFiles/leptonica.dir/stringcode.c.obj
+[ 91%] Building C object src/CMakeFiles/leptonica.dir/strokes.c.obj
+[ 91%] Building C object src/CMakeFiles/leptonica.dir/sudoku.c.obj
+[ 92%] Building C object src/CMakeFiles/leptonica.dir/textops.c.obj
+[ 92%] Building C object src/CMakeFiles/leptonica.dir/tiffio.c.obj
+[ 93%] Building C object src/CMakeFiles/leptonica.dir/tiffiostub.c.obj
+[ 93%] Building C object src/CMakeFiles/leptonica.dir/utils1.c.obj
+[ 94%] Building C object src/CMakeFiles/leptonica.dir/utils2.c.obj
+[ 95%] Building C object src/CMakeFiles/leptonica.dir/warper.c.obj
+[ 95%] Building C object src/CMakeFiles/leptonica.dir/watershed.c.obj
+[ 96%] Building C object src/CMakeFiles/leptonica.dir/webpanimio.c.obj
+[ 96%] Building C object src/CMakeFiles/leptonica.dir/webpanimiostub.c.obj
+[ 97%] Building C object src/CMakeFiles/leptonica.dir/webpio.c.obj
+[ 97%] Building C object src/CMakeFiles/leptonica.dir/webpiostub.c.obj
+[ 98%] Building C object src/CMakeFiles/leptonica.dir/writefile.c.obj
+[ 98%] Building C object src/CMakeFiles/leptonica.dir/zlibmem.c.obj
+[ 99%] Building C object src/CMakeFiles/leptonica.dir/zlibmemstub.c.obj
+[100%] Linking C shared library ../bin/libleptonica-1.87.0.dll
+[100%] Built target leptonica
+-- Install configuration: "Release"
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/lib/pkgconfig/lept_Release.pc
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/lib/cmake/leptonica/LeptonicaConfig.cmake
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/lib/cmake/leptonica/LeptonicaConfig-version.cmake
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/lib/libleptonica.dll.a
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/bin/libleptonica-1.87.0.dll
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/lib/cmake/leptonica/LeptonicaTargets.cmake
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/lib/cmake/leptonica/LeptonicaTargets-release.cmake
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/allheaders.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/alltypes.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/array.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/array_internal.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/arrayaccess.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/bbuffer.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/bilateral.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/bmf.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/bmfdata.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/bmp.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/ccbord.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/ccbord_internal.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/colorfill.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/dewarp.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/environ.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/gplot.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/hashmap.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/heap.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/imageio.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/jbclass.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/leptwin.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/list.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/morph.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/pix.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/pix_internal.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/ptra.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/queue.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/rbtree.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/readbarcode.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/recog.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/regutils.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/stack.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/stringcode.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/sudoku.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/watershed.h
+-- Installing: /workspace/Citrus/.tools/ocr-minimal-experiment/prefix/include/leptonica/endianness.h

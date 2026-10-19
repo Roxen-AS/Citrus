@@ -1,0 +1,43 @@
+name: Windows OCR native inference
+on:
+  push:
+    paths:
+      - 'packaging/ocr/**'
+      - 'packaging/media/**'
+      - 'packaging/media-lock.json'
+      - 'packaging/notices/media-licenses/**'
+      - '.github/workflows/windows-ocr.yml'
+  pull_request:
+    paths:
+      - 'packaging/ocr/**'
+      - 'packaging/media/**'
+      - 'packaging/media-lock.json'
+      - 'packaging/notices/media-licenses/**'
+      - '.github/workflows/windows-ocr.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-known-answer:
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify locked bytes and actual PE dependency/export closure
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ocr-results | Out-Null
+          python packaging/ocr/verify.py 2>&1 | Tee-Object ocr-results/package.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python packaging/ocr/validation/test_verify.py -v 2>&1 | Tee-Object ocr-results/checker-tests.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Execute actual owned-DLL raw-pixel OCR in Unicode and spaced paths
+        shell: pwsh
+        run: ./packaging/ocr/validation/run-native.ps1 -Results (Join-Path $PWD 'ocr-results')
+      - name: Retain package checks and actual inference text/TSV/bounds/confidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-ocr-native-evidence
+          path: ocr-results/
+          if-no-files-found: error

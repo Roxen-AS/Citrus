@@ -1,0 +1,202 @@
+{
+  "schema": 1,
+  "target": "win-x64",
+  "status": "isolated asset admission; product integration disabled; native Windows inference pending",
+  "sources": [
+    {
+      "name": "tesseract",
+      "version": "5.5.3",
+      "commit": "db0ec62f81b0737fbbe184d8fea40af5738f8eef",
+      "archiveBytes": 1918077,
+      "sha256": "21dbaff9867d937c156d0b898e90b726aa339129cfebd7e1365cd5fee5046d67",
+      "url": "https://github.com/tesseract-ocr/tesseract/archive/db0ec62f81b0737fbbe184d8fea40af5738f8eef.tar.gz"
+    },
+    {
+      "name": "leptonica",
+      "version": "1.87.0",
+      "commit": "13275a278eb55b5746e33f95fbf5a2c8f604b3ab",
+      "archiveBytes": 13725547,
+      "sha256": "e72242133adf678e8584081a506ca3a665c8f6f6de8c3fe7b47d1d5fcf9a4ce4",
+      "url": "https://github.com/DanBloomberg/leptonica/archive/13275a278eb55b5746e33f95fbf5a2c8f604b3ab.tar.gz"
+    }
+  ],
+  "traineddata": {
+    "language": "eng",
+    "commit": "27cfc71a8874cce2483679eea010e391bb38c2ae",
+    "modelContentCommit": "923915d4ced2a7235221788285785a29c4a42d4a",
+    "url": "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/27cfc71a8874cce2483679eea010e391bb38c2ae/eng.traineddata",
+    "license": "Apache-2.0"
+  },
+  "runtimeLicense": "Tesseract/English: Apache-2.0; Leptonica: BSD-2-Clause; MinGW-w64 runtime: MIT/BSD/public-domain; GCC runtime exception",
+  "imports": {
+    "native/libleptonica-1.87.0.dll": [
+      "GDI32.dll",
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "USER32.dll"
+    ],
+    "native/libtesseract55.dll": [
+      "KERNEL32.dll",
+      "msvcrt.dll",
+      "libwinpthread-1.dll",
+      "libleptonica-1.87.0.dll"
+    ],
+    "native/libwinpthread-1.dll": [
+      "KERNEL32.dll",
+      "msvcrt.dll"
+    ],
+    "validation/known-answer.exe": [
+      "GDI32.dll",
+      "KERNEL32.dll",
+      "msvcrt.dll"
+    ]
+  },
+  "requiredExports": {
+    "native/libtesseract55.dll": [
+      "TessVersion",
+      "TessBaseAPICreate",
+      "TessBaseAPIInit2",
+      "TessBaseAPIInit5",
+      "TessBaseAPISetImage",
+      "TessBaseAPIRecognize",
+      "TessBaseAPIGetUTF8Text",
+      "TessBaseAPIGetTsvText",
+      "TessDeleteText",
+      "TessBaseAPIDelete",
+      "TessBaseAPISetPageSegMode"
+    ]
+  },
+  "existingMediaClosure": {
+    "packaging/media-lock.json": "cc57cb7e338d849d61fd40e12e6d5e31eeac7233049b26bb548b6b88d10e754e",
+    "packaging/media/source/citrus-media-source.tar.gz": "9411fb1d2b78bc56af3255777dcac70396c5f067b1d5f2ec2eb62c94b5cd5803",
+    "packaging/media/win-x64/libwinpthread-1.dll": "fc3cd567190f3f24e8201c2e1602f7d1f1e583a572efb7dbd8746d7928538e94",
+    "packaging/notices/media-licenses/mingw-w64-copyright.txt": "50e5bb66d222c7d4692c2d13670ddcd3664779358e389a026b69a0e0e18e7be5",
+    "packaging/notices/media-licenses/gcc-runtime-copyright.txt": "f891d7e0c56f503a92c7258d540b3d8215852d8387cbca8f1f07c6f4b6e67da6"
+  },
+  "files": {
+    "README.md": {
+      "bytes": 7390,
+      "sha256": "1c7aa4a86fa3a3dac689dff2b7da1fef2676ad11a0691ceecff0b446b275d099"
+    },
+    "native/libleptonica-1.87.0.dll": {
+      "bytes": 2541871,
+      "sha256": "822978ab522853c3b7d7678c03d69dceb17c6682de77edf6e2b91fdcfeec5526"
+    },
+    "native/libtesseract55.dll": {
+      "bytes": 4018650,
+      "sha256": "aabc57c4c7c823e3a88d0e9b45af646fe4f1d1298488de35a5cac8bf3654af04"
+    },
+    "native/libwinpthread-1.dll": {
+      "bytes": 325114,
+      "sha256": "fc3cd567190f3f24e8201c2e1602f7d1f1e583a572efb7dbd8746d7928538e94"
+    },
+    "notices/GCC-runtime-copyright.txt": {
+      "bytes": 75729,
+      "sha256": "f891d7e0c56f503a92c7258d540b3d8215852d8387cbca8f1f07c6f4b6e67da6"
+    },
+    "notices/Leptonica-1.87.0-BSD-2-Clause.txt": {
+      "bytes": 1521,
+      "sha256": "87829abb5bbb00b55a107365da89e9a33f86c4250169e5a1e5588505be7d5806"
+    },
+    "notices/MinGW-w64-copyright.txt": {
+      "bytes": 41584,
+      "sha256": "50e5bb66d222c7d4692c2d13670ddcd3664779358e389a026b69a0e0e18e7be5"
+    },
+    "notices/Tesseract-5.5.3-Apache-2.0.txt": {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "notices/tessdata_fast-Apache-2.0.txt": {
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "provenance/compile-known-answer.sh": {
+      "bytes": 297,
+      "sha256": "7b4ba1e2b2cc0bc0375f793fffcaa9afed5bdbdc63a683b2ad4f481181397765"
+    },
+    "provenance/configure-leptonica.sh": {
+      "bytes": 854,
+      "sha256": "71222f1d70e65cd81d8b025b43cc0589111c2003a2cee271a8e1943b9d059339"
+    },
+    "provenance/configure-tesseract.sh": {
+      "bytes": 1153,
+      "sha256": "d013debf7b41ccc51adfdfdcce10fad750d843aec32edc1b29e36b5b27c75569"
+    },
+    "provenance/leptonica-CMakeCache.txt": {
+      "bytes": 19954,
+      "sha256": "031ef5f920170a7d7da1ac56b7ff0046c75b6f91952f054d06d6b6be7626bec6"
+    },
+    "provenance/leptonica-build.log": {
+      "bytes": 19068,
+      "sha256": "cf403c6be8cbb92bb6b372edd697d7bf2807a3ccab38f00db9266dee30305065"
+    },
+    "provenance/leptonica-config_auto.h": {
+      "bytes": 1537,
+      "sha256": "612ea1a2fac9ecd0faa4946812862ddbff467ae06c53ba2c000d2f58197b8975"
+    },
+    "provenance/tesseract-CMakeCache.txt": {
+      "bytes": 22315,
+      "sha256": "7a6b4627ab1b183544637c165371f2641e17546137a14e90e50ac76548756726"
+    },
+    "provenance/tesseract-build.log": {
+      "bytes": 16560,
+      "sha256": "94a9a003c6ec6b38e65251719797c63bad999959fd856735718fbbf13d47376f"
+    },
+    "provenance/tesseract-config_auto.h": {
+      "bytes": 339,
+      "sha256": "3f44350292f3b4199b4372caf28c6be623fb3bad90df84f2192b30cd4f820238"
+    },
+    "provenance/tesseract-mingw-ws2-case.patch": {
+      "bytes": 215,
+      "sha256": "1a2b15f1b9e9bde02d549b502b2db339ebed9cad242835298b356594652441ff"
+    },
+    "provenance/tesseract-relink.log": {
+      "bytes": 2262,
+      "sha256": "fd6658248161f29e9321d516121f4eeb4720214c1402931005063b933664144f"
+    },
+    "provenance/toolchain-versions.txt": {
+      "bytes": 1316,
+      "sha256": "31e22e45d46230c235218e23c349caffa3e35183a65c868e2746088c76021ef7"
+    },
+    "provenance/toolchain.cmake": {
+      "bytes": 800,
+      "sha256": "3e8270d28134c51520b13326d77a0a8b88b2bd6a6e3ed2c9191e32ab1fa3e894"
+    },
+    "rebuild.sh": {
+      "bytes": 4802,
+      "sha256": "49b9d34b0fcdb1a9300762c5e52cee72264907a6851e11d11d3f372f1d2c9fdf"
+    },
+    "tessdata/eng.traineddata": {
+      "bytes": 4113088,
+      "sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2"
+    },
+    "validation/build-evidence.txt": {
+      "bytes": 793,
+      "sha256": "53c4d283fc7e4899715cd4f04e210313eedb4480f0ab106f10ae1174ba3f5a97"
+    },
+    "validation/compile-known-answer.sh": {
+      "bytes": 324,
+      "sha256": "40d04aed1ad4dccee3cca551541e1995135801626737928cb91a5d0c19364605"
+    },
+    "validation/known-answer.c": {
+      "bytes": 7363,
+      "sha256": "0c88c108220a302c82ea5fa1efff5668c63602b2f6483e68984cd01fff2d7793"
+    },
+    "validation/known-answer.exe": {
+      "bytes": 410899,
+      "sha256": "d358900d7f3e51b9e7e3234588df7b7db4d9d30a656c00c56bd32c779c342e52"
+    },
+    "validation/run-native.ps1": {
+      "bytes": 3190,
+      "sha256": "b3f577ad0c1df1c67b8ed4187654bb92e172136d0dfadc731d4806b885e3642e"
+    },
+    "validation/test_verify.py": {
+      "bytes": 4108,
+      "sha256": "29981f92d79a6eae170270754fc7c08f293515e31357b66229b235323edc1ebf"
+    },
+    "verify.py": {
+      "bytes": 5303,
+      "sha256": "b4eab45790149e32511af900408c285f1a7fb6e8cf7b74fa921e3f842f995aee"
+    }
+  }
+}

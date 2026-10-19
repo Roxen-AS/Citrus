@@ -1,0 +1,11 @@
+2026-10-19, Linux cross-compilation only. Native Windows execution NOT RUN.
+Compiler: /workspace/.citrus-tools/apt/root/usr/bin/x86_64-w64-mingw32-gcc
+Version: x86_64-w64-mingw32-gcc (GCC) 14-posix
+Command:
+CITRUS_OCR_CC=/workspace/.citrus-tools/apt/root/usr/bin/x86_64-w64-mingw32-gcc bash packaging/ocr/validation/compile-known-answer.sh
+Expanded compiler arguments:
+-std=c11 -O2 -municode -Wall -Wextra -Werror -static-libgcc -Wl,--no-insert-timestamp known-answer.c -o known-answer.exe -lgdi32 -luser32
+Exit: 0. Compiler stdout/stderr empty (no warnings).
+PE32+ x86-64, console subsystem. PE timestamp zero by explicit flag.
+Imports measured with independent GNU objdump: GDI32.dll, KERNEL32.dll, msvcrt.dll.
+Actual runtime/model pins unchanged. No engine source or DLL rebuild performed.
