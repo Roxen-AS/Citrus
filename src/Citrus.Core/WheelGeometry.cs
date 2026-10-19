@@ -38,6 +38,7 @@ public sealed class WheelSession
     private double originX, originY;
     private bool confirmed, armed, active;
     public long Generation => generation;
+    public bool IsConfirmed => active && confirmed;
     public OperationMode Mode { get; private set; }
     public (double X, double Y) Anchor { get; private set; }
     public IReadOnlyList<string> Paths { get; private set; } = [];
@@ -72,7 +73,7 @@ public sealed class WheelSession
     public bool ShouldExpire(long expectedGeneration, long now) => active && expectedGeneration == generation && !confirmed && now >= deadline;
     public void ConfirmPayload(IReadOnlyList<string>? paths = null)
     {
-        if (!active) return;
+        if (!active || confirmed) return;
         confirmed = true;
         if (paths is not null) Paths = Array.AsReadOnly(paths.ToArray());
     }

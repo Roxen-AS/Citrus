@@ -57,7 +57,23 @@ public sealed class GestureMonitor : IDisposable
 
     private void Dispatch(OperationMode? mode)
     {
-        if (mode is { } value) dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() => { if (!disposed && Enabled) ModeRequested?.Invoke(value); }));
+        if (mode is not { } value) return;
+        long epoch = state.Epoch;
+        dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+        {
+            if (!disposed && Enabled && state.Epoch == epoch) ModeRequested?.Invoke(value);
+        }));
+    }
+
+    private void DispatchCancellation()
+    {
+        state.ButtonUp(); // Invalidate queued activation before posting cancellation.
+        // Same priority as mode requests preserves cancellation-before-next-activation ordering.
+        // A subsequent button-up must not discard Escape for an already confirmed OLE session.
+        dispatcher.BeginInvoke(DispatcherPriority.Input, new Action(() =>
+        {
+            if (!disposed) EscapePressed?.Invoke();
+        }));
     }
 
     private nint Keyboard(int code, nint message, nint data)
@@ -66,7 +82,7 @@ public sealed class GestureMonitor : IDisposable
         {
             var input = Marshal.PtrToStructure<NativeMethods.KeyboardData>(data);
             bool down = message == 0x100 || message == 0x104; // WM_KEYDOWN and WM_SYSKEYDOWN (Alt)
-            if (down && input.Key == 0x1B) dispatcher.BeginInvoke(new Action(() => EscapePressed?.Invoke()));
+            if (down && input.Key == 0x1B) DispatchCancellation();
             if (Enabled) Dispatch(modifiers.ObserveMessage((int)message, input.Key, input.Time));
         }
         return NativeMethods.CallNextHookEx(keyboardHook, code, message, data);
@@ -94,6 +110,7 @@ public sealed class GestureMonitor : IDisposable
     {
         if (disposed) return;
         disposed = true;
+        state.ButtonUp();
         if (keyboardHook != 0) NativeMethods.UnhookWindowsHookEx(keyboardHook);
         if (mouseHook != 0) NativeMethods.UnhookWindowsHookEx(mouseHook);
         keyboardHook = mouseHook = 0;

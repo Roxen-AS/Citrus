@@ -10,6 +10,8 @@ public sealed class GestureState(double thresholdX, double thresholdY)
     private double originX, originY;
     private long lastTimestamp = long.MinValue;
     private ModeKey lastKey;
+    /// <summary>Immutable identity captured by queued work; invalidated by each new press or cancellation.</summary>
+    public long Epoch { get; private set; }
     public OperationMode? LatchedMode { get; private set; }
 
     public OperationMode? KeyDown(ModeKey key, long timestamp)
@@ -23,6 +25,7 @@ public sealed class GestureState(double thresholdX, double thresholdY)
     public void KeyUp(ModeKey key) => held.Remove(key);
     public void ButtonDown(double x, double y)
     {
+        Epoch++;
         buttonDown = true;
         dragging = false;
         originX = x;
@@ -33,6 +36,7 @@ public sealed class GestureState(double thresholdX, double thresholdY)
 
     public void ButtonUp()
     {
+        Epoch++;
         buttonDown = dragging = false;
         LatchedMode = null;
     }

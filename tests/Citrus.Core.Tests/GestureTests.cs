@@ -4,6 +4,45 @@ namespace Citrus.Core.Tests;
 public class GestureTests
 {
     [Fact]
+    public void Queued_activation_is_invalid_after_release_or_explicit_cancellation()
+    {
+        var gesture = new GestureState(4, 4);
+        gesture.ButtonDown(0, 0);
+        gesture.Move(10, 0);
+        Assert.Equal(OperationMode.Convert, gesture.KeyDown(ModeKey.Shift, 1));
+        long queuedEpoch = gesture.Epoch;
+        // ButtonUp is also the invalidation path for disable, Escape and disposal.
+        gesture.ButtonUp();
+        Assert.NotEqual(queuedEpoch, gesture.Epoch);
+    }
+
+    [Fact]
+    public void Queued_activation_from_old_drag_is_invalid_after_new_button_down()
+    {
+        var gesture = new GestureState(4, 4);
+        gesture.KeyDown(ModeKey.Control, 1);
+        gesture.ButtonDown(0, 0);
+        Assert.Equal(OperationMode.Actions, gesture.Move(10, 0));
+        long queuedEpoch = gesture.Epoch;
+        gesture.ButtonDown(100, 100);
+        Assert.NotEqual(queuedEpoch, gesture.Epoch);
+        Assert.Equal(OperationMode.Actions, gesture.Move(110, 100));
+    }
+
+    [Fact]
+    public void Modifier_release_and_mode_switch_keep_the_same_drag_epoch()
+    {
+        var gesture = new GestureState(4, 4);
+        gesture.ButtonDown(0, 0);
+        gesture.Move(10, 0);
+        long epoch = gesture.Epoch;
+        gesture.KeyDown(ModeKey.Shift, 1);
+        gesture.KeyUp(ModeKey.Shift);
+        gesture.KeyDown(ModeKey.Control, 2);
+        Assert.Equal(epoch, gesture.Epoch);
+    }
+
+    [Fact]
     public void Preheld_key_activates_only_after_drag_threshold()
     {
         var gesture = new GestureState(4, 4);

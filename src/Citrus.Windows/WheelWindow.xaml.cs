@@ -13,6 +13,7 @@ public sealed record OperationDrop(OperationDescriptor Operation, IReadOnlyList<
 public partial class WheelWindow : Window
 {
     private readonly OperationCatalog catalog;
+    private readonly Dictionary<OperationMode, IReadOnlyList<OperationDescriptor>> availableOperations = [];
     private readonly WheelSession session = new();
     private readonly DispatcherTimer timer;
     private WheelPaging paging = new();
@@ -36,7 +37,7 @@ public partial class WheelWindow : Window
             NativeMethods.SetWindowLongPtr(handle, -20, style | 0x08000000 | 0x00000080); // NOACTIVATE | TOOLWINDOW; preserve existing styles.
             HwndSource.FromHwnd(handle)?.AddHook(WindowMessage);
         };
-        Surface.PreviewDragEnter += OnPreviewDragOver;
+        Surface.PreviewDragEnter += OnPreviewDragEnter;
         Surface.PreviewDragOver += OnPreviewDragOver;
         Surface.PreviewDrop += OnPreviewDrop;
         Surface.PreviewDragLeave += (_, e) => { e.Handled = true; Dismiss(); };
@@ -56,6 +57,18 @@ public partial class WheelWindow : Window
         armed = false;
         if (newSession)
         {
+            availableOperations.Clear();
+            SetPresentationVisible(false);
+        }
+        // Prepare content before showing a real capture HWND. Threshold/marquee candidates have
+        // only Surface's nonzero-alpha background: OLE can target them, but no menu is displayed.
+        operations = availableOperations.GetValueOrDefault(mode) ?? [];
+        ModeLabel.Text = mode.ToString().ToUpperInvariant();
+        UpdatePayloadLabel();
+        RenderSectors();
+        if (!session.IsConfirmed) SetPresentationVisible(false);
+        if (newSession)
+        {
             new WindowInteropHelper(this).EnsureHandle();
             Place(NativeMethods.MonitorScale(pointer));
             Show(); // ShowActivated=false; no Focus, Activate or mouse capture.
@@ -64,10 +77,6 @@ public partial class WheelWindow : Window
         // A mode change keeps native placement and OLE payload ownership; only selection is rearmed.
         var initial = Surface.PointFromScreen(new Point(pointer.X, pointer.Y));
         session.ResetPointer(initial.X, initial.Y);
-        operations = catalog.GetOperations(paths, mode);
-        ModeLabel.Text = mode.ToString().ToUpperInvariant();
-        UpdatePayloadLabel();
-        RenderSectors();
         timer.Start();
     }
 
@@ -90,7 +99,13 @@ public partial class WheelWindow : Window
     {
         if (message == 0x21) { handled = true; return 3; } // MA_NOACTIVATE
         if (message == 0x02E0) // WM_DPICHANGED: WPF updates its transforms; clamp native placement afterward.
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() => { if (IsVisible) Place(Math.Max(96, NativeMethods.GetDpiForWindow(handle)) / 96.0); }));
+        {
+            long placedGeneration = generation;
+            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            {
+                if (IsVisible && generation == placedGeneration) Place(Math.Max(96, NativeMethods.GetDpiForWindow(handle)) / 96.0);
+            }));
+        }
         return 0;
     }
 
@@ -109,39 +124,74 @@ public partial class WheelWindow : Window
         session.Cancel(generation);
         timer.Stop();
         operations = [];
+        availableOperations.Clear();
+        Sectors.Children.Clear();
+        SetPresentationVisible(false);
+        armed = false;
         selected = -1;
         navigation = 0;
         Hide();
     }
 
-    private bool ReadPayload(DragEventArgs e, out string[] payload)
+    private void SetPresentationVisible(bool visible)
+    {
+        // Keep Surface itself visible and hit-testable for genuine OLE. Window-level opacity zero
+        // or WS_EX_TRANSPARENT would prevent reliable admission on a layered HWND.
+        foreach (UIElement child in Surface.Children) child.Opacity = visible ? 1 : 0;
+    }
+
+    private bool ReadPhysicalPayload(DragEventArgs e, out string[] payload, out FileAttributes[] attributes)
     {
         Dispatcher.VerifyAccess(); // Never allow COM IDataObject or DragEventArgs to leave this callback/STA.
         payload = [];
+        attributes = [];
         if ((e.AllowedEffects & DragDropEffects.Copy) == 0) return false;
         try
         {
-            if (!e.Data.GetDataPresent(DataFormats.FileDrop, false) || e.Data.GetData(DataFormats.FileDrop, false) is not string[] raw) return false;
+            if (!e.Data.GetDataPresent(DataFormats.FileDrop, false) || e.Data.GetData(DataFormats.FileDrop, false) is not string[] raw || raw.Length == 0) return false;
             payload = raw.ToArray();
-            return DropValidation.Accepts(payload, mode);
+            if (payload.Any(path => string.IsNullOrWhiteSpace(path) || !Path.IsPathFullyQualified(path))) return false;
+            attributes = payload.Select(File.GetAttributes).ToArray();
+            // Actions is the physical availability policy, including directories. Mode eligibility
+            // is separate, so switching a folder to Convert/Tools cannot destroy OLE ownership.
+            return attributes.All(value => DropValidation.AttributesAllowed(value, OperationMode.Actions));
         }
-        catch (Exception error) when (error is COMException or IOException or ArgumentException or InvalidOperationException) { return false; }
+        catch (Exception error) when (error is COMException or IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException or NotSupportedException) { return false; }
+    }
+
+    private void OnPreviewDragEnter(object sender, DragEventArgs e)
+    {
+        e.Handled = true;
+        e.Effects = DragDropEffects.None;
+        if (!IsVisible) return;
+        if (!session.IsConfirmed)
+        {
+            if (!ReadPhysicalPayload(e, out var payload, out var attributes)) { Dismiss(); return; }
+            session.ConfirmPayload(payload); // First admission alone owns the immutable ordered snapshot.
+            foreach (var candidateMode in Enum.GetValues<OperationMode>())
+                availableOperations[candidateMode] = attributes.All(value => DropValidation.AttributesAllowed(value, candidateMode))
+                    ? catalog.GetOperations(paths, candidateMode) : [];
+            operations = availableOperations[mode];
+            paging = new();
+            selected = -1;
+            navigation = 0;
+            var entry = e.GetPosition(Surface);
+            session.ResetPointer(entry.X, entry.Y);
+            UpdatePayloadLabel();
+            SetPresentationVisible(true);
+            RenderSectors();
+        }
+        OnPreviewDragOver(sender, e);
     }
 
     private void OnPreviewDragOver(object sender, DragEventArgs e)
     {
         e.Handled = true;
         e.Effects = DragDropEffects.None;
-        if (!ReadPayload(e, out var payload)) { Dismiss(); return; }
-        if (!payload.SequenceEqual(paths, StringComparer.OrdinalIgnoreCase))
-        {
-            // Any validated physical FileDrop establishes OLE ownership, even in a mode with no targets.
-            session.ConfirmPayload(payload);
-            operations = catalog.GetOperations(paths, mode);
-            paging = new();
-            UpdatePayloadLabel();
-            RenderSectors();
-        }
+        // The steady hover path uses only cached admission, operations and local coordinates.
+        // Neither COM extraction nor filesystem/catalog work belongs here.
+        if (!session.IsConfirmed) return;
+        if ((e.AllowedEffects & DragDropEffects.Copy) == 0) { Dismiss(); return; }
         var point = e.GetPosition(Surface);
         armed = session.ObservePointer(point.X, point.Y);
         navigation = armed ? NavigationAt(point) : 0;
@@ -163,7 +213,9 @@ public partial class WheelWindow : Window
         e.Handled = true;
         e.Effects = DragDropEffects.None;
         OperationDrop? accepted = null;
-        if (ReadPayload(e, out var payload) && payload.SequenceEqual(paths, StringComparer.OrdinalIgnoreCase))
+        if (session.IsConfirmed && ReadPhysicalPayload(e, out var payload, out var attributes) &&
+            payload.SequenceEqual(paths, StringComparer.OrdinalIgnoreCase) &&
+            attributes.All(value => DropValidation.AttributesAllowed(value, mode)))
         {
             var point = e.GetPosition(Surface);
             int index = armed && NavigationAt(point) == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(8, operations.Count - paging.Page * 8)) : -1;

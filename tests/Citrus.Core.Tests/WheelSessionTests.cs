@@ -4,6 +4,26 @@ namespace Citrus.Core.Tests;
 
 public class WheelSessionTests
 {
+    [Theory]
+    [InlineData("expanded")]
+    [InlineData("reordered")]
+    [InlineData("shrunk")]
+    public void First_payload_is_immutable_across_reconfirmation_and_mode_switches(string change)
+    {
+        var session = new WheelSession();
+        session.RequestMode(0, OperationMode.Actions, 100, 100);
+        string[] first = ["A", "B"];
+        session.ConfirmPayload(first);
+        first[0] = "mutated source";
+        string[] later = change switch { "expanded" => ["A", "B", "C"], "reordered" => ["B", "A"], _ => ["A"] };
+        session.RequestMode(10, OperationMode.Convert, 200, 200);
+        session.ConfirmPayload(later);
+        session.RequestMode(20, OperationMode.Actions, 300, 300);
+        Assert.Equal(new[] { "A", "B" }, session.Paths);
+        Assert.Equal((100d, 100d), session.Anchor);
+        Assert.True(session.TryCompleteDrop(session.Generation));
+    }
+
     [Fact]
     public void Mode_switch_preserves_anchor_generation_and_confirmed_payload()
     {
