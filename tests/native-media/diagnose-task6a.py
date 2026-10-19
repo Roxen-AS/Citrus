@@ -82,6 +82,17 @@ encode('sine-from-wav', ['-i', root / 'sine-written.wav', '-c:a', 'pcm_s16le'], 
 shutil.copyfile(root / 'sine-old.wav', root / 'sine-old-staged.wav')
 inspect('sine-old-staged', root / 'sine-old-staged.wav')
 
+# Causal control: identical valid WAV bytes with only the demuxer selection changed.
+for label in ['sine-written', 'sine-old', 'sine-old-staged']:
+    path = root / (label + '.wav')
+    run(label + '-forced-wav-probe', ffprobe, ['-v', 'error', '-f', 'wav',
+        '-show_streams', '-show_frames', '-of', 'json', path])
+    run(label + '-forced-wav-pcm', ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'info',
+        '-f', 'wav', '-i', path, '-c:a', 'pcm_s16le', '-f', 's16le', 'pipe:1'])
+run('offset-raw-debug', ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'info', '-debug_ts',
+    '-y', '-copyts', '-itsoffset', '10', *raw_options, '-i', steps,
+    '-c:a', 'pcm_s16le', '-avoid_negative_ts', 'disabled', root / 'offset-debug.mka'])
+
 for method in ['old-raw', 'written-wav', 'explicit-filter']:
     source_args = [*raw_options, '-i', constant] if method != 'written-wav' else ['-i', root / 'constant-written.wav']
     timing = ['-itsoffset', '0.25'] if method != 'explicit-filter' else []
