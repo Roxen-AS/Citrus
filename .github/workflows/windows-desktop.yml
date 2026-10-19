@@ -20,7 +20,7 @@ jobs:
           dotnet build tests/Citrus.Windows.Tests -c Release --no-restore
           if ($LASTEXITCODE) { throw 'Desktop build failed' }
       - name: Native Windows desktop regressions
-        run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/desktop
+        run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/desktop --blame-hang-timeout 2m --blame-hang-dump-type none
       - uses: actions/upload-artifact@v4
         if: always()
         with:

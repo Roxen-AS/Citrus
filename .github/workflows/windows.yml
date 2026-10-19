@@ -42,7 +42,7 @@ jobs:
       - name: Complete conversion suite including real Windows image and PDF backends
         run: dotnet test tests/Citrus.Conversion.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/conversion
       - name: Real Windows clipboard, Shell, tray and lifecycle integration
-        run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/windows
+        run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/windows --blame-hang-timeout 2m --blame-hang-dump-type none
       - name: Negative packaging and preservation checks
         if: ${{ always() && steps.publish.outcome == 'success' }}
         run: python packaging/test-package.py dist/Citrus-win-x64
