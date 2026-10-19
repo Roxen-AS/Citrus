@@ -6,7 +6,7 @@ Unicode true
 !ifndef GENERATED
 !error "Pass GENERATED (absolute path to generated ownership includes)"
 !endif
-!include "${GENERATED}/identity.nsh"
+!include "${GENERATED}\identity.nsh"
 Name "Citrus"
 OutFile "${OUTPUT}"
 InstallDir "$LOCALAPPDATA\Programs\Citrus"
@@ -249,7 +249,7 @@ Function ${PREFIX}CheckInstallPaths
       StrCpy $3 $4
       Goto path_loop
     ${EndIf}
-  !include "${GENERATED}/paths.nsh"
+  !include "${GENERATED}\paths.nsh"
   Push "$INSTDIR\Uninstall.exe"
   Call ${PREFIX}CheckPath
 FunctionEnd
@@ -347,7 +347,7 @@ Section "Citrus (required)" MainSection
   Call CheckDestination
   Call EstablishOwnership
   SetOverwrite on
-  !include "${GENERATED}/install.nsh"
+  !include "${GENERATED}\install.nsh"
   ClearErrors
   CreateDirectory "$SMPROGRAMS\Citrus"
   CreateShortcut "$SMPROGRAMS\Citrus\Citrus.lnk" "$INSTDIR\Citrus.Windows.exe"
@@ -375,7 +375,7 @@ Section "Uninstall"
   Call un.CheckInstallPaths
   StrCpy $DeleteFailed 0
   SetOutPath "$TEMP"
-  !include "${GENERATED}/uninstall.nsh"
+  !include "${GENERATED}\uninstall.nsh"
   ${If} $DeleteFailed != 0
     MessageBox MB_OK|MB_ICONSTOP "Some Citrus files could not be removed. Close applications using this installation and retry uninstall. Registration has been retained." /SD IDOK
     SetErrorLevel 24
