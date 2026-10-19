@@ -12,7 +12,7 @@ public partial class JobToastWindow : Window, IDisposable
     private readonly DispatcherTimer timer;
     private IReadOnlyList<string> outputs = [];
     private HwndSource? source;
-    private bool disposed;
+    private bool disposed, positioning;
     public JobToastWindow(Action viewJobs, Func<IReadOnlyList<string>, Task> reveal, Func<bool> canShow)
     {
         this.viewJobs = viewJobs; this.reveal = reveal; this.canShow = canShow;
@@ -25,6 +25,7 @@ public partial class JobToastWindow : Window, IDisposable
         };
         timer = new(DispatcherPriority.Background) { Interval = TimeSpan.FromMilliseconds(300) };
         timer.Tick += Tick;
+        SizeChanged += (_, _) => ReanchorVisibleToast();
         Closed += (_, _) => Dispose();
     }
     public void Update(string message, bool pending, IReadOnlyList<string>? completedOutputs = null)
@@ -35,6 +36,7 @@ public partial class JobToastWindow : Window, IDisposable
         outputs = completedOutputs?.ToArray() ?? [];
         RevealButton.Visibility = outputs.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
         timer.Start(); Tick(this, EventArgs.Empty);
+        ReanchorVisibleToast();
     }
     private void Tick(object? sender, EventArgs e)
     {
@@ -51,12 +53,27 @@ public partial class JobToastWindow : Window, IDisposable
             PositionAtEdge(work, scale);
         }
     }
+    private void ReanchorVisibleToast()
+    {
+        if (disposed || !IsVisible || positioning) return;
+        // Stay on the toast's current monitor even if the pointer has since moved.
+        var origin = PointToScreen(new Point(0, 0));
+        var point = new NativeMethods.Point { X = (int)origin.X + 1, Y = (int)origin.Y + 1 };
+        PositionAtEdge(NativeMethods.WorkArea(point), NativeMethods.MonitorScale(point));
+    }
     private void PositionAtEdge(Citrus.Core.ScreenRect work, double scale)
     {
-        UpdateLayout();
-        NativeMethods.SetWindowPos(new WindowInteropHelper(this).Handle, 0,
-            (int)(work.Right - ActualWidth * scale - 16 * scale), (int)(work.Bottom - ActualHeight * scale - 16 * scale),
-            (int)(ActualWidth * scale), (int)(ActualHeight * scale), 0x14); // NOACTIVATE | NOZORDER
+        if (disposed || positioning) return;
+        positioning = true;
+        try
+        {
+            // Layout can raise SizeChanged synchronously; the guard prevents recursive placement.
+            UpdateLayout();
+            NativeMethods.SetWindowPos(new WindowInteropHelper(this).Handle, 0,
+                (int)(work.Right - ActualWidth * scale - 16 * scale), (int)(work.Bottom - ActualHeight * scale - 16 * scale),
+                (int)(ActualWidth * scale), (int)(ActualHeight * scale), 0x14); // NOACTIVATE | NOZORDER
+        }
+        finally { positioning = false; }
     }
     private static nint NoActivation(nint handle, int message, nint wParam, nint lParam, ref bool handled)
     {

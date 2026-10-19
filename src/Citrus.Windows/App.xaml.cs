@@ -199,6 +199,7 @@ public partial class App : Application
         home.SetBusy(true);
         // Origin affects feedback only. All routes still use one authoritative submission service.
         if (origin == SubmissionOrigin.Home) OpenHome();
+        if (origin == SubmissionOrigin.Wheel) BeginQuietSubmission();
         ReportSubmission("Checking inputs…", origin, pending: true);
         var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         activeAction = completed.Task; // Installed before a destination dialog can pump nested Quit messages.
@@ -230,16 +231,20 @@ public partial class App : Application
         }
         finally { preparing = false; home.SetBusy(false); completed.TrySetResult(); }
     }
+    private void BeginQuietSubmission()
+    {
+        // Only a new accepted submission may acquire presentation. Dismissal or pause
+        // during inspection/confirmation remains effective for its later status and jobs.
+        if (toast is not null || IsQuitting) return;
+        toast = new(() => { OpenHome(); home?.ShowJobs(); }, RevealAsync, () => !IsQuitting && wheel?.IsVisible != true);
+        toast.Closed += (_, _) => toast = null;
+    }
     private void ReportSubmission(string message, SubmissionOrigin origin, bool pending = false)
     {
         home?.Report(message);
         if (origin != SubmissionOrigin.Wheel || IsQuitting) return;
-        if (toast is null)
-        {
-            toast = new(() => { OpenHome(); home?.ShowJobs(); }, RevealAsync, () => !IsQuitting && wheel?.IsVisible != true);
-            toast.Closed += (_, _) => toast = null;
-        }
-        toast.Update(message, pending);
+        // Status/progress/completion can update a live notification, never reacquire one.
+        toast?.Update(message, pending);
     }
     private void RefreshQuietJobs()
     {

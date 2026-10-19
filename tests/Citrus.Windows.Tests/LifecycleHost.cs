@@ -75,6 +75,29 @@ internal static class LifecycleHost
                                 finally { optionsWatch.Stop(); }
                                 Console.WriteLine($"OPTIONS:owned={owned};home={app.HomeVisible}");
                                 return;
+                            case "prepare-dismiss":
+                            case "prepare-pause":
+                                var preparationWatch = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+                                preparationWatch.Tick += (_, _) =>
+                                {
+                                    var dialog = app.Windows.OfType<ToolOptionsWindow>().FirstOrDefault();
+                                    if (dialog is null || !dialog.IsVisible) return;
+                                    preparationWatch.Stop();
+                                    // Hold at real pre-enqueue confirmation, suppress the initial checking toast,
+                                    // then accept the same submission. Completion must not reacquire a window.
+                                    if (command == "prepare-pause") app.SetGestures(false, persist: false);
+                                    else app.Windows.OfType<JobToastWindow>().Single().Close();
+                                    ((System.Windows.Controls.Button)dialog.FindName("CreateButton")).RaiseEvent(new System.Windows.RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                                };
+                                preparationWatch.Start();
+                                try
+                                {
+                                    await app.SubmitAsync(new(new Citrus.Conversion.ArchiveEngine().Operations.First(o => o.Id == "archive.zip"), [Path.Combine(args[2], "quiet.srt")]), origin: Citrus.Core.SubmissionOrigin.Wheel);
+                                    await Task.WhenAll(((System.Windows.Controls.ItemsControl)((MainWindow)app.MainWindow).FindName("JobList")).Items.Cast<JobViewModel>().Select(model => model.Job.Completion));
+                                    await System.Windows.Threading.Dispatcher.Yield(System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                                }
+                                finally { preparationWatch.Stop(); }
+                                break;
                             case "wheel-error":
                                 await app.SubmitAsync(new(new Citrus.Conversion.SubtitleEngine().Operations.First(o => o.OutputExtension == ".vtt"), [Path.Combine(args[2], "missing.srt")]), origin: Citrus.Core.SubmissionOrigin.Wheel);
                                 await Task.WhenAll(((System.Windows.Controls.ItemsControl)((MainWindow)app.MainWindow).FindName("JobList")).Items.Cast<JobViewModel>().Select(model => model.Job.Completion));
@@ -87,7 +110,7 @@ internal static class LifecycleHost
                         var home = (MainWindow)app.MainWindow;
                         var jobs = ((System.Windows.Controls.ItemsControl)home.FindName("JobList")).Items.Cast<JobViewModel>().ToArray();
                         int errors = jobs.Count(model => model.Job.State == Citrus.Core.ConversionJobState.Failed) + ((System.Windows.Controls.ItemsControl)home.FindName("SubmissionFailures")).Items.Count;
-                        Console.WriteLine($"STATE:home={app.HomeVisible};wheel={app.WheelVisible};succeeded={jobs.Count(model => model.Job.State == Citrus.Core.ConversionJobState.Succeeded)};errors={errors}");
+                        Console.WriteLine($"STATE:home={app.HomeVisible};wheel={app.WheelVisible};succeeded={jobs.Count(model => model.Job.State == Citrus.Core.ConversionJobState.Succeeded)};errors={errors};toast={app.Windows.OfType<JobToastWindow>().Any(window => window.IsVisible)}");
                     }));
                     if (command == "quit") return;
                 }

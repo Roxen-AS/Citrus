@@ -105,6 +105,26 @@ public sealed class ResidentLifecycleTests
         Assert.Single(Directory.GetFiles(files.Root, "*.vtt"));
     }
 
+    [Theory]
+    [InlineData("dismiss")]
+    [InlineData("pause")]
+    public async Task Suppressed_preparation_stays_quiet_but_a_new_submission_can_notify(string suppression)
+    {
+        using var files = new NativeFiles();
+        files.File("quiet.srt", "1\n00:00:00,000 --> 00:00:01,000\nhello\n");
+        using var child = Start(Guid.NewGuid().ToString("N"), files.Root, background: true);
+        Assert.StartsWith("READY:", await ReadLine(child));
+        string finished = await Command(child, "prepare-" + suppression);
+        Assert.Contains("toast=False", finished);
+        Assert.Contains("succeeded=1", finished);
+        Assert.Contains("home=False", finished);
+        Assert.Single(Directory.GetFiles(files.Root, "*.zip"));
+        string next = await Command(child, "wheel-submit");
+        Assert.Contains("toast=True", next); // A distinct accepted submission may acquire notification presentation.
+        Assert.Contains("succeeded=2", next);
+        await Quit(child);
+    }
+
     private static ChildProcess Start(string identity, string root, bool background, bool ownedMove = false)
     {
         var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")
