@@ -1,0 +1,38 @@
+Citrus local PDF backend
+
+PDFsharp Core 6.2.4 (MIT), source v6.2.4 commit
+9c3863a71b12067ff36e68a92c1a1f260114e2d1:
+https://github.com/empira/PDFsharp
+PDFsharp 6.5.0 is AGPL-3.0-only and is not used.
+
+PDFtoImage 5.4.0 (MIT), source v5.4.0 commit
+5948628cb2cf7d070c7fd28b1b4496db39e3afcd:
+https://github.com/sungaila/PDFtoImage
+
+PdfPig 0.1.16 (Apache-2.0), source commit
+a7bb35662bbbf405efddad50aedc9bcdcf515afc:
+https://github.com/UglyToad/PdfPig
+Its upstream NOTICES.txt is also included.
+
+SkiaSharp and native assets 4.150.1 (MIT plus third-party components):
+https://github.com/mono/SkiaSharp
+The native package's complete LICENSE.txt and THIRD-PARTY-NOTICES.txt are included.
+
+bblanchon.PDFium.* 152.0.7961 (Apache-2.0 wrapper):
+https://github.com/bblanchon/pdfium-binaries/tree/chromium/7961
+Native PDFium uses its own BSD-style license and multiple third-party licenses.
+Complete native notices come from the exact chromium/7961 Windows x64 archive;
+its pdfium.dll is byte-identical to the NuGet asset. See the top-level native
+LICENSE and complete pdfium-7961/ license collection beside this notice.
+
+System.Security.Cryptography.Pkcs 10.0.13 (MIT) explicitly overrides PDFsharp's
+vulnerable transitive minimum 8.0.1. Upstream .NET runtime package license included.
+
+Microsoft.Extensions.Logging.Abstractions 8.0.3 and
+Microsoft.Extensions.DependencyInjection.Abstractions 8.0.2 (MIT): their pinned
+.NET runtime source licenses are included for the PDFsharp dependencies.
+
+All license texts are in notices/pdf-licenses/. Source commits, notice hashes,
+archive provenance and Windows native SHA-256 values are in pdf-backend.lock.json.
+NuGet dependency versions/integrity are in the committed packages.lock.json files.
+No engine or font downloads occur at runtime.

@@ -6,7 +6,7 @@
 
 **Architecture:** A WPF tray process owns the native capture surface and presentation. A platform-independent core defines operations, safe output commits, and jobs; local conversion adapters implement those contracts. Native interaction, conversion families, and packaging are separate reviewable work streams, integrated through the interfaces below.
 
-**Tech Stack:** .NET SDK 10.0.402, WPF, xUnit, Magick.NET Q8 x64, an owned LGPL FFmpeg/FFprobe build, PDFsharp 6.5.0, PDFtoImage 5.4.0, PdfPig 0.1.16, SharpCompress 0.50.5, NSIS. Resolve and pin the stable Magick.NET package in Task 2; commit package lock files and the exact media source/build manifest.
+**Tech Stack:** .NET SDK 10.0.402, WPF, xUnit, Magick.NET Q8 x64, an owned LGPL FFmpeg/FFprobe build, PDFsharp 6.2.4, PDFtoImage 5.4.0, PdfPig 0.1.16, SharpCompress 0.50.5, NSIS. Resolve and pin the stable Magick.NET package in Task 2; commit package lock files and the exact media source/build manifest.
 
 **Spec:** [Citrus Windows file converter design](../specs/2026-10-18-citrus-windows-design.md).
 
@@ -104,13 +104,15 @@ Operation IDs use stable strings: `image.convert.png`, `image.resize`, `media.co
 
 ## Task 4 Add PDF creation and structural operations
 
+**Dependency correction:** verified PDFsharp 6.5.0 is AGPL-3.0-only; use the MIT Core release 6.2.4 instead. Exact source tag/commit and license provenance are retained in `packaging/pdf-backend.lock.json` and `packaging/notices/pdf-licenses/`.
+
 **Files:** `PdfEngine.cs`, `PdfPageSelection.cs`, `PdfEngineTests.cs`, and PDF package references.
 
 **Interfaces:** Consumes group requests for `images.pdf`/`pdf.merge`, and single-input `pdf.split`, `pdf.images`, and `pdf.text`. Returns all resulting output paths through `ConversionResult`.
 
 - [ ] Write failing tests: ordered images produce the expected PDF page count and page sizes; merge preserves order; selected-page split validates one-based ranges; text export contains known text; raster export returns one image/page; malformed/encrypted input fails without a final group result; canceled group work cleans up its outputs.
 - [ ] Run the PDF tests and verify the expected missing behavior.
-- [ ] Use PDFsharp 6.5.0 Core for creation/import, PDFtoImage 5.4.0 for 300-DPI rendering, and PdfPig 0.1.16 for text. Serialize PDFium render calls with a semaphore while allowing other job families to use the second queue slot. Include native PDFium/Skia runtime files and notices in publishing.
+- [ ] Use PDFsharp 6.2.4 Core for creation/import, PDFtoImage 5.4.0 for 300-DPI rendering, and PdfPig 0.1.16 for text. Serialize PDFium render calls with a semaphore while allowing other job families to use the second queue slot. Include native PDFium/Skia runtime files and notices in publishing.
 - [ ] Use ordered group inputs and Task 1 output staging. Clean up outputs owned by a failed multi-output/group request without touching pre-existing files. Validate page selection before starting output.
 - [ ] Run PDF fixtures on the host when supported and in Windows CI; verify a clean publish directory contains the required rendering libraries.
 - [ ] Commit the PDF deliverable.

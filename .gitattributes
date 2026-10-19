@@ -1,0 +1,3 @@
+# Preserve upstream PDF license/notice bytes and hashes across Windows/Linux checkouts.
+# Upstream CRLF/trailing whitespace is intentionally retained, not authored Citrus code.
+packaging/notices/pdf-licenses/** -text -whitespace

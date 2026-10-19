@@ -1,0 +1,28 @@
+name: Windows PDF fixtures
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pdf-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+      - name: Restore pinned packages
+        run: dotnet restore Citrus.sln --locked-mode
+      - name: Execute real Windows PDF and shared-image fixtures
+        run: dotnet test tests/Citrus.Conversion.Tests -c Release --no-restore --filter "FullyQualifiedName~PdfEngineTests|FullyQualifiedName~ImageEngineTests" --logger trx --results-directory TestResults
+      - name: Publish a clean self-contained Windows application
+        run: dotnet publish src/Citrus.Windows -c Release -r win-x64 --self-contained true --no-restore -o dist/pdf-ci
+      - name: Verify bundled PDFium, Skia and all native notices
+        run: python packaging/verify-pdf-publish.py dist/pdf-ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pdf-fixture-results
+          path: TestResults
