@@ -138,7 +138,7 @@ internal static class AvifHandleInheritanceHost
                 {
                     Console.WriteLine("LOCKED_WHILE_CHILD_ALIVE:32");
                     ReleaseHolder(holder);
-                    RequireExclusive(probePath);
+                    AvifControlCleanup.RequireExclusiveAfterExit(() => RequireExclusive(probePath), Console.WriteLine);
                     Console.WriteLine("UNLOCKED_AFTER_CHILD_EXIT");
                     return 0;
                 }

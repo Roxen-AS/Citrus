@@ -11,5 +11,6 @@
     <ProjectReference Include="../../src/Citrus.Core/Citrus.Core.csproj" />
     <Using Include="Xunit" />
     <Compile Include="../../src/Citrus.Windows/CitrusSettings.cs" Link="CitrusSettings.cs" />
+    <Compile Include="../Citrus.Windows.Tests/AvifControlCleanup.cs" Link="AvifControlCleanup.cs" />
   </ItemGroup>
 </Project>
