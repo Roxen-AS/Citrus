@@ -406,4 +406,71 @@ public sealed class ImageRecipeTests : IDisposable
     private sealed class CancelProgress(CancellationTokenSource cancellation) : IProgress<ConversionProgress>
     { public void Report(ConversionProgress value) => cancellation.Cancel(); }
 
+    public static IEnumerable<object[]> FormatMetadataPolicies()
+    {
+        foreach (string format in new[] { "jpg", "jpeg", "png", "webp", "tif", "tiff", "bmp", "gif", "avif" })
+            foreach (var policy in Enum.GetValues<MetadataPolicy>()) yield return [format, policy];
+    }
+    [Theory]
+    [MemberData(nameof(FormatMetadataPolicies))]
+    public async Task Publisher_accepts_normal_metadata_policy_for_each_format(string format, MetadataPolicy policy)
+    {
+        var doc = await Fixture(); doc = doc with { Export = doc.Export with { FormatId = format, Metadata = policy } }; using var renderer = Renderer(); string stage = PathIn("export"); var staged = await renderer.RenderExportAsync(doc, stage, null, default);
+        var publisher = new EditorOutputPublisher(new(), new(), new ImageEditorPayloadValidator());
+        var result = await publisher.PublishAsync(Request(doc), staged, stage, default); Assert.True(File.Exists(Assert.Single(result.Outputs)));
+    }
+
+    [Theory]
+    [InlineData(MetadataPolicy.StripDescriptive, "artist-and-adobe")]
+    [InlineData(MetadataPolicy.StripDescriptive, "artist")]
+    [InlineData(MetadataPolicy.StripDescriptive, "comment")]
+    [InlineData(MetadataPolicy.StripAll, "comment")]
+    [InlineData(MetadataPolicy.StripAll, "artist")]
+    [InlineData(MetadataPolicy.StripAll, "title")]
+    [InlineData(MetadataPolicy.StripDescriptive, "title")]
+    [InlineData(MetadataPolicy.StripDescriptive, "adobe")]
+    [InlineData(MetadataPolicy.PreserveSupported, "adobe")]
+    [InlineData(MetadataPolicy.StripDescriptive, "missing-icc")]
+    [InlineData(MetadataPolicy.PreserveSupported, "missing-icc")]
+    public async Task Publisher_rejects_metadata_or_profile_policy_violations_without_rewriting_payload(MetadataPolicy policy, string mutation)
+    {
+        var doc = await Fixture(); doc = doc with { Export = doc.Export with { Metadata = policy } }; using var renderer = Renderer(); string stage = PathIn("export"); var staged = await renderer.RenderExportAsync(doc, stage, null, default); string payload = Path.Combine(stage, "payload", staged.Files[0].RelativePath);
+        using (var image = new MagickImage(payload))
+        {
+            if (mutation.Contains("artist")) { var exif = new ExifProfile(); exif.SetValue(ExifTag.Artist, "must not be exported"); image.SetProfile(exif); }
+            if (mutation.Contains("adobe")) image.SetProfile(ColorProfiles.AdobeRGB1998);
+            if (mutation == "comment") image.SetAttribute("comment", "must not be exported");
+            if (mutation == "title") image.SetAttribute("Title", "must not be exported");
+            if (mutation == "missing-icc") image.RemoveProfile("icc");
+            image.Settings.SetDefine(MagickFormat.Png, "preserve-iCCP", "true"); image.Write(payload, MagickFormat.Png);
+        }
+        using (var check = new MagickImage(payload))
+        {
+            if (mutation.Contains("artist")) Assert.Equal("must not be exported", check.GetExifProfile()?.GetValue(ExifTag.Artist)?.Value);
+            if (mutation == "comment") Assert.Equal("must not be exported", check.GetAttribute("comment"));
+            if (mutation == "title") Assert.Equal("must not be exported", check.GetAttribute("Title"));
+            if (mutation.Contains("adobe")) Assert.Equal(ColorProfiles.AdobeRGB1998.ToByteArray(), check.GetColorProfile()!.ToByteArray());
+            if (mutation == "missing-icc") Assert.Null(check.GetColorProfile());
+        }
+        long bytes = new FileInfo(payload).Length; staged = staged with { Files = [new(staged.Files[0].RelativePath, bytes)], Compression = staged.Compression with { ActualBytes = bytes } };
+        byte[] before = SHA256.HashData(File.ReadAllBytes(payload)); var publisher = new EditorOutputPublisher(new(), new(), new ImageEditorPayloadValidator());
+        await Assert.ThrowsAsync<InvalidDataException>(() => publisher.PublishAsync(Request(doc), staged, stage, default));
+        Assert.Equal(before, SHA256.HashData(File.ReadAllBytes(payload))); Assert.False(File.Exists(PathIn("edited.png")));
+    }
+
+    [Fact]
+    public async Task Publisher_preserve_supported_keeps_source_description_and_srgb_profile()
+    {
+        var doc = await Fixture(); string original = doc.Sources[0].Path;
+        using (var image = new MagickImage(original))
+        {
+            var exif = new ExifProfile(); exif.SetValue(ExifTag.Artist, "Original artist"); image.SetProfile(exif); image.SetAttribute("comment", "Original comment"); image.Write(original, MagickFormat.Png);
+        }
+        RecordIntentionalSourceChange(original); var snapshot = (await new SourceSnapshotService().CaptureAsync([original], default))[0].Snapshot!;
+        doc = doc with { Sources = [snapshot], Recipe = Recipe(doc) with { SourceId = snapshot.Id } };
+        using var renderer = Renderer(); string scope = PathIn("export"); var staged = await renderer.RenderExportAsync(doc, scope, null, default);
+        var published = await new EditorOutputPublisher(new(), new(), new ImageEditorPayloadValidator()).PublishAsync(Request(doc), staged, scope, default);
+        using var output = new MagickImage(Assert.Single(published.Outputs)); Assert.Equal("Original artist", output.GetExifProfile()?.GetValue(ExifTag.Artist)?.Value); Assert.Equal("Original comment", output.GetAttribute("comment")); Assert.Equal(ColorProfiles.SRGB.ToByteArray(), output.GetColorProfile()!.ToByteArray());
+    }
+
 }

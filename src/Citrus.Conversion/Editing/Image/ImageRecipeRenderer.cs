@@ -132,7 +132,15 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
     {
         if (policy.FormatId is "jpg" or "jpeg" or "bmp" or "gif") { image.BackgroundColor = new MagickColor(policy.Matte.R, policy.Matte.G, policy.Matte.B); image.Alpha(AlphaAction.Remove); }
         if (policy.Metadata != MetadataPolicy.PreserveSupported) image.Strip();
-        if (policy.Metadata != MetadataPolicy.StripAll) { image.SetProfile(ColorProfiles.SRGB); image.Settings.SetDefine(MagickFormat.Png, "preserve-iCCP", "true"); }
+        if (policy.Metadata != MetadataPolicy.StripAll)
+        {
+            image.SetProfile(ColorProfiles.SRGB);
+            image.Settings.SetDefine(MagickFormat.Png, "preserve-iCCP", "true");
+            // Strip() already removed profiles/comments, but also leaves this encoder artifact
+            // suppressing iCCP. Remove it only when restoring the required working profile.
+            if (policy.Metadata == MetadataPolicy.StripDescriptive && policy.FormatId == "png")
+                image.RemoveArtifact("png:exclude-chunk");
+        }
         image.Orientation = Orientation.TopLeft;
         var exif = image.GetExifProfile(); if (exif is not null) { exif.SetValue(ExifTag.Orientation, (ushort)1); exif.RemoveValue(ExifTag.PixelXDimension); exif.RemoveValue(ExifTag.PixelYDimension); image.SetProfile(exif); }
     }

@@ -112,3 +112,21 @@ native evidence. The renderer remains unregistered. Full-resolution 8/16 MP
 adjusted viewport rendering is too slow for an interactive host (see task report).
 A follow-up must improve performance while preserving these exact detail/export
 goldens and explicitly specifying any reduced-scale viewport approximation.
+
+## Independent publication-policy validation
+
+The payload validator reads encoded bytes without profile/color normalization. Every
+non-StripAll output must contain the exact pinned canonical sRGB ICC payload; a
+matching profile name alone is insufficient. StripDescriptive permits only this ICC
+profile and specifically enumerated decoder technical attributes. StripAll permits
+no profiles and the same decoder technical attributes. Unknown/descriptive attributes
+(including PNG comments and Title) and EXIF/XMP/IPTC/other profiles fail before
+publication. PreserveSupported continues to allow descriptive metadata while enforcing
+the sRGB working profile. Validation never rewrites payloads.
+
+A 27-case format × metadata-policy matrix exercises the real publisher. Negative
+fixtures re-encode valid PNG payloads with EXIF Artist, comment/Title, AdobeRGB ICC,
+or no ICC and update both staged-file and compression byte measurements before
+publication. They assert rejection, no destination output and unchanged payload hash.
+PNG StripDescriptive clears Magick's `png:exclude-chunk` artifact after Strip() has
+removed metadata so the encoder can retain its newly restored sRGB working profile.
