@@ -41,7 +41,7 @@ def inspect(label, path, input_args=()):
     if not path.exists():
         return
     run(label + '-probe', ffprobe, ['-v', 'error', '-protocol_whitelist', 'file,pipe',
-        *(['-f', 's16le', '-sample_rate', '48000', '-ch_layout', 'mono'] if input_args else []),
+        *(['-f', 's16le', '-sample_rate', '48000', '-ch_layout', 'mono'] if input_args == raw_options else input_args),
         '-show_streams', '-show_format', '-show_frames', '-show_packets',
         '-of', 'json', path])
     run(label + '-pcm', ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'info',
@@ -85,10 +85,7 @@ inspect('sine-old-staged', root / 'sine-old-staged.wav')
 # Causal control: identical valid WAV bytes with only the demuxer selection changed.
 for label in ['sine-written', 'sine-old', 'sine-old-staged']:
     path = root / (label + '.wav')
-    run(label + '-forced-wav-probe', ffprobe, ['-v', 'error', '-f', 'wav',
-        '-show_streams', '-show_frames', '-of', 'json', path])
-    run(label + '-forced-wav-pcm', ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'info',
-        '-f', 'wav', '-i', path, '-c:a', 'pcm_s16le', '-f', 's16le', 'pipe:1'])
+    inspect(label + '-forced-wav', path, ['-f', 'wav'])
 run('offset-raw-debug', ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'info', '-debug_ts',
     '-y', '-copyts', '-itsoffset', '10', *raw_options, '-i', steps,
     '-c:a', 'pcm_s16le', '-avoid_negative_ts', 'disabled', root / 'offset-debug.mka'])
