@@ -12,8 +12,12 @@ public sealed class WheelDemoWindow : Window
         Title = "Try the wheel · demonstration"; Width = 460; Height = 550;
         ResizeMode = ResizeMode.NoResize; WindowStartupLocation = WindowStartupLocation.CenterOwner;
         SetResourceReference(BackgroundProperty, "WindowBackground"); SetResourceReference(ForegroundProperty, "PrimaryText");
+        SetResourceReference(FontFamilyProperty, "AppFont"); SetResourceReference(FontSizeProperty, "BodySize");
         var panel = new StackPanel { Margin = new(24) };
-        panel.Children.Add(new TextBlock { Text = "Try a little glide", FontSize = 22, FontWeight = FontWeights.SemiBold });
+        panel.SetResourceReference(Panel.BackgroundProperty, "MaterialContentSurface");
+        var heading = new TextBlock { Text = "Try a little glide", FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+        heading.SetResourceReference(TextBlock.FontSizeProperty, "EditorTitleSize");
+        panel.Children.Add(heading);
         panel.Children.Add(new TextBlock { Text = "Demonstration · sample image.png\nNo files are opened or changed.", TextWrapping = TextWrapping.Wrap, Margin = new(0, 8, 0, 12) });
         var canvas = new Canvas { Width = WheelGeometry.Width, Height = WheelGeometry.Width, Background = System.Windows.Media.Brushes.Transparent, Focusable = true };
         OperationDescriptor[] operations = [new("image.png", "PNG", OperationMode.Convert, ".png", false, false), new("image.resize", "Resize", OperationMode.Tools, null, false, true), new("image.rotate", "Rotate", OperationMode.Tools, null, false, true), new("action.reveal", "Reveal", OperationMode.Actions, null, false, false)];
@@ -30,6 +34,6 @@ public sealed class WheelDemoWindow : Window
         panel.Children.Add(canvas);
         var close = new Button { Content = "Got it", IsCancel = true, HorizontalAlignment = HorizontalAlignment.Right };
         close.Click += (_, _) => Close(); panel.Children.Add(close);
-        Content = panel; Loaded += (_, _) => canvas.Focus();
+        Content = new Citrus.Windows.Presentation.MaterialSurface { Child = new ScrollViewer { Content = panel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto } }; Loaded += (_, _) => canvas.Focus();
     }
 }

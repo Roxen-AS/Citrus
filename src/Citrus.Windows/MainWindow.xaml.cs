@@ -38,6 +38,7 @@ public partial class MainWindow : Window, IDisposable
             if (IsVisible) await RefreshPreviewAsync();
             else StopPreview();
         };
+        (Application.Current as App)?.AttachPresentation(this, Chrome);
     }
     private void PlaceInitialWorkspace(object? sender, EventArgs e)
     {
@@ -240,18 +241,32 @@ public partial class MainWindow : Window, IDisposable
     private void WorkspaceResized(object sender, SizeChangedEventArgs e)
     {
         if (InspectorColumn is null) return;
-        bool compact = ActualWidth < 1080;
-        FileColumn.Width = new(compact ? 220 : 240);
-        InspectorColumn.Width = new(compact ? 0 : 304);
-        Grid.SetColumn(Inspector, compact ? 1 : 2);
-        Grid.SetRow(Inspector, compact ? 1 : 0);
-        Inspector.Margin = compact ? new(0, 16, 0, 0) : new(0);
-        CenterPanel.Margin = compact ? new(0) : new(0, 0, 16, 0);
+        ApplyTextScale(TryFindResource("TextScaleFactor") is double scale ? scale : 1);
     }
+    internal void ApplyTextScale(double scale)
+    {
+        if (InspectorColumn is null) return;
+        bool large = scale > 1.25, compact = ActualWidth < 1080 || large;
+        FileColumn.Width = new(large ? 0 : compact ? 220 : 240);
+        InspectorColumn.Width = new(compact ? 0 : 304);
+        var files = (FrameworkElement)WorkspaceGrid.Children[0];
+        Grid.SetColumn(files, large ? 1 : 0); Grid.SetRow(files, 0); Grid.SetRowSpan(files, large ? 1 : 2);
+        Grid.SetRow(CenterPanel, large ? 1 : 0);
+        Grid.SetColumn(Inspector, compact ? 1 : 2); Grid.SetRow(Inspector, large ? 2 : compact ? 1 : 0);
+        if (WorkspaceGrid.RowDefinitions.Count == 2) WorkspaceGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        Inspector.Margin = compact ? new(0, 16, 0, 0) : new(0);
+        CenterPanel.Margin = large ? new(0, 16, 0, 0) : compact ? new(0) : new(0, 0, 16, 0);
+        Grid.SetRow(HeaderActions, large ? 1 : 0); Grid.SetColumn(HeaderActions, large ? 0 : 1);
+        Grid.SetColumnSpan(HeaderActions, large ? 2 : 1);
+        HeaderActions.Margin = large ? new(0, 12, 0, 8) : new(0);
+        WorkspaceScroll.VerticalScrollBarVisibility = large ? ScrollBarVisibility.Auto : ScrollBarVisibility.Disabled;
+    }
+
     private void ShowDemo(object sender, RoutedEventArgs e)
     {
         if (demo is not null) { demo.Activate(); return; }
         demo = new() { Owner = this };
+        app.AttachPresentation(demo, demo.Content as Citrus.Windows.Presentation.MaterialSurface);
         demo.Closed += (_, _) => demo = null;
         demo.Show();
     }

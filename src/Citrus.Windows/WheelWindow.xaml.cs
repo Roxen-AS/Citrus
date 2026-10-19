@@ -4,7 +4,8 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Citrus.Core;
-using System.Windows.Media.Animation;
+using Citrus.Core.Presentation;
+using Citrus.Windows.Presentation;
 
 namespace Citrus.Windows;
 
@@ -19,7 +20,16 @@ public partial class WheelWindow : Window
     private readonly bool ownsAudio;
     private CancellationTokenSource? presentationWork;
     private readonly List<WheelPetal> petals = [];
-    private bool preparing, reduceMotion, acceptsEntry, dismissing;
+    private bool preparing, reduceMotion, acceptsEntry, presentationReleased;
+    private readonly WheelBackdropController backdrop = new(nativeCompanionValidated: false);
+    private MaterialDecision materialDecision = new(false, false, "NoResidentServices");
+    private bool dark;
+    private double textScale = 1;
+    private EventHandler? pendingMaterial;
+    private DispatcherOperation? pendingPlacement;
+    internal BackdropState MaterialState => Shell.State;
+    internal nint CompanionHandle => backdrop.CompanionHandle;
+    internal bool MaterialPresentationPending => pendingMaterial is not null;
     private long presentationEpoch;
     private bool Motion => !reduceMotion && SystemParameters.ClientAreaAnimation && !SystemParameters.HighContrast;
     private readonly Dictionary<OperationMode, IReadOnlyList<OperationDescriptor>> availableOperations = [];
@@ -48,6 +58,7 @@ public partial class WheelWindow : Window
             var style = NativeMethods.GetWindowLongPtr(handle, -20);
             NativeMethods.SetWindowLongPtr(handle, -20, style | 0x08000000 | 0x00000080); // NOACTIVATE | TOOLWINDOW; preserve existing styles.
             HwndSource.FromHwnd(handle)?.AddHook(WindowMessage);
+            backdrop.Attach(handle);
         };
         Surface.PreviewDragEnter += OnPreviewDragEnter;
         Surface.PreviewDragOver += OnPreviewDragOver;
@@ -55,29 +66,110 @@ public partial class WheelWindow : Window
         Surface.PreviewDragLeave += (_, e) => { e.Handled = true; Dismiss(); };
         timer = new DispatcherTimer(TimeSpan.FromMilliseconds(25), DispatcherPriority.Input, Tick, Dispatcher);
         timer.Stop();
-        Closed += (_, _) => { CancelWork(); if (ownsAudio) this.audio.Dispose(); };
+        IsVisibleChanged += (_, _) =>
+        {
+            if (IsVisible || presentationReleased) return;
+            acceptsEntry = false; session.Cancel(generation); timer.Stop(); CancelWork();
+            CancelMaterialPresentation(); pendingPlacement?.Abort(); pendingPlacement = null;
+            backdrop.Hide(generation); Shell.State = BackdropState.Solid; CancelEmphasis();
+        };
+        backdrop.Invalidated += MaterialInvalidated;
+        Closed += (_, _) => { ReleasePresentation(); CancelWork(); if (ownsAudio) this.audio.Dispose(); };
+        (Application.Current as App)?.AttachPresentation(this);
     }
 
     public void ApplySettings(CitrusSettings settings)
     {
         reduceMotion = settings.ReduceMotion;
         audio.Enabled = settings.SoundEnabled;
-        if (!Motion)
+        if (!Motion) CancelEmphasis();
+    }
+
+    internal void ApplyMaterialPolicy(MaterialDecision decision, bool dark, double textScale)
+    {
+        if (presentationReleased) return;
+        materialDecision = decision; this.dark = dark; this.textScale = Math.Clamp(textScale, 1, 2.25);
+        // Refreshes do not produce audio or reset payload, selection, anchor or arming.
+        CancelEmphasis();
+        ApplyTextScale();
+        MaterialInvalidated();
+    }
+
+    private void ApplyTextScale()
+    {
+        bool compact = textScale > 1.25;
+        Caption.FontSize = 14 * Math.Min(textScale, 2);
+        Caption.LineHeight = compact ? 34 : 20;
+        CaptionRow.Height = new GridLength(compact ? 38 : 20);
+        HintRow.Height = new GridLength(compact ? 0 : 16);
+        Hint.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+        Badge.FontSize = 11 * textScale; ModeLabel.FontSize = 10 * textScale;
+        Badge.Visibility = ModeLabel.Visibility = textScale >= 2 ? Visibility.Collapsed : Visibility.Visible;
+        foreach (var petal in petals) petal.ApplyTextScale(textScale);
+        System.Windows.Automation.AutomationProperties.SetName(this, $"Citrus {mode}: {paths.Count} files. {Badge.Text}. {Caption.Text}");
+    }
+
+    private void CancelEmphasis()
+    {
+        foreach (var petal in petals) petal.CancelEmphasis();
+        PressFeedback.GetAnimator(this)?.CancelOwner(Preview, true);
+        Preview.Opacity = 1;
+    }
+
+    private void CancelMaterialPresentation()
+    {
+        if (pendingMaterial is not null) CompositionTarget.Rendering -= pendingMaterial;
+        pendingMaterial = null;
+    }
+
+    private void MaterialInvalidated()
+    {
+        CancelMaterialPresentation();
+        Shell.State = BackdropState.Solid;
+        if (presentationReleased || handle == 0) return;
+        // Unlike Hide, unconfirmed synchronization does not cancel this generation's future eligibility.
+        backdrop.Synchronize(generation, default, 1, false, materialDecision, dark);
+        QueueMaterialPresentation();
+    }
+
+    private void QueueMaterialPresentation()
+    {
+        if (presentationReleased || !session.IsConfirmed || !IsVisible || Presentation.Opacity != 1 || pendingMaterial is not null) return;
+        long expectedGeneration = generation, expectedEpoch = presentationEpoch;
+        bool solidFramePresented = false;
+        EventHandler callback = null!;
+        callback = (_, _) =>
         {
-            // The dismissal clock owns cleanup. Removing it must finish cleanup synchronously.
-            if (dismissing) FinishDismiss();
-            else
-            {
-                StopPresentationAnimation();
-                if (session.IsConfirmed) Presentation.Opacity = 1;
-                for (int i = 0; i < petals.Count; i++) petals[i].SetSelected(i == selected, false);
-            }
-        }
+            if (expectedGeneration != generation || expectedEpoch != presentationEpoch || !session.IsConfirmed || !IsVisible)
+            { if (ReferenceEquals(pendingMaterial, callback)) CancelMaterialPresentation(); return; }
+            // Rendering fires before composition: allow one complete solid frame before native show/switch.
+            if (!solidFramePresented) { solidFramePresented = true; return; }
+            CancelMaterialPresentation();
+            if (!BackdropNativeMethods.GetWindowRect(handle, out var rect)) return;
+            double scale = Math.Max(96, NativeMethods.GetDpiForWindow(handle)) / 96d;
+            Shell.State = backdrop.Synchronize(expectedGeneration, rect.ToScreenRect(), scale, true, materialDecision, dark).State;
+        };
+        pendingMaterial = callback;
+        CompositionTarget.Rendering += callback;
+    }
+
+    internal void ReleasePresentation()
+    {
+        if (presentationReleased) return;
+        presentationReleased = true; acceptsEntry = false;
+        session.Cancel(generation); timer.Stop(); CancelWork(); audio.Stop(); ++presentationEpoch;
+        CancelMaterialPresentation(); pendingPlacement?.Abort(); pendingPlacement = null;
+        CancelEmphasis();
+        backdrop.Invalidated -= MaterialInvalidated;
+        backdrop.Dispose();
+        Shell.State = BackdropState.Solid;
+        if (handle != 0) HwndSource.FromHwnd(handle)?.RemoveHook(WindowMessage);
     }
 
     public void ShowAtPointer(OperationMode requestedMode)
     {
         Dispatcher.VerifyAccess();
+        if (presentationReleased) return;
         acceptsEntry = true;
         NativeMethods.GetCursorPos(out var pointer);
         bool newSession = session.RequestMode(Environment.TickCount64, requestedMode, pointer.X, pointer.Y);
@@ -88,7 +180,8 @@ public partial class WheelWindow : Window
         armed = false;
         if (newSession)
         {
-            dismissing = false;
+            CancelMaterialPresentation();
+            pendingPlacement?.Abort(); pendingPlacement = null;
             CancelWork();
             presentationEpoch++;
             preparing = false;
@@ -124,6 +217,7 @@ public partial class WheelWindow : Window
         CountLabel.Text = paths.Count.ToString();
         Badge.Text = paths.Count == 0 ? "Drag a file here" : preparing ? "Checking available tools" : operations.Count == 0 ? "No supported operations" :
             paths.Count == 1 ? Path.GetFileName(paths[0]) : $"{paths.Count} files";
+        ApplyTextScale();
         Hint.Text = preparing ? "Preparing…" : paths.Count > 0 && operations.Count == 0 ? "Release to cancel" : "Hold · glide · release";
     }
 
@@ -141,9 +235,10 @@ public partial class WheelWindow : Window
         if (message == 0x02E0) // WM_DPICHANGED: WPF updates its transforms; clamp native placement afterward.
         {
             long placedGeneration = generation;
-            Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
+            pendingPlacement?.Abort();
+            pendingPlacement = Dispatcher.BeginInvoke(DispatcherPriority.Loaded, new Action(() =>
             {
-                if (IsVisible && generation == placedGeneration) Place(Math.Max(96, NativeMethods.GetDpiForWindow(handle)) / 96.0);
+                if (!presentationReleased && IsVisible && generation == placedGeneration) Place(Math.Max(96, NativeMethods.GetDpiForWindow(handle)) / 96.0);
             }));
         }
         return 0;
@@ -162,34 +257,16 @@ public partial class WheelWindow : Window
     public void Dismiss()
     {
         acceptsEntry = false;
-        double dismissalOpacity = Presentation.Opacity;
-        bool animate = dismissalOpacity > 0 && Motion;
         session.Cancel(generation);
         timer.Stop();
-        CancelWork();
-        audio.Stop();
-        preparing = false;
-        operations = [];
-        availableOperations.Clear();
-        armed = false;
-        selected = -1;
-        navigation = 0;
-        long dismissEpoch = ++presentationEpoch;
-        StopPresentationAnimation();
-        dismissing = animate;
-        if (animate)
-        {
-            // Ownership is already canceled. This tail is presentation only; callbacks cannot submit.
-            var fade = new DoubleAnimation(dismissalOpacity, 0, (Duration)FindResource("DismissDuration"));
-            fade.Completed += (_, _) => { if (presentationEpoch == dismissEpoch) FinishDismiss(); };
-            Presentation.BeginAnimation(OpacityProperty,fade);
-        }
-        else FinishDismiss();
-    }
-
-    private void FinishDismiss()
-    {
-        dismissing = false;
+        CancelWork(); CancelMaterialPresentation();
+        pendingPlacement?.Abort(); pendingPlacement = null;
+        audio.Stop(); CancelEmphasis();
+        preparing = false; operations = []; availableOperations.Clear();
+        armed = false; selected = -1; navigation = 0;
+        ++presentationEpoch;
+        backdrop.Hide(generation);
+        Shell.State = BackdropState.Solid;
         SetPresentationVisible(false);
         Sectors.Children.Clear(); petals.Clear(); Preview.Source = null;
         Hide();
@@ -200,27 +277,12 @@ public partial class WheelWindow : Window
         presentationWork?.Cancel(); presentationWork?.Dispose(); presentationWork = null;
     }
 
-    private void StopPresentationAnimation()
-    {
-        Presentation.BeginAnimation(OpacityProperty,null);
-        PresentationScale.BeginAnimation(ScaleTransform.ScaleXProperty,null);
-        PresentationScale.BeginAnimation(ScaleTransform.ScaleYProperty,null);
-        PresentationScale.ScaleX = PresentationScale.ScaleY = 1;
-    }
-
     private void SetPresentationVisible(bool visible)
     {
-        // Surface remains a real nonzero-alpha OLE target, independent of presentation transforms.
-        StopPresentationAnimation();
+        // Full geometry and opaque structural content are immediate; no target transforms or hide tail.
         Presentation.Opacity = visible ? 1 : 0;
-        if (visible && Motion)
-        {
-            var duration = (Duration)FindResource("OpenDuration");
-            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-            Presentation.BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,duration) { EasingFunction = ease });
-            PresentationScale.BeginAnimation(ScaleTransform.ScaleXProperty,new DoubleAnimation(.94,1,duration) { EasingFunction = ease });
-            PresentationScale.BeginAnimation(ScaleTransform.ScaleYProperty,new DoubleAnimation(.94,1,duration) { EasingFunction = ease });
-        }
+        if (visible) QueueMaterialPresentation();
+        else { CancelMaterialPresentation(); Shell.State = BackdropState.Solid; }
     }
 
     private bool ReadPhysicalPayload(DragEventArgs e, out string[] payload, out FileAttributes[] attributes)
@@ -315,6 +377,11 @@ public partial class WheelWindow : Window
             var image = await previews.LoadAsync(path,192,token);
             if (token.IsCancellationRequested || !session.IsConfirmed || expected != generation) return;
             Preview.Source = image;
+            if (image is not null && Motion && PressFeedback.GetAnimator(this) is { } animator)
+            {
+                animator.SetImmediate(Preview, "reveal", 0, value => Preview.Opacity = Math.Clamp(value, 0, 1));
+                animator.Retarget(Preview, "reveal", 1, SpringParameters.Reveal, value => Preview.Opacity = Math.Clamp(value, 0, 1));
+            }
             FileGlyph.Visibility = image is null ? Visibility.Visible : Visibility.Hidden;
         }
         catch (OperationCanceledException) { }
@@ -398,17 +465,19 @@ public partial class WheelWindow : Window
 
     private void RenderSectors()
     {
+        foreach (var petal in petals) petal.CancelEmphasis();
         Sectors.Children.Clear(); petals.Clear();
         var items = operations.Skip(paging.Page * WheelGeometry.MaxTargetsPerPage).Take(WheelGeometry.MaxTargetsPerPage).ToArray();
         for (int i=0;i<items.Length;i++)
         {
             var petal = new WheelPetal(items[i],i,items.Length);
             petals.Add(petal); Sectors.Children.Add(petal);
+            petal.ApplyTextScale(textScale);
         }
         Caption.Text = "Center to cancel";
         Previous.Visibility = Next.Visibility = operations.Count > WheelGeometry.MaxTargetsPerPage ? Visibility.Visible : Visibility.Hidden;
-        Previous.Opacity = paging.Page == 0 ? .35 : 1;
-        Next.Opacity = (paging.Page+1)*WheelGeometry.MaxTargetsPerPage >= operations.Count ? .35 : 1;
+        ((TextBlock)Previous.Child).Opacity = paging.Page == 0 ? .35 : 1;
+        ((TextBlock)Next.Child).Opacity = (paging.Page+1)*WheelGeometry.MaxTargetsPerPage >= operations.Count ? .35 : 1;
         if (operations.Count > WheelGeometry.MaxTargetsPerPage) Hint.Text = $"{paging.Page+1} / {(operations.Count+WheelGeometry.MaxTargetsPerPage-1)/WheelGeometry.MaxTargetsPerPage} · hover arrows";
     }
 }

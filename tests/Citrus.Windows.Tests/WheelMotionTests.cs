@@ -16,12 +16,10 @@ namespace Citrus.Windows.Tests;
 [Collection("Desktop")]
 public sealed class WheelMotionTests(DesktopFixture desktop, ITestOutputHelper output)
 {
-    [NativeAnimationFact]
-    public Task Disabling_motion_during_dismissal_hides_canceled_wheel_and_rejects_drop() => desktop.RunAsync(async () =>
+    [Fact]
+    public Task Cancel_hides_both_hwnds_immediately_without_opacity_tail() => desktop.RunAsync(async () =>
     {
         output.WriteLine($"Native motion prerequisites: ClientAreaAnimation={SystemParameters.ClientAreaAnimation}; HighContrast={SystemParameters.HighContrast}");
-        Assert.True(SystemParameters.ClientAreaAnimation && !SystemParameters.HighContrast,
-            "Native animation capability is unavailable. Dismissal regression is unverified on this runner; OS preferences were not changed.");
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".txt");
         await File.WriteAllTextAsync(path, "physical payload");
         var wheel = new WheelWindow(new OperationCatalog([new MotionEngine()]));
@@ -39,7 +37,9 @@ public sealed class WheelMotionTests(DesktopFixture desktop, ITestOutputHelper o
             await Task.Delay(200); // Let the genuine opening presentation finish first.
             Assert.True(wheel.IsVisible);
             wheel.Dismiss();
-            Assert.True(wheel.IsVisible); // Prove the real fade branch is pending, not a reduced-motion shortcut.
+            Assert.False(wheel.IsVisible);
+            Assert.False(wheel.MaterialPresentationPending);
+            Assert.Equal(0, wheel.CompanionHandle);
             wheel.ApplySettings(new CitrusSettings { ReduceMotion = true, SoundEnabled = false });
             await Task.Delay(200);
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);

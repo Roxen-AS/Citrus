@@ -7,6 +7,7 @@ public sealed record CitrusSettings
 {
     public bool SoundEnabled { get; init; } = true;
     public bool ReduceMotion { get; init; }
+    public bool ReduceTransparency { get; init; }
     public bool LaunchAtSignIn { get; init; }
     public ThemeChoice Theme { get; init; } = ThemeChoice.System;
     public bool RevealCompletedOutputs { get; init; }

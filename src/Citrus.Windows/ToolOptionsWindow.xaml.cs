@@ -63,6 +63,7 @@ public partial class ToolOptionsWindow : Window
         InspectionSummary.Text = string.Join("\n", draft.Inspections.Select(i => Path.GetFileName(i.Path) + ": " +
             (i.Error is not null ? i.Error + " This item will be reported as failed." : i.PageCount is int pages ? $"{pages} pages" : $"{i.DurationSeconds:0.###} seconds")));
         UpdateDestination();
+        (Application.Current as App)?.AttachPresentation(this, Chrome);
     }
 
     private static string Number(double value) => value.ToString(CultureInfo.InvariantCulture);
@@ -71,7 +72,7 @@ public partial class ToolOptionsWindow : Window
         var box = new TextBox { Text = value, Margin = new(0, 0, 0, 8), Padding = new(8) };
         AutomationProperties.SetName(box, label);
         RegisterName(key + "Input", box);
-        Fields.Children.Add(new Label { Content = label, Target = box, Padding = new(0, 6, 0, 6) });
+        Fields.Children.Add(new Label { Content = new TextBlock { Text = label, TextWrapping = TextWrapping.Wrap }, Target = box, Padding = new(0, 6, 0, 6) });
         Fields.Children.Add(box);
         fields.Add(key, box);
         box.TextChanged += (_, _) => ErrorText.Text = "";

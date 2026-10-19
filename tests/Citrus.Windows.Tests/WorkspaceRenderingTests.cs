@@ -5,6 +5,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Citrus.Conversion;
 using Citrus.Core;
+using Citrus.Windows.Presentation;
 using Application = System.Windows.Application;
 using Grid = System.Windows.Controls.Grid;
 using Image = System.Windows.Controls.Image;
@@ -38,6 +39,8 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
         using var themes = new ThemeManager(Application.Current);
         themes.Apply(theme, reduceMotion: true);
         using var window = new MainWindow((App)Application.Current) { Width = width, Height = height, ShowActivated = false };
+        using var presentation = new WindowPresentationService(Application.Current, themes, () => new CitrusSettings { Theme = theme, ReduceMotion = true });
+        presentation.Attach(window, (MaterialSurface)window.FindName("Chrome"));
         try
         {
             window.Configure(new OperationCatalog([new ImageEngine()]), []);
@@ -47,7 +50,8 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
             window.UpdateLayout();
             var inspector = (FrameworkElement)window.FindName("Inspector");
             var root = (FrameworkElement)window.Content;
-            var requested = new { requestedWindowWidthDip = width, requestedWindowHeightDip = height };
+            var chrome = (MaterialSurface)window.FindName("Chrome");
+            var requested = new { requestedWindowWidthDip = width, requestedWindowHeightDip = height, materialState = chrome.State.ToString(), captureScope = "WPF-only; native DWM pixels are not captured" };
             string artifact = $"workspace-requested-{width}x{height}-{theme}-{scale * 100:0}pct-raster";
             var capture = VisualArtifacts.Capture(root, artifact, scale, theme, requested);
             // Preserve the actual backdrop without requiring lossless alpha arithmetic at glyph edges.
@@ -56,10 +60,19 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
             var pixels = new byte[capture.PixelWidth * capture.PixelHeight * 4];
             capture.CopyPixels(pixels, capture.PixelWidth * 4, 0);
             // Exclude only a fractional final raster row/column, whose coverage can be below one pixel.
-            Assert.True(Enumerable.Range(0, (int)Math.Floor(root.ActualHeight * scale)).All(y =>
+            if (((MaterialSurface)window.FindName("Chrome")).State == BackdropState.Solid) Assert.True(Enumerable.Range(0, (int)Math.Floor(root.ActualHeight * scale)).All(y =>
                 Enumerable.Range(0, (int)Math.Floor(root.ActualWidth * scale)).All(x => pixels[(y * capture.PixelWidth + x) * 4 + 3] >= 254)),
                 "Workspace capture lost the actual window background.");
-            var header = (System.Windows.Controls.DockPanel)((Grid)root).Children[0];
+            if (chrome.State == BackdropState.ConfiguredNativeAcrylic)
+            {
+                Assert.Equal(0, ((SolidColorBrush)window.Background).Color.A);
+                Assert.True(((SolidColorBrush)chrome.EffectiveTint).Color.A < 255);
+                int chromePixel = ((int)(root.ActualHeight * scale / 2) * capture.PixelWidth + (int)(10 * scale)) * 4;
+                Assert.InRange(pixels[chromePixel + 3], (byte)1, (byte)253); // Real WPF tint in exposed left chrome.
+
+            }
+            Assert.Equal(255, ((SolidColorBrush)((System.Windows.Controls.Border)inspector).Background).Color.A);
+            var header = (Grid)window.FindName("WorkspaceHeader");
             VisualArtifacts.AssertInside(header, root);
             foreach (FrameworkElement child in header.Children) VisualArtifacts.AssertInside(child, root);
             foreach (string name in new[] { "GesturesEnabled", "Status", "EngineStatus" })

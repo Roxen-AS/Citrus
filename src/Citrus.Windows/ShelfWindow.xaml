@@ -1,8 +1,10 @@
-<Window x:Class="Citrus.Windows.ShelfWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="Citrus floating shelf" Width="420" Height="330" MinWidth="340" MinHeight="250" Topmost="True" Background="{DynamicResource WindowBackground}" Foreground="{DynamicResource PrimaryText}">
+<Window x:Class="Citrus.Windows.ShelfWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:p="clr-namespace:Citrus.Windows.Presentation"
+ Title="Citrus floating shelf" Width="420" Height="330" MinWidth="340" MinHeight="250" Topmost="True" Background="{DynamicResource WindowBackground}" Foreground="{DynamicResource PrimaryText}" FontFamily="{DynamicResource AppFont}" FontSize="{DynamicResource BodySize}" TextBlock.LineHeight="{DynamicResource BodyLeading}">
+ <p:MaterialSurface x:Name="Chrome">
  <DockPanel Margin="18">
-  <StackPanel DockPanel.Dock="Top"><TextBlock Text="Floating shelf" FontSize="22" FontWeight="SemiBold"/><TextBlock Text="References only. Select items and drag them to Explorer, or copy and paste with the keyboard." TextWrapping="Wrap" Margin="0,6,0,10"/></StackPanel>
-  <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,10,0,0"><Button Content="Copy selected" Click="CopySelected"/><Button Content="Remove references" Click="RemoveSelected" Margin="8,0,0,0" Style="{DynamicResource SecondaryButton}"/></StackPanel>
+  <StackPanel DockPanel.Dock="Top"><TextBlock Text="Floating shelf" FontSize="{DynamicResource EditorTitleSize}" LineHeight="{DynamicResource EditorLeading}" FontWeight="SemiBold"/><TextBlock Text="References only. Select items and drag them to Explorer, or copy and paste with the keyboard." TextWrapping="Wrap" Margin="0,6,0,10"/></StackPanel>
+  <WrapPanel DockPanel.Dock="Bottom" Margin="0,10,0,0"><Button Content="Copy selected" Click="CopySelected"/><Button Content="Remove references" Click="RemoveSelected" Margin="8,0,0,0" Style="{DynamicResource SecondaryButton}"/></WrapPanel>
   <ListBox x:Name="References" SelectionMode="Extended" AutomationProperties.Name="Shelf file references" PreviewMouseLeftButtonDown="DragStarted" MouseMove="DragMoved" KeyDown="ShelfKeyDown"/>
  </DockPanel>
+ </p:MaterialSurface>
 </Window>

@@ -3,5 +3,4 @@
  <sys:Double x:Key="SpringDefaultResponse">0.34</sys:Double>
  <sys:Double x:Key="SpringPressResponse">0.30</sys:Double>
  <sys:Double x:Key="SpringRevealResponse">0.38</sys:Double>
- <Duration x:Key="OpenDuration">0:0:0.160</Duration><Duration x:Key="HoverDuration">0:0:0.090</Duration><Duration x:Key="DismissDuration">0:0:0.100</Duration>
 </ResourceDictionary>

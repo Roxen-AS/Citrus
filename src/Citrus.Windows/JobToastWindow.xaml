@@ -1,9 +1,11 @@
-<Window x:Class="Citrus.Windows.JobToastWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="Citrus job status" Width="360" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False" Topmost="True" Background="{DynamicResource PanelBackground}" Foreground="{DynamicResource PrimaryText}" FontFamily="{DynamicResource AppFont}" FontSize="14">
- <Border BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="16"><StackPanel>
-  <DockPanel><Button Content="×" Click="Dismiss" Style="{DynamicResource SecondaryButton}" Padding="10,2" DockPanel.Dock="Right" AutomationProperties.Name="Dismiss notification"/><TextBlock Text="Citrus" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
+<Window x:Class="Citrus.Windows.JobToastWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:p="clr-namespace:Citrus.Windows.Presentation"
+ Title="Citrus job status" Width="360" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False" Topmost="True" Background="{DynamicResource PanelBackground}" Foreground="{DynamicResource PrimaryText}" FontFamily="{DynamicResource AppFont}" FontSize="{DynamicResource BodySize}" TextBlock.LineHeight="{DynamicResource BodyLeading}">
+ <p:MaterialSurface x:Name="Chrome" Role="Toast" CornerRadius="16">
+ <Border Background="{DynamicResource MaterialContentSurface}" Margin="6" CornerRadius="12" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" Padding="16"><StackPanel>
+  <DockPanel><Button Content="×" Click="Dismiss" Style="{DynamicResource SecondaryButton}" Padding="10,2" DockPanel.Dock="Right" AutomationProperties.Name="Dismiss notification"/><TextBlock Text="Citrus" FontSize="{DynamicResource SectionSize}" LineHeight="{DynamicResource SectionLeading}" FontWeight="SemiBold" VerticalAlignment="Center"/></DockPanel>
   <TextBlock x:Name="Message" TextWrapping="Wrap" TextTrimming="WordEllipsis" MaxHeight="100" Margin="0,8,0,12" AutomationProperties.LiveSetting="Polite"/>
   <ProgressBar x:Name="Progress" Height="4" IsIndeterminate="True" Margin="0,0,0,12" AutomationProperties.Name="Job progress"/>
-  <StackPanel Orientation="Horizontal"><Button Content="View jobs" Click="ViewJobs" Style="{DynamicResource SecondaryButton}"/><Button x:Name="RevealButton" Content="Reveal" Click="Reveal" Visibility="Collapsed" Margin="8,0,0,0"/></StackPanel>
+  <WrapPanel><Button Content="View jobs" Click="ViewJobs" Style="{DynamicResource SecondaryButton}"/><Button x:Name="RevealButton" Content="Reveal" Click="Reveal" Visibility="Collapsed" Margin="8,0,0,0"/></WrapPanel>
  </StackPanel></Border>
+ </p:MaterialSurface>
 </Window>

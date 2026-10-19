@@ -27,6 +27,7 @@ public partial class JobToastWindow : Window, IDisposable
         timer.Tick += Tick;
         SizeChanged += (_, _) => ReanchorVisibleToast();
         Closed += (_, _) => Dispose();
+        (Application.Current as App)?.AttachPresentation(this, Chrome);
     }
     public void Update(string message, bool pending, IReadOnlyList<string>? completedOutputs = null)
     {

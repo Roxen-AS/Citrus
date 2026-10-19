@@ -18,6 +18,7 @@ public partial class ShelfWindow : Window, IDisposable
         References.ItemsSource = references;
         timer = new DispatcherTimer(TimeSpan.FromSeconds(2), DispatcherPriority.Background, (_, _) => RefreshReferences(), Dispatcher);
         Closed += (_, _) => { closed = true; Dispose(); };
+        (Application.Current as App)?.AttachPresentation(this, Chrome);
     }
     public void AddPaths(IReadOnlyList<string> paths)
     {

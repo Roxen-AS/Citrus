@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Windows.Threading;
 using Citrus.Conversion;
 using Citrus.Core;
+using Citrus.Windows.Presentation;
 using Forms = System.Windows.Forms;
 
 namespace Citrus.Windows;
@@ -24,6 +25,8 @@ public partial class App : Application
     private readonly HashSet<ConversionJob> quietJobs = [];
     private SettingsWindow? settingsWindow;
     private ThemeManager? themes;
+    private WindowPresentationService? presentation;
+    internal void AttachPresentation(Window window, MaterialSurface? surface = null) => presentation?.Attach(window, surface);
     private FeedbackAudio? feedbackAudio;
     private readonly SettingsStore settingsStore;
     private CitrusSettings settings = new();
@@ -62,6 +65,7 @@ public partial class App : Application
             settings = settingsStore.Load();
             themes = new(this);
             themes.Apply(settings.Theme, settings.ReduceMotion);
+            presentation = new(this, themes, () => settings);
             feedbackAudio = new() { Enabled = settings.SoundEnabled };
             home = new(this);
             MainWindow = home;
@@ -163,6 +167,7 @@ public partial class App : Application
         }
         settings = updated;
         themes?.Apply(settings.Theme, settings.ReduceMotion);
+        presentation?.Refresh();
         wheel?.ApplySettings(settings);
         if (feedbackAudio is not null) feedbackAudio.Enabled = settings.SoundEnabled;
         SetGestures(settings.GesturesEnabled, persist: false);
@@ -318,6 +323,7 @@ public partial class App : Application
         shelf?.Dispose();
         toast?.Dispose();
         home?.Dispose();
+        presentation?.Dispose();
         themes?.Dispose();
         feedbackAudio?.Dispose();
         tray?.ContextMenuStrip?.Dispose();

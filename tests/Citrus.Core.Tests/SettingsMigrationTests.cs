@@ -9,6 +9,7 @@ public class SettingsMigrationTests
         var settings = JsonSerializer.Deserialize<CitrusSettings>("""{"Theme":2,"GesturesEnabled":false,"ShiftMode":2,"AltMode":0,"ControlMode":1}""")!;
         Assert.True(settings.SoundEnabled);
         Assert.False(settings.ReduceMotion);
+        Assert.False(settings.ReduceTransparency);
         Assert.Equal(Citrus.Core.OperationMode.Actions, settings.ShiftMode);
         Assert.False(settings.GesturesEnabled);
         settings.Validate();
@@ -20,5 +21,15 @@ public class SettingsMigrationTests
         var roundTrip = JsonSerializer.Deserialize<CitrusSettings>(JsonSerializer.Serialize(settings))!;
         Assert.False(roundTrip.SoundEnabled);
         Assert.True(roundTrip.ReduceMotion);
+        Assert.False(roundTrip.ReduceTransparency);
+    }
+    [Fact]
+    public void Reduced_transparency_roundtrips_without_changing_sound_or_motion()
+    {
+        var settings = new CitrusSettings { ReduceTransparency = true };
+        var restored = JsonSerializer.Deserialize<CitrusSettings>(JsonSerializer.Serialize(settings))!;
+        Assert.True(restored.ReduceTransparency);
+        Assert.True(restored.SoundEnabled);
+        Assert.False(restored.ReduceMotion);
     }
 }

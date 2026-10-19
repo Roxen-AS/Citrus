@@ -2,7 +2,7 @@
  <Style x:Key="FocusRing"><Setter Property="Control.Template"><Setter.Value><ControlTemplate><Border Margin="-3" BorderBrush="{DynamicResource PrimaryText}" BorderThickness="2" CornerRadius="10"/></ControlTemplate></Setter.Value></Setter></Style>
  <Style x:Key="CitrusButton" TargetType="Button">
   <Setter Property="presentation:PressFeedback.IsEnabled" Value="True"/><Setter Property="presentation:PressFeedback.MotionEnabled" Value="{DynamicResource MotionEnabled}"/>
-  <Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="16,8"/><Setter Property="FontFamily" Value="{DynamicResource AppFont}"/><Setter Property="FontSize" Value="14"/>
+  <Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="16,8"/><Setter Property="FontFamily" Value="{DynamicResource AppFont}"/><Setter Property="FontSize" Value="{DynamicResource BodySize}"/>
   <Setter Property="Background" Value="{DynamicResource Accent}"/><Setter Property="Foreground" Value="{DynamicResource AccentText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button">
    <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="10">
@@ -21,11 +21,13 @@
  </Style>
  <Style TargetType="Button" BasedOn="{StaticResource CitrusButton}"/>
  <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource CitrusButton}"><Setter Property="Background" Value="{DynamicResource PanelBackground}"/><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/></Style>
+ <Style TargetType="CheckBox"><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
  <Style x:Key="CitrusInput" TargetType="TextBox"><Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
  <Style TargetType="TextBox" BasedOn="{StaticResource CitrusInput}"/>
  <Style TargetType="ComboBox"><Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
+ <Style TargetType="ListBox"><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/></Style>
  <Style x:Key="WorkspaceListItem" TargetType="ListBoxItem">
-  <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+  <Setter Property="Background" Value="{DynamicResource MaterialContentSurface}"/><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
   <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
   <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
    <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="2" CornerRadius="10" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/></Border>
