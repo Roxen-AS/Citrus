@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -41,31 +40,27 @@ public sealed class PressFeedbackTests(DesktopFixture desktop)
         button.Release();
         Assert.Equal(1, clicks);
 
-        // Exercise real WPF pointer capture and drag-away routing in the owned native window.
-        Assert.True(GetCursorPos(out var original));
-        try
+        // Exercise real pointer capture only when native desktop, PID/HWND and WPF hit tests prove ownership.
+        // Topmost alone is not evidence that input belongs to this window (e.g. hosted Windows setup UI).
+        button.Host.Topmost = true;
+        button.Host.UpdateLayout();
+        using (var pointer = new PressNativeInputGuard(button.Host, button))
         {
-            button.Host.Topmost = true;
-            button.Host.UpdateLayout();
-            var center = button.PointToScreen(new System.Windows.Point(90, 24));
-            Assert.True(SetCursorPos((int)center.X, (int)center.Y));
+            var center = PressNativeInputGuard.Target.At(button.PointToScreen(new System.Windows.Point(90, 24)), buttonHit: true);
+            var outside = PressNativeInputGuard.Target.At(button.PointToScreen(new System.Windows.Point(190, 24)), buttonHit: false);
+            pointer.RequireTargets(center, outside); // Both destinations must be owned before any global input.
+            pointer.MoveTo(center);
             await Task.Delay(30);
-            MouseEvent(0x0002, 0, 0, 0, UIntPtr.Zero); // MOUSEEVENTF_LEFTDOWN
+            pointer.Down(center);
             await WaitFor(() => button.IsPressed);
             Assert.Equal(.12, Part<Border>(button, "PressedTint").Opacity);
             Assert.Equal(1, clicks);
-            var outside = button.PointToScreen(new System.Windows.Point(190, 24));
-            Assert.True(SetCursorPos((int)outside.X, (int)outside.Y));
+            pointer.MoveTo(outside);
             await WaitFor(() => !button.IsPressed);
             Assert.Equal(0, Part<Border>(button, "PressedTint").Opacity);
-            MouseEvent(0x0004, 0, 0, 0, UIntPtr.Zero); // MOUSEEVENTF_LEFTUP
+            pointer.Up(outside);
             await Task.Delay(30);
             Assert.Equal(1, clicks);
-        }
-        finally
-        {
-            MouseEvent(0x0004, 0, 0, 0, UIntPtr.Zero);
-            SetCursorPos(original.X, original.Y);
         }
     });
 
@@ -165,16 +160,6 @@ public sealed class PressFeedbackTests(DesktopFixture desktop)
         for (int i = 0; i < 100 && !condition(); i++) await Task.Delay(10);
         Assert.True(condition(), "Native pointer event did not reach the owned WPF button.");
     }
-    [StructLayout(LayoutKind.Sequential)]
-    private struct NativePoint { public int X; public int Y; }
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool GetCursorPos(out NativePoint point);
-    [DllImport("user32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool SetCursorPos(int x, int y);
-    [DllImport("user32.dll", EntryPoint = "mouse_event")]
-    private static extern void MouseEvent(uint flags, uint dx, uint dy, uint data, UIntPtr extraInfo);
 
     private sealed class TestButton : Button, IDisposable
     {
