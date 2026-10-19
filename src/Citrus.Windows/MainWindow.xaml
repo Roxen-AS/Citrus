@@ -7,7 +7,7 @@
  </Window.Resources>
  <p:MaterialSurface x:Name="Chrome">
  <Grid x:Name="WorkspaceRoot" Margin="24,16">
-  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
   <Grid x:Name="WorkspaceHeader" Margin="0,0,0,12"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
    <StackPanel Orientation="Horizontal" VerticalAlignment="Center"><Image Source="{StaticResource CitrusMark}" Width="28" Height="28" Margin="0,0,9,0"/><TextBlock Text="Citrus" FontSize="{DynamicResource EditorTitleSize}" LineHeight="{DynamicResource EditorLeading}" FontWeight="SemiBold" VerticalAlignment="Center"/></StackPanel>
    <WrapPanel x:Name="HeaderActions" Grid.Column="1" VerticalAlignment="Center"><Button Content="Try the wheel" Click="ShowDemo" Style="{DynamicResource TertiaryButton}" Margin="0,0,8,0"/><Button Content="Settings" Click="OpenSettings" Style="{DynamicResource TertiaryButton}"/></WrapPanel>
@@ -16,7 +16,8 @@
    <TextBlock x:Name="GestureGuide" Style="{StaticResource Metadata}" VerticalAlignment="Center" Margin="0,0,16,0" AutomationProperties.Name="Drag a file, then tap Shift to convert, Alt for tools, or Control for files."><Run Text="Drag → "/><InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource Keycap}"><TextBlock Text="Shift" FontSize="{DynamicResource MetadataSize}"/></Border></InlineUIContainer><Run Text=" "/><Run x:Name="ShiftModeLabel" Text="Convert"/><Run Text="   "/><InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource Keycap}"><TextBlock Text="Alt" FontSize="{DynamicResource MetadataSize}"/></Border></InlineUIContainer><Run Text=" "/><Run x:Name="AltModeLabel" Text="Tools"/><Run Text="   "/><InlineUIContainer BaselineAlignment="Center"><Border Style="{StaticResource Keycap}"><TextBlock Text="Ctrl" FontSize="{DynamicResource MetadataSize}"/></Border></InlineUIContainer><Run Text=" "/><Run x:Name="ControlModeLabel" Text="Files"/></TextBlock>
    <CheckBox x:Name="GesturesEnabled" Grid.Column="1" Content="Wheel gestures" VerticalAlignment="Center" IsChecked="True" Checked="ToggleGestures" Unchecked="ToggleGestures"/>
   </Grid>
-  <ScrollViewer x:Name="WorkspaceScroll" Grid.Row="2" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Disabled">
+  <ScrollViewer x:Name="WorkspaceScroll" Grid.Row="2" SizeChanged="WorkspaceResized" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+   <StackPanel x:Name="WorkspaceFlow">
    <Grid x:Name="WorkspaceGrid">
     <Grid.ColumnDefinitions><ColumnDefinition x:Name="FileColumn" Width="*"/><ColumnDefinition x:Name="OperationColumn" Width="*"/></Grid.ColumnDefinitions>
     <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
@@ -52,24 +53,26 @@
      <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"><Image Source="{StaticResource CitrusMark}" Width="56" Height="56" Margin="0,0,0,20"/><TextBlock Text="Drop your files" FontSize="{DynamicResource EditorTitleSize}" LineHeight="{DynamicResource EditorLeading}" FontWeight="SemiBold" TextAlignment="Center" TextWrapping="Wrap"/><TextBlock Text="Choose a format or tool to get started." Style="{StaticResource Metadata}" TextAlignment="Center" Margin="0,8,0,24"/><Button Content="Add files" Click="ChooseFiles" MinWidth="140" HorizontalAlignment="Center"/><Button Content="Add a folder" Click="ChooseFolder" Style="{DynamicResource TertiaryButton}" Margin="0,8,0,0" HorizontalAlignment="Center"/></StackPanel>
     </Border>
    </Grid>
-  </ScrollViewer>
-  <Expander x:Name="JobsPanel" Grid.Row="3" Margin="0,8,0,0" Foreground="{DynamicResource PrimaryText}" MaxHeight="160" Visibility="Collapsed">
+  <Expander x:Name="JobsPanel" Margin="0,8,0,0" Foreground="{DynamicResource PrimaryText}" Visibility="Collapsed">
    <Expander.Header><TextBlock x:Name="JobSummary" Text="Jobs" FontWeight="SemiBold" TextWrapping="Wrap"/></Expander.Header>
-   <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel><ItemsControl x:Name="SubmissionFailures"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource Card}" Margin="0,8,0,0"><DockPanel><Button Content="Retry" Style="{DynamicResource SecondaryButton}" Tag="{Binding}" Click="RetrySubmission" IsEnabled="{Binding CanRetry}" DockPanel.Dock="Right" Margin="12,0,0,0"/><TextBlock Text="{Binding Message}" TextWrapping="Wrap"/></DockPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><ItemsControl x:Name="JobList"><ItemsControl.ItemTemplate><DataTemplate>
+   <StackPanel><ItemsControl x:Name="SubmissionFailures"><ItemsControl.ItemTemplate><DataTemplate><Border Style="{StaticResource Card}" Margin="0,8,0,0"><DockPanel><Button Content="Retry" Style="{DynamicResource SecondaryButton}" Tag="{Binding}" Click="RetrySubmission" IsEnabled="{Binding CanRetry}" DockPanel.Dock="Right" Margin="12,0,0,0"/><TextBlock Text="{Binding Message}" TextWrapping="Wrap"/></DockPanel></Border></DataTemplate></ItemsControl.ItemTemplate></ItemsControl><ItemsControl x:Name="JobList"><ItemsControl.ItemTemplate><DataTemplate>
     <Border Background="{DynamicResource PanelBackground}" CornerRadius="12" Padding="12" Margin="0,8,0,0"><StackPanel>
      <DockPanel><WrapPanel DockPanel.Dock="Right"><Button Content="Cancel" Tag="{Binding}" Click="CancelJob" IsEnabled="{Binding CanCancel}" Style="{DynamicResource SecondaryButton}" Padding="10,4"/><Button Content="Retry" Tag="{Binding}" Click="RetryJob" IsEnabled="{Binding CanRetry}" Style="{DynamicResource SecondaryButton}" Padding="10,4" Margin="6,0,0,0"/><Button Content="Save elsewhere…" Tag="{Binding}" Click="ChangeDestination" IsEnabled="{Binding CanChooseFolder}" Style="{DynamicResource SecondaryButton}" Padding="10,4" Margin="6,0,0,0"/></WrapPanel><StackPanel Margin="0,0,12,0"><TextBlock Text="{Binding Source}" ToolTip="{Binding SourcePaths}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock Text="{Binding Operation}" Style="{StaticResource Metadata}" Margin="0,4,0,0"/></StackPanel></DockPanel>
      <TextBlock Text="{Binding Status}" TextWrapping="Wrap" Margin="0,8,0,0" AutomationProperties.LiveSetting="Polite"/><ProgressBar Value="{Binding Percent}" IsIndeterminate="{Binding IsIndeterminate}" Maximum="100" Height="5" Margin="0,8,0,8" AutomationProperties.Name="Conversion progress"/>
      <ItemsControl ItemsSource="{Binding Outputs}"><ItemsControl.ItemTemplate><DataTemplate><DockPanel Margin="0,0,0,6"><Button Content="Reveal" Style="{DynamicResource TertiaryButton}" Tag="{Binding Path}" Click="RevealOutput" DockPanel.Dock="Right" Padding="10,4" Margin="8,0,0,0" AutomationProperties.Name="Reveal output in Explorer"/><TextBlock Text="{Binding Name}" ToolTip="{Binding Path}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/></DockPanel></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
     </StackPanel></Border>
-   </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel></ScrollViewer>
+   </DataTemplate></ItemsControl.ItemTemplate></ItemsControl></StackPanel>
   </Expander>
-  <Border x:Name="Inspector" Grid.Row="4" Background="{DynamicResource PanelBackground}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="16,12" Margin="0,16,0,0" Visibility="Collapsed">
+  <StackPanel><TextBlock x:Name="Status" Margin="0,12,0,0" Text="" Visibility="Collapsed" Style="{StaticResource Metadata}" AutomationProperties.LiveSetting="Polite"/><TextBlock x:Name="EngineStatus" Margin="0,12,0,0" Text="" Visibility="Collapsed" Style="{StaticResource Metadata}"/></StackPanel>
+   </StackPanel>
+  </ScrollViewer>
+  <Border x:Name="Inspector" Grid.Row="3" Background="{DynamicResource PanelBackground}" BorderBrush="{DynamicResource BorderBrush}" BorderThickness="1" CornerRadius="14" Padding="16,12" Margin="0,16,0,0" Visibility="Collapsed">
    <Grid x:Name="FooterGrid"><Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions><Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
     <StackPanel x:Name="DestinationSummary" Margin="0,0,16,0"><TextBlock x:Name="InspectorTitle" Text="Choose an operation" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/><TextBlock x:Name="OutputSummary" Text="Copies saved beside each original" Style="{StaticResource Metadata}"/><TextBlock x:Name="SafetySummary" Style="{StaticResource Metadata}" Visibility="Collapsed"/><TextBlock x:Name="OperationHint" Visibility="Collapsed"/><TextBlock x:Name="BatchSummary" Visibility="Collapsed"/></StackPanel>
     <Button x:Name="RunButton" Grid.Column="1" Content="Create copies" Click="RunOperation" IsEnabled="False" MinWidth="144" VerticalAlignment="Center" ToolTip="{Binding Text, ElementName=SafetySummary}"/>
    </Grid>
   </Border>
-  <ScrollViewer Grid.Row="5" Margin="0,8,0,0" MaxHeight="80" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"><StackPanel><TextBlock x:Name="Status" Text="" Visibility="Collapsed" Style="{StaticResource Metadata}" AutomationProperties.LiveSetting="Polite"/><TextBlock x:Name="EngineStatus" Text="" Visibility="Collapsed" Style="{StaticResource Metadata}"/></StackPanel></ScrollViewer>
+
  </Grid>
  </p:MaterialSurface>
 </Window>

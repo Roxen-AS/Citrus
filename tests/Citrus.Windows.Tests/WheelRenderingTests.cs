@@ -87,6 +87,53 @@ public sealed class WheelRenderingTests(DesktopFixture desktop)
         finally { themes.Apply(ThemeChoice.Light, reduceMotion: true); }
     });
 
+    [Theory]
+    [InlineData(1d)] [InlineData(1.25d)] [InlineData(1.5d)]
+    [InlineData(1.75d)] [InlineData(2d)] [InlineData(2.25d)]
+    public Task Actual_text_policy_keeps_hub_metadata_on_opaque_backing(double textScale) => desktop.RunAsync(async () =>
+    {
+        using var themes = new ThemeManager(Application.Current);
+        try
+        {
+            foreach (var theme in new[] { ThemeChoice.Light, ThemeChoice.Dark })
+            {
+                themes.Apply(theme, true);
+                using var fixture = new RenderFixture();
+                string path = Path.Combine(fixture.Root, "citrus-with-a-long-descriptive-filename-for-preview.png");
+                File.Copy(fixture.Sample, path);
+                foreach (var mode in new[] { OperationMode.Convert, OperationMode.Actions })
+                {
+                    await fixture.Enter([path], mode);
+                    await fixture.WaitFor(() => fixture.Preview.Source is not null, "real hub thumbnail");
+                    fixture.Wheel.ApplyMaterialPolicy(new(false, false, "TextScaleFixture"), theme == ThemeChoice.Dark, textScale);
+                    await fixture.WaitFor(() => !fixture.Wheel.MaterialPresentationPending, "material presentation after text policy");
+                    fixture.Wheel.UpdateLayout();
+                    VisualArtifacts.Capture(fixture.Surface, $"wheel-hub-{theme}-{mode}-text{textScale * 100:0}-raster100", 1, theme,
+                        new { textScale, mode = mode.ToString(), actualPolicyApplied = true, rasterScale = 1 });
+                    Assert.Equal(1, ((FrameworkElement)fixture.Wheel.FindName("Presentation")).Opacity);
+                    Assert.True(fixture.Preview.IsVisible);
+                    var visible = new List<Rect> { Bounds(fixture.Preview) };
+                    foreach (string name in new[] { "Badge", "ModeLabel" })
+                    {
+                        var label = (TextBlock)fixture.Wheel.FindName(name);
+                        if (!label.IsVisible) continue;
+                        var bounds = Bounds(label);
+                        foreach (var corner in new[] { bounds.TopLeft, bounds.TopRight, bounds.BottomLeft, bounds.BottomRight })
+                            Assert.True(Math.Pow(corner.X - 184, 2) + Math.Pow(corner.Y - 184, 2) <= 78 * 78,
+                                $"{name} escapes the neutral hub at text scale {textScale}: {bounds}");
+                        Assert.All(visible, other => Assert.False(bounds.IntersectsWith(other), $"{name} overlaps adjacent hub content."));
+                        visible.Add(bounds);
+                    }
+                    Assert.Contains(Path.GetFileName(path), System.Windows.Automation.AutomationProperties.GetName(fixture.Wheel));
+                    Assert.Equal(368, fixture.Surface.ActualWidth); Assert.Equal(414, fixture.Surface.ActualHeight);
+                    fixture.Wheel.Dismiss();
+                    Rect Bounds(FrameworkElement element) => element.TransformToAncestor(fixture.Surface).TransformBounds(new Rect(new Point(), element.RenderSize));
+                }
+            }
+        }
+        finally { themes.Apply(ThemeChoice.Light, true); }
+    });
+
     [Fact]
     public Task Warm_repeated_routed_hover_records_time_allocation_and_retained_identity() => desktop.RunAsync(async () =>
     {
@@ -150,14 +197,14 @@ public sealed class WheelRenderingTests(DesktopFixture desktop)
             Sample = Path.Combine(Root, "citrus-sample.png"); Second = Path.Combine(Root, "second.png");
             CitrusPreviewFixture.Save(Sample);
             File.Copy(Sample, Second);
-            Wheel = new WheelWindow(new OperationCatalog([new ImageEngine(), new ArchiveEngine(), new PdfEngine()]));
+            Wheel = new WheelWindow(new OperationCatalog([new ImageEngine(), new ArchiveEngine(), new PdfEngine(), new NativeActionCatalog()]));
             Wheel.ApplySettings(new CitrusSettings { ReduceMotion = true, SoundEnabled = false });
         }
         public string Text(string name) => ((TextBlock)Wheel.FindName(name)).Text;
-        public async Task Enter(string[] paths)
+        public async Task Enter(string[] paths, OperationMode mode = OperationMode.Convert)
         {
             data = new DataObject(DataFormats.FileDrop, paths);
-            Wheel.ShowAtPointer(OperationMode.Convert);
+            Wheel.ShowAtPointer(mode);
             Raise(Args(DragDrop.PreviewDragEnterEvent, new Point(184,184)));
             await WaitFor(() => !Text("Hint").StartsWith("Preparing"), "production catalog preparation");
             Assert.True(Wheel.IsVisible);

@@ -104,9 +104,22 @@ public partial class WheelWindow : Window
         HintRow.Height = new GridLength(compact ? 0 : 18);
         Hint.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
         Badge.FontSize = 12 * textScale; ModeLabel.FontSize = 11 * textScale;
-        Badge.Visibility = ModeLabel.Visibility = textScale >= 2 ? Visibility.Collapsed : Visibility.Visible;
+        // These two disjoint rectangles sit wholly inside the opaque radius-78 hub.
+        // Keep the requested font size; omit secondary metadata if its line no longer fits.
+        FitHubMetadata(Badge, allowEllipsis: true);
+        FitHubMetadata(ModeLabel, allowEllipsis: false);
         foreach (var petal in petals) petal.ApplyTextScale(textScale);
         System.Windows.Automation.AutomationProperties.SetName(this, $"Citrus {mode}: {paths.Count} files. {Badge.Text}. {Caption.Text}");
+    }
+
+    private static void FitHubMetadata(TextBlock label, bool allowEllipsis)
+    {
+        var measured = new FormattedText(label.Text, System.Globalization.CultureInfo.CurrentUICulture, label.FlowDirection,
+            new Typeface(label.FontFamily, label.FontStyle, label.FontWeight, label.FontStretch), label.FontSize,
+            Brushes.Black, VisualTreeHelper.GetDpi(label).PixelsPerDip);
+        label.Visibility = measured.Height <= label.Height && (allowEllipsis || measured.WidthIncludingTrailingWhitespace <= label.Width)
+            ? Visibility.Visible : Visibility.Collapsed;
+        label.ToolTip = label.Text; // Full text also remains in the wheel's automation name.
     }
 
     private void CancelEmphasis()
