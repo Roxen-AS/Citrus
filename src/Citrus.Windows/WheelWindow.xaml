@@ -3,7 +3,7 @@
  <Canvas x:Name="Surface" Background="#01000000" AllowDrop="True" Focusable="False">
   <Canvas x:Name="Presentation" Width="368" Height="414" IsHitTestVisible="False">
    <p:MaterialSurface x:Name="Shell" Role="WheelShell" Width="352" Height="352" Canvas.Left="8" Canvas.Top="8"/>
-   <Ellipse Width="156" Height="156" Canvas.Left="106" Canvas.Top="106" Fill="{DynamicResource PanelBackground}"/>
+   <Ellipse Width="156" Height="156" Canvas.Left="106" Canvas.Top="106" Fill="{DynamicResource WheelHubBackground}" Stroke="{DynamicResource WheelHubRim}" StrokeThickness="1"/>
    <Canvas x:Name="Sectors" Width="368" Height="368"/>
    <Border Canvas.Left="132" Canvas.Top="130" Width="104" Height="80" CornerRadius="12" Background="{DynamicResource InsetBackground}">
     <Grid><Grid.Clip><RectangleGeometry Rect="0,0,104,80" RadiusX="12" RadiusY="12"/></Grid.Clip><Path x:Name="FileGlyph" Data="{StaticResource Icon.File}" Stroke="{DynamicResource SecondaryText}" StrokeThickness="1.5" Width="30" Height="36" Stretch="Uniform" StrokeLineJoin="Round"/><Image x:Name="Preview" Width="104" Height="80" Stretch="UniformToFill"/></Grid>

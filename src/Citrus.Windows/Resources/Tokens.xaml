@@ -13,7 +13,10 @@
  <SolidColorBrush x:Key="ControlBackground" Color="#FFFFFF"/>
  <SolidColorBrush x:Key="ControlText" Color="#17212B"/>
  <SolidColorBrush x:Key="WheelShell" Color="#FFF5F7FA"/>
- <SolidColorBrush x:Key="PetalBackground" Color="#FFFFFFFF"/>
+ <LinearGradientBrush x:Key="PetalBackground" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FFFFFF" Offset="0"/><GradientStop Color="#F5F8FC" Offset=".46"/><GradientStop Color="#DCE5EF" Offset="1"/></LinearGradientBrush>
+ <LinearGradientBrush x:Key="PetalRim" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FFFFFF" Offset="0"/><GradientStop Color="#B7C6D7" Offset="1"/></LinearGradientBrush>
+ <LinearGradientBrush x:Key="WheelHubBackground" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#DEE7F0" Offset="0"/><GradientStop Color="#EAF0F6" Offset=".46"/><GradientStop Color="#F4F7FA" Offset="1"/></LinearGradientBrush>
+ <LinearGradientBrush x:Key="WheelHubRim" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#B7C6D7" Offset="0"/><GradientStop Color="#FFFFFF" Offset="1"/></LinearGradientBrush>
  <SolidColorBrush x:Key="SelectedPetal" Color="#FF6B16"/>
  <SolidColorBrush x:Key="SelectedPetalText" Color="#17212B"/>
  <sys:Double x:Key="TitleSize">28</sys:Double><sys:Double x:Key="EditorTitleSize">22</sys:Double><sys:Double x:Key="SectionSize">16</sys:Double><sys:Double x:Key="BodySize">14</sys:Double><sys:Double x:Key="MetadataSize">12</sys:Double>

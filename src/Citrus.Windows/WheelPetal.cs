@@ -33,7 +33,7 @@ public sealed class WheelPetal : Canvas
         outline = shape;
         var background = new ShapePath { Data = shape, StrokeThickness = 1 };
         background.SetResourceReference(ShapePath.FillProperty,"PetalBackground");
-        background.SetResourceReference(ShapePath.StrokeProperty,"BorderBrush");
+        background.SetResourceReference(ShapePath.StrokeProperty,"PetalRim");
         selectedSurface = new ShapePath { Data = shape, Opacity = 0, StrokeThickness = 1 };
         selectedSurface.SetResourceReference(ShapePath.FillProperty,"SelectedPetal");
         selectedSurface.SetResourceReference(ShapePath.StrokeProperty,"BorderBrush");

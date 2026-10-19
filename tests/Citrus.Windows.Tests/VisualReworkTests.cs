@@ -28,6 +28,17 @@ public sealed class VisualReworkTests(DesktopFixture desktop)
                 var ink = ((SolidColorBrush)Application.Current.FindResource(pair.Item2)).Color;
                 Assert.True(Contrast(surface, ink) >= 4.5, $"{choice}: {pair} lacks readable contrast.");
             }
+            foreach (var pair in new[] { ("PetalBackground", "PrimaryText"), ("WheelHubBackground", "SecondaryText") })
+            {
+                var surface = Assert.IsAssignableFrom<GradientBrush>(Application.Current.FindResource(pair.Item1));
+                var ink = ((SolidColorBrush)Application.Current.FindResource(pair.Item2)).Color;
+                Assert.Equal(1, surface.Opacity);
+                Assert.All(surface.GradientStops, stop =>
+                {
+                    Assert.Equal(255, stop.Color.A);
+                    Assert.True(Contrast(stop.Color, ink) >= 4.5, $"{choice}: {pair} lacks readable contrast at {stop.Offset}.");
+                });
+            }
             var petal = new WheelPetal(new ImageEngine().Operations.Single(operation => operation.Id == "image.convert.png"), 0, 9);
             petal.ApplyTextScale(2);
             var label = petal.Children.OfType<TextBlock>().Single();

@@ -202,7 +202,10 @@ public sealed class GlassSurfaceIntegrationTests(DesktopFixture desktop)
         Assert.Equal(BackdropState.ConfiguredNativeAcrylic, shell.State);
         Assert.True(((SolidColorBrush)shell.EffectiveTint).Color.A < 255);
         Assert.Same(centerFill, center.Fill);
-        Assert.Equal(255, ((SolidColorBrush)center.Fill).Color.A);
+        Assert.Equal(1, center.Fill.Opacity);
+        if (center.Fill is GradientBrush gradient)
+            Assert.All(gradient.GradientStops, stop => Assert.Equal(255, stop.Color.A));
+        else Assert.Equal(255, Assert.IsType<SolidColorBrush>(center.Fill).Color.A);
         scene.SetShellState(BackdropState.Solid);
         Assert.Equal(BackdropState.Solid, shell.State);
         Assert.Equal(255, ((SolidColorBrush)shell.EffectiveTint).Color.A);

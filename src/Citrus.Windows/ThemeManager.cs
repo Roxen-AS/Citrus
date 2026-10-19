@@ -41,6 +41,11 @@ internal sealed class ThemeManager : IDisposable
         string[] extraColors = light ? ["#EDF1F6", "#DCE2EA", "#17212B", "#FFF5F7FA", "#FFFFFFFF", "#17212B"]
             : ["#1C222B", "#3C4654", "#FF6B16", "#FF171B22", "#FF2B3441", "#171B22"];
         for (int i=0;i<extraKeys.Length;i++) app.Resources[extraKeys[i]] = new SolidColorBrush((Color)ColorConverter.ConvertFromString(extraColors[i]));
+        // Opaque, static lighting gives the fallback depth without simulating a desktop backdrop.
+        app.Resources["PetalBackground"] = SurfaceGradient(light ? ["#FFFFFF", "#F5F8FC", "#DCE5EF"] : ["#3B4655", "#2B3441", "#222A35"]);
+        app.Resources["PetalRim"] = SurfaceGradient(light ? ["#FFFFFF", "#B7C6D7"] : ["#637187", "#141B24"]);
+        app.Resources["WheelHubBackground"] = SurfaceGradient(light ? ["#DEE7F0", "#EAF0F6", "#F4F7FA"] : ["#161D27", "#1D2632", "#242F3C"]);
+        app.Resources["WheelHubRim"] = SurfaceGradient(light ? ["#B7C6D7", "#FFFFFF"] : ["#101720", "#48566B"]);
         app.Resources["SelectedPetal"] = new SolidColorBrush(Color.FromRgb(255,107,22));
         string[] materialKeys = ["MaterialChromeTint", "MaterialShellTint", "MaterialSpecularTop", "MaterialSpecularBottom", "MaterialInnerEdge", "MaterialOutline"];
         string[] materialColors = light ? ["#24FFFFFF", "#18FFFFFF", "#B3FFFFFF", "#12000000", "#38FFFFFF", "#26000000"] : ["#30202A38", "#28202A38", "#59FFFFFF", "#66000000", "#24FFFFFF", "#66FFFFFF"];
@@ -52,8 +57,8 @@ internal sealed class ThemeManager : IDisposable
         {
             foreach (string key in new[] { "WindowBackground", "PanelBackground", "ControlBackground" }) app.Resources[key] = SystemColors.WindowBrush;
             foreach (string key in new[] { "PrimaryText", "SecondaryText", "ControlText", "ErrorText" }) app.Resources[key] = SystemColors.WindowTextBrush;
-            foreach (string key in new[] { "WheelShell", "PetalBackground", "InsetBackground" }) app.Resources[key] = SystemColors.WindowBrush;
-            foreach (string key in new[] { "BorderBrush", "ActionInk" }) app.Resources[key] = SystemColors.WindowTextBrush;
+            foreach (string key in new[] { "WheelShell", "PetalBackground", "WheelHubBackground", "InsetBackground" }) app.Resources[key] = SystemColors.WindowBrush;
+            foreach (string key in new[] { "BorderBrush", "ActionInk", "PetalRim", "WheelHubRim" }) app.Resources[key] = SystemColors.WindowTextBrush;
             app.Resources["SelectedPetal"] = SystemColors.HighlightBrush;
             app.Resources["SelectedPetalText"] = SystemColors.HighlightTextBrush;
             app.Resources["Accent"] = SystemColors.HighlightBrush;
@@ -67,6 +72,15 @@ internal sealed class ThemeManager : IDisposable
         }
         app.Resources["MotionEnabled"] = !reduceMotion && SystemParameters.ClientAreaAnimation && !highContrast;
         Changed?.Invoke();
+    }
+    private static LinearGradientBrush SurfaceGradient(string[] colors)
+    {
+        var stops = new GradientStopCollection();
+        for (int i = 0; i < colors.Length; i++)
+            stops.Add(new GradientStop((Color)ColorConverter.ConvertFromString(colors[i]), colors.Length == 3 && i == 1 ? .46 : (double)i / (colors.Length - 1)));
+        var brush = new LinearGradientBrush(stops, new Point(0, 0), new Point(0, 1));
+        brush.Freeze();
+        return brush;
     }
     internal void ApplyTypography(double scale)
     {
