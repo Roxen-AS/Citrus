@@ -105,6 +105,8 @@ Execution is divided at an independently testable boundary. **2a** implements ve
 
 ### Task 6: Exact media probe, binary preview, waveform and transport
 
+Execution split: Task6a implements the independently verifiable exact probe/graph/binary decoder/waveform backend; Task6b adds actual Windows WASAPI playback and shared transport after the Glass host is available. Neither split advertises a media editor before the complete host/renderer/transport path is integrated.
+
 **Files:** Create Conversion `Editing/Media/MediaProbe.cs`, `MediaSourceInfo.cs`, `MediaGraphCompiler.cs`, `MediaBinaryDecoder.cs`, `WaveformService.cs`; Windows `Editors/Media/MediaPreviewController.cs`, `WasapiPreviewSink.cs`, `MediaTransport.xaml/.cs`, `WaveformView.cs`; modify MediaProcess with a separate bounded binary process API. Tests: Conversion `MediaProbeFrameTests.cs`, `WaveformTests.cs`; Windows `MediaPlaybackTests.cs`.
 
 **Interfaces:** Exact MediaGraphCompiler.Compile, MediaBinaryDecoder frame/audio methods, WaveformService.BuildAsync and IEditorPlayback from spec. `MediaProbe.InspectAsync(SourceSnapshot,CancellationToken):Task<MediaSourceInfo>` and `ReadFrameTimesAsync(Guid sourceId,int streamIndex,TimeRange sourceRange,int maximumFrames,CancellationToken):Task<ImmutableArray<FrameStamp>>`. Use the spec's authoritative MediaSourceInfo/VideoStreamInfo/AudioStreamInfo records: signed RawStartPts plus seconds-per-tick TimeBase, source-level raw-seconds PresentationOrigin, and FrameStamp(RawPts,SourceOffset). Frame windows contain at most 4096 actual presentation stamps in normalized source time; no ambiguous FrameTimes array or whole-day allocation. MediaGraphPlan/PreviewFrame carry separate SourceFrameRef identity and assembled FrameTime/ActualTime.
