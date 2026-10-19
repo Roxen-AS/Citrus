@@ -33,7 +33,7 @@ def quote(value):
 def instructions(files, root):
     install, delete, checks = [], [], []
     dirs = set()
-    for name in sorted(files):
+    for index, name in enumerate(sorted(files)):
         safe(name)
         relative = name.replace('/', '\\')
         parent = PurePosixPath(name).parent
@@ -41,6 +41,9 @@ def instructions(files, root):
             dirs.add(str(parent)); parent = parent.parent
         folder = str(PurePosixPath(name).parent).replace('/', '\\')
         install += ['SetOutPath "$INSTDIR' + ('' if folder == '.' else '\\' + folder.replace('$','$$')) + '"', 'ClearErrors', 'File ' + quote(root / name), 'IfErrors 0 +2', 'Call Fail']
+        if index == 0:
+            # Only a separately compiled fault-test installer enables this boundary.
+            install += ['!ifdef CITRUS_TEST_FAIL_AFTER_FIRST_FILE', 'SetErrorLevel 25', 'Quit', '!endif']
         delete += ['ClearErrors', 'Delete "$INSTDIR\\' + relative.replace('$','$$') + '"', 'IfErrors 0 +2', 'StrCpy $DeleteFailed 1']
     # Check root, all directory ancestors and owned file paths for reparse points.
     for name in sorted(dirs | set(files), key=lambda n: (n.count('/'), n)):

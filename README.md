@@ -34,6 +34,10 @@ Quit Citrus in every session before installing again or uninstalling. Setup
 aborts on running app processes and never force-kills them. Reinstalling the same
 payload is supported; a different candidate inventory requires uninstalling the
 old version first so its embedded ownership list removes old files safely.
+If first installation is interrupted, fix the underlying disk/access issue and
+rerun the **same candidate**. A durable receipt allows retry; once its embedded
+uninstaller has been written, you can also run
+`%LOCALAPPDATA%\Programs\Citrus\Uninstall.exe` to remove the partial installation.
 Uninstall removes only installer-owned files and shortcuts. Extra outputs under
 the install directory and `%LOCALAPPDATA%\Citrus\settings.json` survive. A retained
 nonempty install directory must be moved aside before a fresh install. See

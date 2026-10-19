@@ -40,6 +40,9 @@ Var ProcessSnapshot
 Var ProcessEntry
 Var DeleteFailed
 Var ExistingInventory
+Var ExistingLocation
+Var RecoveryIdentity
+Var OwnedInstallation
 
 !macro Helpers PREFIX
 Function ${PREFIX}Fail
@@ -201,6 +204,39 @@ Function ${PREFIX}ReleaseGuards
   ${EndIf}
 FunctionEnd
 
+Function ${PREFIX}ReadOwnership
+  StrCpy $OwnedInstallation 0
+  ReadRegStr $ExistingInventory HKCU "Software\Citrus" "PackageInventory"
+  ReadRegStr $ExistingLocation HKCU "Software\Citrus" "InstallLocation"
+  ReadRegStr $RecoveryIdentity HKCU "Software\Citrus" "RecoveryIdentity"
+  ${If} $ExistingInventory != ""
+  ${AndIf} $ExistingInventory != "${INVENTORY_HASH}"
+    Call ${PREFIX}Fail
+  ${EndIf}
+  ${If} $ExistingLocation != ""
+  ${AndIf} $ExistingLocation != $INSTDIR
+    Call ${PREFIX}Fail
+  ${EndIf}
+  ${If} $RecoveryIdentity != ""
+  ${AndIf} $RecoveryIdentity != "$INSTDIR|${INVENTORY_HASH}"
+    Call ${PREFIX}Fail
+  ${EndIf}
+  ${If} $RecoveryIdentity == "$INSTDIR|${INVENTORY_HASH}"
+    StrCpy $OwnedInstallation 1
+    Return
+  ${EndIf}
+  ${If} $ExistingInventory == "${INVENTORY_HASH}"
+  ${AndIf} $ExistingLocation == $INSTDIR
+    StrCpy $OwnedInstallation 1
+    Return
+  ${EndIf}
+  # Partial unrelated/legacy registration without our receipt is not ownership.
+  ${If} $ExistingInventory != ""
+  ${OrIf} $ExistingLocation != ""
+    Call ${PREFIX}Fail
+  ${EndIf}
+FunctionEnd
+
 Function ${PREFIX}CheckInstallPaths
   # Validate every existing ancestor, including LocalAppData and its parents.
   StrCpy $3 $INSTDIR
@@ -221,6 +257,56 @@ FunctionEnd
 !insertmacro Helpers ""
 !insertmacro Helpers "un."
 
+Function CheckDestination
+  Call ReadOwnership
+  ${If} $OwnedInstallation == 0
+    System::Call 'kernel32::GetFileAttributesW(w "$INSTDIR") i.r0'
+    ${If} $0 != -1
+      Call Fail
+    ${EndIf}
+  ${EndIf}
+FunctionEnd
+
+Function FlushOwnership
+  # SetRegView does not affect direct APIs: request HKCU's 64-bit view explicitly.
+  System::Call 'advapi32::RegOpenKeyExW(p 0x80000001, w "Software\Citrus", i 0, i 0x101, *p.r1) i.r0'
+  ${If} $0 != 0
+    Call Fail
+  ${EndIf}
+  System::Call 'advapi32::RegFlushKey(p r1) i.r2'
+  System::Call 'advapi32::RegCloseKey(p r1)'
+  ${If} $2 != 0
+    Call Fail
+  ${EndIf}
+FunctionEnd
+
+Function EstablishOwnership
+  # Single validated receipt is durable BEFORE any install-tree creation.
+  # If writing/flushing it fails, no new directory or ordinary payload exists.
+  ClearErrors
+  WriteRegStr HKCU "Software\Citrus" "RecoveryIdentity" "$INSTDIR|${INVENTORY_HASH}"
+  IfErrors 0 +2
+  Call Fail
+  Call FlushOwnership
+  ClearErrors
+  CreateDirectory "$INSTDIR"
+  IfErrors 0 +2
+  Call Fail
+  SetOutPath "$INSTDIR"
+  ClearErrors
+  WriteUninstaller "$INSTDIR\Uninstall.exe"
+  IfErrors 0 +2
+  Call Fail
+  # A partial/missing uninstaller can be rewritten by the same setup using the
+  # receipt; a complete one already accepts that receipt without these two values.
+  ClearErrors
+  WriteRegStr HKCU "Software\Citrus" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "Software\Citrus" "PackageInventory" "${INVENTORY_HASH}"
+  IfErrors 0 +2
+  Call Fail
+  Call FlushOwnership
+FunctionEnd
+
 Function .onInit
   ${IfNot} ${RunningX64}
     MessageBox MB_OK "Citrus requires Windows x64." /SD IDOK
@@ -233,14 +319,7 @@ Function .onInit
   StrCpy $INSTDIR "$LOCALAPPDATA\Programs\Citrus"
   Call AcquireGuards
   Call CheckInstallPaths
-  ReadRegStr $ExistingInventory HKCU "Software\Citrus" "PackageInventory"
-  ${If} $ExistingInventory == ""
-    IfFileExists "$INSTDIR\*.*" 0 new_install
-    Call Fail
-    new_install:
-  ${ElseIf} $ExistingInventory != "${INVENTORY_HASH}"
-    Call Fail
-  ${EndIf}
+  Call CheckDestination
 FunctionEnd
 Function .onGUIEnd
   Call ReleaseGuards
@@ -251,10 +330,8 @@ Function un.onInit
   ${If} $INSTDIR != "$LOCALAPPDATA\Programs\Citrus"
     Call un.Fail
   ${EndIf}
-  ReadRegStr $0 HKCU "Software\Citrus" "InstallLocation"
-  ReadRegStr $ExistingInventory HKCU "Software\Citrus" "PackageInventory"
-  ${If} $0 != $INSTDIR
-  ${OrIf} $ExistingInventory != "${INVENTORY_HASH}"
+  Call un.ReadOwnership
+  ${If} $OwnedInstallation != 1
     Call un.Fail
   ${EndIf}
   Call un.AcquireGuards
@@ -267,18 +344,14 @@ FunctionEnd
 Section "Citrus (required)" MainSection
   SectionIn RO
   Call CheckInstallPaths
+  Call CheckDestination
+  Call EstablishOwnership
   SetOverwrite on
   !include "${GENERATED}/install.nsh"
-  ClearErrors
-  WriteUninstaller "$INSTDIR\Uninstall.exe"
-  IfErrors 0 +2
-  Call Fail
   ClearErrors
   CreateDirectory "$SMPROGRAMS\Citrus"
   CreateShortcut "$SMPROGRAMS\Citrus\Citrus.lnk" "$INSTDIR\Citrus.Windows.exe"
   CreateShortcut "$SMPROGRAMS\Citrus\Uninstall Citrus.lnk" "$INSTDIR\Uninstall.exe"
-  WriteRegStr HKCU "Software\Citrus" "InstallLocation" "$INSTDIR"
-  WriteRegStr HKCU "Software\Citrus" "PackageInventory" "${INVENTORY_HASH}"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "DisplayName" "Citrus (unsigned candidate)"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "DisplayVersion" "0.1.0-candidate"
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\Citrus" "InstallLocation" "$INSTDIR"

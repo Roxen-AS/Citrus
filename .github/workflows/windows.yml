@@ -44,6 +44,10 @@ jobs:
         run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/windows
       - name: Negative packaging and preservation checks
         run: python packaging/test-package.py dist/Citrus-win-x64
+      - name: Portable first-install recovery contract
+        run: python packaging/test-install-recovery.py
+      - name: Native interrupted first-install recovery
+        run: ./packaging/test-install-recovery.ps1
       - uses: actions/upload-artifact@v4
         if: always()
         with:

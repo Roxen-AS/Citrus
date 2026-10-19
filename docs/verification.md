@@ -63,3 +63,29 @@ Application/installer identities belong to the generated SHA256SUMS, avoiding a
 self-referential checksum embedded inside the installer. The final payload
 includes this record; no native Windows test or manual checkbox is represented
 as passed. Final whole-branch review is a separate delivery gate.
+
+## First-install interruption correction (T8-I1)
+
+Review found that a failure during initial extraction could create a directory
+before recording ownership or writing an uninstaller, stranding subsequent setup.
+Setup now flushes a fixed-root/inventory recovery receipt first, then establishes
+the embedded uninstaller and complete identity before ordinary file extraction.
+Only that matching receipt or a complete matching identity authorizes retry;
+unrelated trees and mismatches remain refused. The receipt also authorizes a
+complete bootstrap uninstaller after partial metadata initialization.
+
+Focused portable evidence: `python3 packaging/test-install-recovery.py` initially
+failed against the prior source after the first payload write. Both tests now
+pass: interruptions at each source-derived bootstrap mutation boundary retain
+a flushed receipt before the directory exists, and a first-file interruption can
+replay the recipe and perform literal owned cleanup while preserving unknown root
+and nested outputs. These tests use real temporary files but substitute registry
+and uninstaller operations. They are **ordering/contract evidence, not native
+NSIS fault-recovery execution**. Unchanged .NET suites were not rerun for this fix.
+
+`packaging/test-install-recovery.ps1` compiles a separate fault-injection installer
+and exercises actual interruption, refusal, retry, payload hashes and uninstall on
+Windows. The full Windows workflow invokes it. Native execution and bootstrap
+failure scenarios remain unchecked in windows-acceptance.md. The actual ordinary
+installer is rebuilt and its payload/checksums verified after the fix; no Windows
+success is inferred from that compilation.

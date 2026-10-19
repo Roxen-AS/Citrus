@@ -53,6 +53,15 @@ The embedded uninstall instructions list literal verified payload paths, not
 paths read from the editable installed manifest. Each parent/file is checked
 for reparse points before deletion, and parent directories are removed only if
 empty. Unknown outputs beneath the installation survive. Settings survive.
+Before creating the install tree, setup writes and flushes a single HKCU receipt
+binding the fixed root to the embedded inventory hash. It then creates the root,
+writes the embedded uninstaller, and flushes the complete identity before ordinary
+payload extraction. A matching receipt permits the same setup to retry after an
+interruption, including a partial/missing bootstrap uninstaller. Once the
+uninstaller is complete, it accepts that receipt even if later identity writes
+were interrupted. Unrelated trees and mismatching receipts/identity still reject.
+The receipt remains until successful uninstall removes the Citrus-owned key.
+
 Same-inventory reinstall is supported; differing inventory requires running the
 old uninstaller first. A first install refuses a pre-existing destination tree.
 These checks assume the current user controls the destination during setup;
@@ -65,3 +74,20 @@ they are not an OS-handle sandbox against same-account races.
 - [ ] App already running (including hidden Home), same-user RDP/other session, and other user's resident: install/uninstall abort without killing work. Identity matches the app's SID/session exactly.
 - [ ] Launch app while installer owns gate: fails clearly without opening resident UI; guard releases on finish/cancel/failure. Installer/uninstaller running concurrently are excluded.
 - [ ] `/S` guard failures exit nonzero without waiting for a dialog. Uninstaller's copied temporary executable and current directory permit clean root removal when empty.
+
+## Native recovery failure-injection procedure — pending
+
+On a disposable Windows account with no Citrus directory or registration, publish
+normally and run `pwsh ./packaging/test-install-recovery.ps1`. The harness compiles
+a separate installer with `CITRUS_TEST_FAIL_AFTER_FIRST_FILE`; the release build
+contains no runtime fault switch. The fault build exits 25 immediately after the
+first successful ordinary payload write. The harness checks strict refusal of an
+unrelated tree and wrong receipt, the partial payload and bootstrapped uninstaller,
+successful retry with the normal installer, every installed payload hash, and
+uninstall preserving root/nested user-output fixtures. It removes only exact
+fixture files and empty directories after success; on failure it retains evidence.
+The complete Windows workflow now runs this harness. It has **not run on Linux**.
+
+- [ ] Execute the native harness on supported Windows and record results, including first-file interruption/retry and unknown-file preservation.
+- [ ] Interrupt during initial receipt write/flush, root creation and uninstaller write (for example with controlled disk/access failures). If no tree was created, ordinary retry works; if a tree exists, the matching receipt permits same-candidate recovery. A partial uninstaller is replaced on retry.
+- [ ] After first-file interruption, run the bootstrapped uninstaller directly without first completing setup; owned partial files are removed and unknown files survive. Native registry flushing, silent exit codes and real disk-full behavior remain pending.
