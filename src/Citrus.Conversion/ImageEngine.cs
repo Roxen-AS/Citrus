@@ -4,12 +4,12 @@ using ImageMagick;
 namespace Citrus.Conversion;
 
 /// <summary>Local, explicitly selected raster decoders. Document delegates are never selected; SVG uses the internal MSVG renderer.</summary>
-public sealed class ImageEngine : IConversionEngine
+public sealed class ImageEngine(OutputWriter? outputWriter = null) : IConversionEngine
 {
     private static IReadOnlyDictionary<string, MagickFormat> Formats => ValidatedImageLoader.Formats;
-    private readonly OutputWriter writer = new();
+    private readonly OutputWriter writer = outputWriter ?? new();
     public IReadOnlyList<OperationDescriptor> Operations { get; } = Array.AsReadOnly(new[] { "png", "jpeg", "webp", "tiff", "bmp", "gif", "avif" }
-        .Select(ext => new OperationDescriptor("image.convert." + ext, ext.ToUpperInvariant(), OperationMode.Convert, "." + ext, false, false))
+        .Select(ext => new OperationDescriptor("image.convert." + ext, ext == "gif" ? "GIF still image" : ext.ToUpperInvariant(), OperationMode.Convert, "." + ext, false, false))
         .Concat(new[]
         {
             new OperationDescriptor("image.resize", "Resize", OperationMode.Tools, null, false, true),

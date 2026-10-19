@@ -68,6 +68,16 @@ public sealed class JobQueue
         return job;
     }
 
+    /// <summary>Records a preflight failure without executing an unreadable item.</summary>
+    public ConversionJob EnqueueFailure(OperationRequest request, Exception error)
+    {
+        var job = new ConversionJob(request);
+        job.SetState(ConversionJobState.Failed, error);
+        job.Complete();
+        Notify(job);
+        return job;
+    }
+
     private async Task RunAsync(ConversionJob job)
     {
         bool acquired = false;

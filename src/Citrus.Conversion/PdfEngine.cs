@@ -10,10 +10,10 @@ using PigDocument = UglyToad.PdfPig.PdfDocument;
 namespace Citrus.Conversion;
 
 /// <summary>Offline PDF creation, structural operations, rendering and text extraction.</summary>
-public sealed class PdfEngine : IConversionEngine
+public sealed class PdfEngine(OutputWriter? outputWriter = null) : IConversionEngine
 {
     private static readonly SemaphoreSlim RenderGate = new(1, 1);
-    private readonly OutputWriter writer = new();
+    private readonly OutputWriter writer = outputWriter ?? new();
     public IReadOnlyList<OperationDescriptor> Operations { get; } = Array.AsReadOnly(new[]
     {
         new OperationDescriptor("images.pdf", "PDF", OperationMode.Convert, ".pdf", true, false),

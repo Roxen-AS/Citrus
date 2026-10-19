@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="../Citrus.Conversion/Citrus.Conversion.csproj" />
     <Resource Include="Resources/Citrus.ico" />
+    <Content Include="../../docs/conversion-interface.md" Link="docs/conversion-interface.md" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../packaging/notices/Magick.NET-15.0.0-Notice.txt" Link="notices/Magick.NET-15.0.0-Notice.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <Target Name="RequireOfflineMediaForPublish" BeforeTargets="PrepareForPublish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">

@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Citrus.Conversion.Tests", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Citrus.Windows", "src\Citrus.Windows\Citrus.Windows.csproj", "{8DEB78A0-AC90-4B89-9D27-2A3EE3667802}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Citrus.Windows.Tests", "tests\Citrus.Windows.Tests\Citrus.Windows.Tests.csproj", "{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,18 @@ Global
 		{8DEB78A0-AC90-4B89-9D27-2A3EE3667802}.Release|x64.Build.0 = Release|Any CPU
 		{8DEB78A0-AC90-4B89-9D27-2A3EE3667802}.Release|x86.ActiveCfg = Release|Any CPU
 		{8DEB78A0-AC90-4B89-9D27-2A3EE3667802}.Release|x86.Build.0 = Release|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Debug|x64.Build.0 = Debug|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Debug|x86.Build.0 = Debug|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Release|x64.ActiveCfg = Release|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Release|x64.Build.0 = Release|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Release|x86.ActiveCfg = Release|Any CPU
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -97,5 +111,6 @@ Global
 		{CE96D878-C4CC-467F-9A70-51BBCFEC6C99} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{0BCC8B72-09E0-4EF1-8FA9-81A0B7B5EB07} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{8DEB78A0-AC90-4B89-9D27-2A3EE3667802} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{CE28EF1E-BF5B-4054-9D20-BE90D0414FBF} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

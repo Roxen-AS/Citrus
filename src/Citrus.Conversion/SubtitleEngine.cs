@@ -6,11 +6,11 @@ using Citrus.Core;
 namespace Citrus.Conversion;
 
 /// <summary>Converts UTF-8 SRT/WebVTT cues without changing the cue text.</summary>
-public sealed class SubtitleEngine : IConversionEngine
+public sealed class SubtitleEngine(OutputWriter? outputWriter = null) : IConversionEngine
 {
     private static readonly Regex Timing = new(@"^(?<start>\S+)\s+-->\s+(?<end>\S+)(?<settings>[^\r\n]*)$", RegexOptions.CultureInvariant);
     private static readonly Regex Timestamp = new(@"^(?:(?<h>[0-9]{2,}):)?(?<m>[0-9]{2}):(?<s>[0-9]{2})[.,](?<ms>[0-9]{3})$", RegexOptions.CultureInvariant);
-    private readonly OutputWriter writer = new();
+    private readonly OutputWriter writer = outputWriter ?? new();
     public IReadOnlyList<OperationDescriptor> Operations { get; } = Array.AsReadOnly(new[]
     {
         new OperationDescriptor("subtitle.vtt", "VTT", OperationMode.Convert, ".vtt", false, false),

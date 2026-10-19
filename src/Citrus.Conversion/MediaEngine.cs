@@ -22,18 +22,19 @@ public sealed class MediaEngine : IConversionEngine
     private readonly MediaProcess process;
     private readonly MediaCapabilities capabilities;
     private readonly Dictionary<string, Preset> routes = new(StringComparer.Ordinal);
-    private readonly OutputWriter writer = new();
+    private readonly OutputWriter writer;
     public IReadOnlyList<OperationDescriptor> Operations { get; }
     public MediaCapabilities Capabilities => capabilities;
-    private MediaEngine(MediaProcess process, MediaCapabilities capabilities)
+    private MediaEngine(MediaProcess process, MediaCapabilities capabilities, OutputWriter? outputWriter)
     {
+        writer = outputWriter ?? new();
         this.process = process; this.capabilities = capabilities;
         var operations = new List<OperationDescriptor>();
         foreach (var preset in Presets.Where(Supported))
         {
             string id = "media.convert." + preset.Extension;
             routes[id] = preset;
-            operations.Add(new(id, preset.Extension.ToUpperInvariant(), OperationMode.Convert, "." + preset.Extension, false, false));
+            operations.Add(new(id, preset.Extension == "gif" ? "GIF animation" : preset.Extension.ToUpperInvariant(), OperationMode.Convert, "." + preset.Extension, false, false));
         }
         if (capabilities.MediaFoundationH264 && Supported(new("mp4", "mp4", "h264_mf", "aac")))
         {
@@ -58,8 +59,8 @@ public sealed class MediaEngine : IConversionEngine
             operations.Add(new(id, label, OperationMode.Tools, "." + extension, false, true));
         }
     }
-    public static async Task<MediaEngine> CreateAsync(MediaProcess process, CancellationToken cancellationToken = default) =>
-        new(process, await process.DiscoverCapabilitiesAsync(cancellationToken).ConfigureAwait(false));
+    public static async Task<MediaEngine> CreateAsync(MediaProcess process, CancellationToken cancellationToken = default, OutputWriter? outputWriter = null) =>
+        new(process, await process.DiscoverCapabilitiesAsync(cancellationToken).ConfigureAwait(false), outputWriter);
     private bool Supported(Preset preset) => capabilities.Muxers.Contains(preset.Muxer) &&
         (preset.VideoEncoder is null || capabilities.Encoders.Contains(preset.VideoEncoder)) &&
         (preset.AudioEncoder is null || capabilities.Encoders.Contains(preset.AudioEncoder));

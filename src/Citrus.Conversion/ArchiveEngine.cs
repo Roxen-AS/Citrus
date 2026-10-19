@@ -14,13 +14,14 @@ public sealed class ArchiveEngine : IConversionEngine
     public const long MaximumExpandedBytes = 20L * 1024 * 1024 * 1024;
     private readonly int maxEntries;
     private readonly long maxExpandedBytes;
-    private readonly OutputWriter writer = new();
+    private readonly OutputWriter writer;
 
     /// <summary>Hosts may lower extraction budgets, but cannot exceed the release safety ceilings.</summary>
-    public ArchiveEngine(int maxEntries = MaximumEntries, long maxExpandedBytes = MaximumExpandedBytes)
+    public ArchiveEngine(int maxEntries = MaximumEntries, long maxExpandedBytes = MaximumExpandedBytes, OutputWriter? outputWriter = null)
     {
         if (maxEntries is < 1 or > MaximumEntries) throw new ArgumentOutOfRangeException(nameof(maxEntries));
         if (maxExpandedBytes is < 1 or > MaximumExpandedBytes) throw new ArgumentOutOfRangeException(nameof(maxExpandedBytes));
+        writer = outputWriter ?? new();
         this.maxEntries = maxEntries;
         this.maxExpandedBytes = maxExpandedBytes;
     }
