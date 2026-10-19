@@ -5,6 +5,11 @@ on:
     paths:
       - tests/native-media/diagnose-task6a.py
       - .github/workflows/media-task6a-diagnostics.yml
+      - src/Citrus.Conversion/MediaProcess.cs
+      - src/Citrus.Conversion/MediaEngine.cs
+      - src/Citrus.Conversion/Editing/Media/**
+      - tests/Citrus.Conversion.Tests/Media*.cs
+      - tests/Citrus.Conversion.Tests/WaveformTests.cs
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,11 +22,32 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+      - name: Bind tests to exact checked-in PE binaries
+        run: |
+          New-Item -ItemType Directory -Force TestResults | Out-Null
+          $ffmpeg = (Resolve-Path packaging/media/win-x64/ffmpeg.exe).Path
+          $ffprobe = (Resolve-Path packaging/media/win-x64/ffprobe.exe).Path
+          "CITRUS_TEST_FFMPEG=$ffmpeg" >> $env:GITHUB_ENV
+          "CITRUS_TEST_FFPROBE=$ffprobe" >> $env:GITHUB_ENV
+          @{
+            head = (git rev-parse HEAD)
+            os = [Environment]::OSVersion.VersionString
+            ffmpeg = @{ path = $ffmpeg; sha256 = (Get-FileHash $ffmpeg -Algorithm SHA256).Hash }
+            ffprobe = @{ path = $ffprobe; sha256 = (Get-FileHash $ffprobe -Algorithm SHA256).Hash }
+          } | ConvertTo-Json -Depth 3 | Set-Content TestResults/media-product-identity.json
+      - name: Locked focused test build
+        run: dotnet build tests/Citrus.Conversion.Tests -c Release -p:RestoreLockedMode=true -m:1 -nodeReuse:false
+      - name: All media backend and WAVE regression cases
+        run: dotnet test tests/Citrus.Conversion.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~MediaProbeFrameTests|FullyQualifiedName~MediaProbeTimestampTests|FullyQualifiedName~MediaBinaryProcessTests|FullyQualifiedName~WaveformTests|FullyQualifiedName~MediaPreviewReviewTests|FullyQualifiedName~MediaWaveInputTests' --logger trx --results-directory TestResults/media-product
       - name: Capture exact bundled executable fixture bytes and timestamps
+        if: always()
         run: python tests/native-media/diagnose-task6a.py --ffmpeg packaging/media/win-x64/ffmpeg.exe --ffprobe packaging/media/win-x64/ffprobe.exe --output TestResults/media-task6a-diagnostics
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: media-task6a-diagnostics
-          path: TestResults/media-task6a-diagnostics/
+          path: TestResults/
           if-no-files-found: error
