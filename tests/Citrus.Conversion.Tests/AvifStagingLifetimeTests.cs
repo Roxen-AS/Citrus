@@ -9,13 +9,15 @@ namespace Citrus.Conversion.Tests;
 /// <summary>Phase diagnostics for the native Windows AVIF sharing violation. No retries.</summary>
 public sealed class AvifStagingLifetimeTests(ITestOutputHelper output)
 {
+    // Initialize the application's native policy before any diagnostic fixture uses Magick.
+    private readonly ImageEngine engine = new();
+
     [Fact]
     public async Task Production_avif_pipeline_releases_each_output_for_immediate_move_and_delete()
     {
         string root = CreateRoot();
         try
         {
-            var engine = new ImageEngine();
             string source = CreateSource(root);
             var operation = engine.Operations.Single(operation => operation.Id == "image.convert.avif");
             for (int iteration = 0; iteration < 16; iteration++)
@@ -35,7 +37,8 @@ public sealed class AvifStagingLifetimeTests(ITestOutputHelper output)
     }
 
     [Theory]
-    [InlineData("filename")]
+    // Filename decoding is known to inherit a handle into concurrent children. Its deterministic
+    // positive control is AvifHandleInheritanceTests' filename-control in Citrus.Windows.Tests.
     [InlineData("stream")]
     [InlineData("bytes")]
     public async Task Avif_staging_is_released_at_encode_verify_and_commit_boundaries(string verification)
@@ -69,9 +72,7 @@ public sealed class AvifStagingLifetimeTests(ITestOutputHelper output)
                         }
                         else
                         {
-                            using var check = verification == "bytes"
-                                ? new MagickImage(await File.ReadAllBytesAsync(staging, token), settings)
-                                : new MagickImage(staging, settings);
+                            using var check = new MagickImage(await File.ReadAllBytesAsync(staging, token), settings);
                             AssertDimensions(check);
                         }
                         phase = "exclusive open after verifier disposal";
