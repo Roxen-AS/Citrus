@@ -25,4 +25,7 @@ jobs:
         if: always()
         with:
           name: windows-desktop-test-results
-          path: TestResults
+          path: |
+            TestResults/**
+            **/TestResults/**
+          if-no-files-found: warn

@@ -136,3 +136,43 @@ This verification text is finalized before the corrected candidate's single
 installer and generates SHA256SUMS. Artifact-specific identities remain in that
 manifest and the delivery report, outside the embedded documentation. The media
 recipe, notices, binary assets and corresponding source archive are unchanged.
+
+
+## Interface visual evidence harness (Task 4)
+
+The native test project now captures the production WheelWindow and MainWindow
+with the actual App resource dictionaries and ThemeManager. The wheel uses physical
+image fixtures, real Image/Archive/PDF catalog eligibility and FilePreviewService;
+synthetic routed WPF callbacks drive entry, hover and timed page navigation. No
+production rendering hooks, replacement artwork, OS setting changes or conversion
+execution are involved. Assertions cover visible bounds, fixed hover geometry,
+retained petal identity, clean reuse, batch count and partial page state. Existing
+callback-level OLE effect/release-order tests remain distinct from physical Explorer
+acceptance; no duplicate tests are presented as additional native input evidence.
+
+Both Windows workflows upload recursive `**/TestResults/**` under `if: always()`.
+PNG/JSON files reside in `TestResults/visual` relative to the test process, while
+TRX files use the command's results directory. This also collects older workspace
+artifacts below `tests/Citrus.Windows.Tests/bin/.../TestResults/workspace`.
+
+Images span light/dark and 100/150/200% **raster export scales**. JSON records actual
+visual DPI and OS high-contrast/animation capabilities. No monitor DPI or system
+accessibility setting is changed. High contrast is exercised only if already
+active. The hover JSON records warm synchronous callback time and dispatcher-thread
+allocation without timing thresholds or frame-pacing claims. It excludes native
+OLE initiation, rasterization/composition, preview decode and other-thread memory.
+
+Native rendering and new-test behavioral red/green are **pending Windows execution**;
+Linux compilation cannot produce these WPF images. Actual Explorer, mixed-monitor
+DPI, animation, sound and accessibility checks remain in windows-acceptance.md.
+Earlier verification counts above belong to their named candidate revisions and
+are not a native pass claim for this harness. Packaging and installer generation
+are unchanged by Task 4 and remain separate controller delivery checks.
+
+Workspace file names contain the **requested** window size. The window can be
+clamped by the hosted desktop; JSON records requested size, actual window/content
+size, actual DPI and monitor bounds/work area. Adaptive inspector placement is
+checked against actual window width, matching the production breakpoint. These
+images do not establish the 1180 DIP layout unless the recorded actual width is
+1180; inspect that layout on a sufficiently large native desktop. No offscreen
+layout substitute or altered OS display setting is used.

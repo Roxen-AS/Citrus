@@ -11,7 +11,7 @@ Explorer, accessibility and clean-machine checks.
 - [ ] Explorer physical image drag → tap Shift → real wheel → PNG drop → valid new copy; source hash and location unchanged.
 - [ ] Escape, neutral center, outside drop, navigation-target drop, canceled dialog: no outputs. Unsupported text/window/virtual/offline-or-recall-cloud drags never enqueue. Unconfirmed capture times out in 750 ms.
 - [ ] Shift held before drag, tapped during drag, released after opening; Alt/Control mode switching; latest key wins and tap-and-latch persists.
-- [ ] More than eight choices: arrows switch after 400 ms hover. Wheel remains anchored and hit-testable at all screen corners.
+- [ ] More than nine choices: arrows switch after 400 ms hover. Wheel remains anchored and hit-testable at all screen corners.
 - [ ] Desktop and Explorer multiple files; folders Actions only; 100/150/200% DPI, mixed-DPI monitors and negative monitor coordinates.
 - [ ] Pause/remap gestures; ordinary Explorer move/copy and normal text selection continue working.
 
@@ -93,3 +93,44 @@ The complete Windows workflow now runs this harness. It has **not run on Linux**
 - [ ] Execute the native harness on supported Windows and record results, including first-file interruption/retry and unknown-file preservation.
 - [ ] Interrupt during initial receipt write/flush, root creation and uninstaller write (for example with controlled disk/access failures). If no tree was created, ordinary retry works; if a tree exists, the matching receipt permits same-candidate recovery. A partial uninstaller is replaced on retry.
 - [ ] After first-file interruption, run the bootstrapped uninstaller directly without first completing setup; owned partial files are removed and unknown files survive. Native registry flushing, silent exit codes and real disk-full behavior remain pending.
+
+## Interface evidence harness — native execution pending
+
+Run `dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore
+--logger trx --results-directory TestResults/windows` on Windows after the locked
+Release build. Both Windows workflows always collect `**/TestResults/**`, including
+artifacts below the test executable's working directory, even when assertions fail.
+
+`TestResults/visual` contains actual production WPF wheel and workspace PNGs and
+JSON sidecars. Wheel states cover an admitted folder with no Convert choices,
+first page, selected petal, batch badge/real decoded image, and partial second
+page reached through the 400 ms navigation timer. Clean reuse checks that the next
+unconfirmed capture has no stale petals, caption or preview. Bounds and retained
+identity assertions supplement image inspection; they do not establish visual parity.
+The workspace matrix covers 1180×820 and 860×640, light/dark, before/after scrolling
+the actual inspector Run button into view.
+
+Exports at 100%, 150% and 200% are **RenderTargetBitmap raster scales of the current
+WPF layout**, not actual native DPI transitions. Sidecars record actual visual DPI,
+OS high contrast, animation capability and requested theme. High contrast overrides
+light/dark when already enabled; the harness never changes system settings and
+cannot claim high-contrast coverage when the runner has it disabled.
+`wheel-hover-performance.json` reports five warm repeated-hover samples, dispatcher
+thread allocation and elapsed time. Preallocated synthetic routed events exercise
+real hit testing and selection with motion/audio disabled. The measurements exclude
+COM/OLE initiation, rendering/composition and other threads; no FPS or latency
+threshold is asserted.
+
+- [ ] Inspect every PNG at both palettes and each export scale; confirm petal gutters, caption, icons, thumbnail, badge, navigation and workspace controls are readable and unclipped. Record artifact/run/commit identity and actual observations.
+- [ ] On a high-contrast Windows session, rerun the suite and inspect the system-brush renders; verify keyboard focus and screen-reader names. Record the actual OS setting rather than relabeling a light/dark image.
+- [ ] Use actual 100/150/200% displays and mixed-DPI monitors, including negative coordinates; confirm hit geometry, wheel anchor, initial presentation and monitor transitions. Raster-scale exports do not satisfy this item.
+- [ ] Drag actual Explorer files with preheld/tapped Shift/Control, release before/after OLE Drop, Escape, leave/reentry and ordinary range/marquee selection. Confirm no unwanted full wheel, payload changes, focus stealing or duplicate submissions. Existing WheelInteractionTests use synthetic routed WPF callbacks and do not satisfy this item.
+- [ ] On an animation-capable desktop, inspect opening/hover/dismissal and optional audio; profile actual input-to-presentation latency separately from the warm callback metrics.
+
+Workspace file names contain the **requested** window size. The window can be
+clamped by the hosted desktop; JSON records requested size, actual window/content
+size, actual DPI and monitor bounds/work area. Adaptive inspector placement is
+checked against actual window width, matching the production breakpoint. These
+images do not establish the 1180 DIP layout unless the recorded actual width is
+1180; inspect that layout on a sufficiently large native desktop. No offscreen
+layout substitute or altered OS display setting is used.

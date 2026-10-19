@@ -16,10 +16,19 @@ namespace Citrus.Windows.Tests;
 public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
 {
     [Theory]
-    [InlineData(1180, 820, ThemeChoice.Light)]
-    [InlineData(860, 640, ThemeChoice.Light)]
-    [InlineData(1180, 820, ThemeChoice.Dark)]
-    public Task Workspace_renders_and_inspector_remains_reachable(int width, int height, ThemeChoice theme) => desktop.RunAsync(async () =>
+    [InlineData(1180, 820, ThemeChoice.Light, 1d)]
+    [InlineData(1180, 820, ThemeChoice.Light, 1.5d)]
+    [InlineData(1180, 820, ThemeChoice.Light, 2d)]
+    [InlineData(1180, 820, ThemeChoice.Dark, 1d)]
+    [InlineData(1180, 820, ThemeChoice.Dark, 1.5d)]
+    [InlineData(1180, 820, ThemeChoice.Dark, 2d)]
+    [InlineData(860, 640, ThemeChoice.Light, 1d)]
+    [InlineData(860, 640, ThemeChoice.Light, 1.5d)]
+    [InlineData(860, 640, ThemeChoice.Light, 2d)]
+    [InlineData(860, 640, ThemeChoice.Dark, 1d)]
+    [InlineData(860, 640, ThemeChoice.Dark, 1.5d)]
+    [InlineData(860, 640, ThemeChoice.Dark, 2d)]
+    public Task Workspace_renders_and_inspector_remains_reachable(int width, int height, ThemeChoice theme, double scale) => desktop.RunAsync(async () =>
     {
         using var files = new NativeFiles();
         string path = Path.Combine(files.Root, "sample.png");
@@ -37,18 +46,19 @@ public sealed class WorkspaceRenderingTests(DesktopFixture desktop)
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             window.UpdateLayout();
             var inspector = (FrameworkElement)window.FindName("Inspector");
-            Assert.Equal(width < 1080 ? 1 : 2, Grid.GetColumn(inspector));
-            Assert.True(((System.Windows.Controls.Button)window.FindName("RunButton")).IsEnabled);
             var root = (FrameworkElement)window.Content;
-            string artifacts = Path.Combine(Environment.CurrentDirectory, "TestResults", "workspace"); Directory.CreateDirectory(artifacts);
-            var render = new RenderTargetBitmap((int)root.ActualWidth, (int)root.ActualHeight, 96, 96, PixelFormats.Pbgra32);
-            render.Render(root);
-            var png = new PngBitmapEncoder(); png.Frames.Add(BitmapFrame.Create(render));
-            using (var stream = File.Create(Path.Combine(artifacts, $"workspace-{width}x{height}-{theme}.png"))) png.Save(stream);
+            var requested = new { requestedWindowWidthDip = width, requestedWindowHeightDip = height };
+            string artifact = $"workspace-requested-{width}x{height}-{theme}-{scale * 100:0}pct-raster";
+            VisualArtifacts.Capture(root, artifact, scale, theme, requested);
+            // HWND size may be clamped to the hosted desktop work area. Production adapts to ActualWidth.
+            Assert.Equal(window.ActualWidth < 1080 ? 1 : 2, Grid.GetColumn(inspector));
+            Assert.True(((System.Windows.Controls.Button)window.FindName("RunButton")).IsEnabled);
             var run = (FrameworkElement)window.FindName("RunButton"); run.BringIntoView();
             await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
             var position = run.TransformToAncestor(root).Transform(new System.Windows.Point(0, 0));
+            VisualArtifacts.Capture(root, artifact + "-inspector", scale, theme, requested);
             Assert.InRange(position.Y, 0, root.ActualHeight - run.ActualHeight + 1);
+            VisualArtifacts.AssertInside(run, root);
         }
         finally { window.Dispose(); window.Close(); themes.Apply(ThemeChoice.Light, reduceMotion: true); }
     });
