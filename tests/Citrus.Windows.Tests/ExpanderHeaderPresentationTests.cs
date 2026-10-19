@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -64,13 +65,31 @@ public sealed class ExpanderHeaderPresentationTests(DesktopFixture desktop)
                 expand.Expand(); Assert.True(expanders[i].IsExpanded);
                 expand.Collapse(); Assert.False(expanders[i].IsExpanded);
             }
-            Assert.True(AccessKeyManager.IsKeyRegistered(window, "B"));
+            // AccessKeyManager's default registration scope is the PresentationSource, not Window.
+            // An explicit scope also avoids relying on whichever OS window happens to be active.
+            var source = PresentationSource.FromVisual(window);
+            Assert.NotNull(source);
+            var mnemonic = Assert.Single(Descendants<AccessText>(expanders[1]), text => text.Text == "_Batch settings");
+            Assert.Same(source, PresentationSource.FromVisual(mnemonic));
+            var route = new AccessKeyPressedEventArgs("B");
+            mnemonic.RaiseEvent(route);
+            var target = Assert.IsAssignableFrom<ToggleButton>(route.Target);
+            Assert.Contains(target, Descendants<ToggleButton>(expanders[1]));
+            Assert.True(AccessKeyManager.IsKeyRegistered(source, "B"));
+            // ProcessKey is WPF's documented access-key dispatch API; no OS keyboard input is injected.
+            AccessKeyManager.ProcessKey(source, "B", false);
+            Assert.True(expanders[1].IsExpanded);
+            Assert.False(expanders[0].IsExpanded); Assert.False(expanders[2].IsExpanded);
+            Assert.False(objectHeader.IsExpanded);
+            AccessKeyManager.ProcessKey(source, "B", false);
+            Assert.False(expanders[1].IsExpanded);
             Assert.Same(custom, objectHeader.Header);
             Assert.Contains(custom, Descendants<TextBlock>(objectHeader));
             Assert.Equal(FontWeights.SemiBold, custom.FontWeight);
             Assert.Same(expectedInk, custom.Foreground);
             VisualArtifacts.Capture(panel, $"expander-Dark-text{scale * 100:0}{(highContrast ? "-HC" : "")}", 1, ThemeChoice.Dark,
-                new { actualTextScale = scale, forcedHighContrastPalette = highContrast, customHeaderPreserved = true });
+                new { actualTextScale = scale, forcedHighContrastPalette = highContrast, customHeaderPreserved = true, accessKeyScope = source.GetType().FullName,
+                    accessKeyDispatch = "Explicit WPF PresentationSource; Batch Expander only; no OS input" });
         }
         finally { window.Close(); theme.ApplyTypography(1); theme.Apply(ThemeChoice.Light, true); }
     });
