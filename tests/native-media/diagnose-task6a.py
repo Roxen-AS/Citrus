@@ -41,7 +41,8 @@ def inspect(label, path, input_args=()):
     if not path.exists():
         return
     run(label + '-probe', ffprobe, ['-v', 'error', '-protocol_whitelist', 'file,pipe',
-        *input_args, '-show_streams', '-show_format', '-show_frames', '-show_packets',
+        *(['-f', 's16le', '-sample_rate', '48000', '-ch_layout', 'mono'] if input_args else []),
+        '-show_streams', '-show_format', '-show_frames', '-show_packets',
         '-of', 'json', path])
     run(label + '-pcm', ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'info',
         '-protocol_whitelist', 'file,pipe', *input_args, '-i', path, '-map', '0:a:0?',
