@@ -1,5 +1,10 @@
 name: Task6a bundled media diagnostics
 on:
+  push:
+    branches: [citrus/media-native-fix]
+    paths:
+      - tests/native-media/diagnose-task6a.py
+      - .github/workflows/media-task6a-diagnostics.yml
   workflow_dispatch:
 permissions:
   contents: read
