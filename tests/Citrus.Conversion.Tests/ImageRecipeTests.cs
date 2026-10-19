@@ -8,6 +8,7 @@ using ImageMagick;
 
 namespace Citrus.Conversion.Tests;
 
+[Collection(SharedPreviewSchedulerCollection.Name)]
 public sealed class ImageRecipeTests : IDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "citrus-image-tests-" + Guid.NewGuid().ToString("N"));
@@ -180,7 +181,7 @@ public sealed class ImageRecipeTests : IDisposable
     public async Task Unsupported_features_invalid_crop_and_byte_targets_fail_before_payload()
     {
         var doc = await Fixture(); using var renderer = Renderer();
-        var invalid = new[] { doc with { Recipe = Recipe(doc) with { Geometry = new(0, false, false, new(6, 0, 3, 2), null, false) } }, doc with { Export = doc.Export with { Compression = new ByteGoal(1000) } }, doc with { Recipe = Recipe(doc) with { Canvas = new(new(7, 5), new TransparentBackground(), new(0, 0, 7, 5), ImageFit.Contain, 0, null) } }, doc with { Recipe = Recipe(doc) with { Masks = [new(Guid.NewGuid(), new(0, 0, 1, 1), MaskEffect.Solid, new(0, 0, 0, 255), 0)] } } };
+        var invalid = new[] { doc with { Recipe = Recipe(doc) with { Geometry = new(0, false, false, new(6, 0, 3, 2), null, false) } }, doc with { Export = doc.Export with { Compression = new ByteGoal(1000) } }, doc with { Recipe = Recipe(doc) with { Canvas = new(new(7, 5), new TransparentBackground(), new(0, 0, 7, 5), ImageFit.Contain, 0, null) } }, doc with { Recipe = Recipe(doc) with { Masks = [new(Guid.NewGuid(), new(6, 4, 2, 2), MaskEffect.Solid, new(0, 0, 0, 255), 0)] } } };
         foreach (var item in invalid) { string stage = PathIn(Guid.NewGuid().ToString()); await Assert.ThrowsAnyAsync<Exception>(() => renderer.RenderExportAsync(item, stage, null, default)); Assert.False(Directory.Exists(Path.Combine(stage, "payload"))); }
     }
 
@@ -358,7 +359,7 @@ public sealed class ImageRecipeTests : IDisposable
     public async Task Unsupported_annotations_metadata_and_reduction_goal_are_explicit_errors()
     {
         var doc = await Fixture(); using var renderer = Renderer();
-        var unsupported = new[] { doc with { Export = doc.Export with { Compression = new ReductionGoal(20) } }, doc with { Recipe = Recipe(doc) with { Annotations = [new(Guid.NewGuid(), false, new ShapeGeometry(new(0, 0, 2, 2), false, 0), new(new(1, 2, 3, 255), new(4, 5, 6, 255), 1, 1, null))] } }, doc with { Recipe = Recipe(doc) with { MetadataEdits = [new("exif", "Artist", MetadataEditAction.Remove, null)] } } };
+        var unsupported = new[] { doc with { Export = doc.Export with { Compression = new ReductionGoal(20) } }, doc with { Recipe = Recipe(doc) with { MetadataEdits = [new("exif", "Artist", MetadataEditAction.Remove, null)] } } };
         foreach (var item in unsupported) await Assert.ThrowsAsync<NotSupportedException>(() => renderer.RenderPreviewAsync(item, Preview(), default));
         await Assert.ThrowsAsync<ArgumentException>(() => renderer.RenderPreviewAsync(doc with { Recipe = Recipe(doc) with { Geometry = new(0, false, false, null, new(8, 5), false) } }, Preview(), default));
         await Assert.ThrowsAsync<ArgumentException>(() => renderer.RenderPreviewAsync(doc with { Recipe = Recipe(doc) with { Geometry = new(0, false, false, new(4, 0, 3, 5), null, false) } }, Preview(new(0, 0, 2, 2)), default));

@@ -46,7 +46,7 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
             return await Task.Run(async () =>
             {
                 ct.ThrowIfCancellationRequested(); ImageRasterSource.CheckAvailable(document.Sources);
-                string key = string.Join("|", document.Sources.Select(s => $"{s.Id}:{s.Length}:{s.Sha256}:{s.Path}"));
+                string key = ((ImageRecipe)document.Recipe).SourceId + "|" + string.Join("|", document.Sources.Select(s => $"{s.Id}:{s.Length}:{s.Sha256}:{s.Path}"));
                 var recipe = (ImageRecipe)document.Recipe;
                 if (!cached.TryGetValue(key, out var staged))
                 {
@@ -55,7 +55,9 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
                     try
                     {
                         var paths = await sources.StageVerifiedAsync(document.Sources, scope, ct).ConfigureAwait(false);
-                        var size = ImageRasterSource.Inspect(paths[recipe.SourceId], ct); ct.ThrowIfCancellationRequested();
+                        var size = ImageRasterSource.Inspect(paths[recipe.SourceId], ct);
+                        foreach (var source in document.Sources.Where(s => s.Id != recipe.SourceId)) ImageRasterSource.Inspect(paths[source.Id], ct);
+                        ct.ThrowIfCancellationRequested();
                         while (cached.Count >= 4)
                         {
                             var oldest = cached.MinBy(pair => pair.Value.LastUse); workingCache.RemoveSource(oldest.Key);
@@ -76,15 +78,25 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
                 Observe(new((int)image.Width, (int)image.Height));
                 if (approximate) ImageAdjustmentsPipeline.ApplyScaled(image, recipe, sourceSize, ct, Math.Sqrt(workSize.Width / crop.Width * (workSize.Height / crop.Height)));
                 else ImageAdjustmentsPipeline.Apply(image, recipe, sourceSize, ct);
+                PixelMaskRenderer.Apply(image, recipe, sourceSize, ct);
                 SizeI renderedSize = approximate ? Fit(outputSize, workSize) : outputSize;
                 if (image.Width != renderedSize.Width || image.Height != renderedSize.Height) Resize(image, renderedSize);
+                string fontScope = Path.Combine(cacheDirectory, "font-render-" + Guid.NewGuid().ToString("N"));
+                try
+                {
+                    var fonts = await new FontArtifactService().StageVerifiedAsync(document.Fonts, fontScope, ct).ConfigureAwait(false);
+                    FontTextValidator.ValidateDocument(document, fonts, ct);
+                    AnnotationRasterizer.Apply(document, image, outputSize, staged.Paths, fonts, ct);
+                }
+                finally { if (Directory.Exists(fontScope)) Directory.Delete(fontScope, true); }
+                PixelMaskRenderer.RemoveOriginalMetadata(image, recipe);
                 PrepareOutput(image, document.Export);
                 if (request.SourceTile is { } tile) CropDetail(image, recipe, sourceSize, tile);
                 double scale = Math.Min(1, Math.Min(request.Bounds.Width / (double)image.Width, request.Bounds.Height / (double)image.Height));
                 if (scale < 1) image.Resize(new MagickGeometry((uint)Math.Max(1, Math.Floor(image.Width * scale)), (uint)Math.Max(1, Math.Floor(image.Height * scale))) { IgnoreAspectRatio = true });
                 ct.ThrowIfCancellationRequested();
                 byte[] bytes = image.GetPixels().ToByteArray(PixelMapping.BGRA)!;
-                return new PreviewFrame(document.Revision, request.Generation, new((int)image.Width, (int)image.Height), checked((int)image.Width * 4), ImmutableArray.CreateRange(bytes), null, null, approximate ? ["Scaled preview; use a 100% source detail tile or export for exact pixels."] : []);
+                return new PreviewFrame(document.Revision, request.Generation, new((int)image.Width, (int)image.Height), checked((int)image.Width * 4), ImmutableArray.CreateRange(bytes), null, null, PixelMaskRenderer.Warnings(recipe).AddRange(approximate ? new[] { "Scaled preview; use a 100% source detail tile or export for exact pixels." } : Array.Empty<string>()));
             }, ct).ConfigureAwait(false);
         }
         finally { serial.Release(); }
@@ -106,7 +118,12 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
                 var staged = await sources.StageVerifiedAsync(document.Sources, root, ct).ConfigureAwait(false);
                 var recipe = (ImageRecipe)document.Recipe;
                 progress?.Report(new(null, "Rendering original pixels"));
-                using var image = Render(document, staged[recipe.SourceId], ct, out _);
+                var fonts = await new FontArtifactService().StageVerifiedAsync(document.Fonts, root, ct).ConfigureAwait(false);
+                FontTextValidator.ValidateDocument(document, fonts, ct);
+                foreach (var source in document.Sources.Where(s => s.Id != recipe.SourceId)) ImageRasterSource.Inspect(staged[source.Id], ct);
+                using var image = RenderBeforeAnnotations(document, staged[recipe.SourceId], ct, out _);
+                AnnotationRasterizer.Apply(document, image, new((int)image.Width, (int)image.Height), staged, fonts, ct);
+                PixelMaskRenderer.RemoveOriginalMetadata(image, recipe);
                 PrepareOutput(image, document.Export);
                 string payload = Path.Combine(root, "payload"); Directory.CreateDirectory(payload);
                 string name = "image." + document.Export.FormatId, path = Path.Combine(payload, name);
@@ -115,12 +132,12 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
                 await image.WriteAsync(path, ImageRasterSource.Format(document.Export.FormatId), ct).ConfigureAwait(false);
                 ct.ThrowIfCancellationRequested();
                 long bytes = new FileInfo(path).Length;
-                return new StagedExport(ExportShape.File, [new(name, bytes)], new(document.Sources.Single(s => s.Id == recipe.SourceId).Length, bytes, null, true, 1), []);
+                return new StagedExport(ExportShape.File, [new(name, bytes)], new(document.Sources.Single(s => s.Id == recipe.SourceId).Length, bytes, null, true, 1), PixelMaskRenderer.Warnings(recipe));
             }, ct).ConfigureAwait(false);
         }
         catch
         {
-            foreach (string name in new[] { "sources", "payload" }) { string path = Path.Combine(root, name); if (Directory.Exists(path)) Directory.Delete(path, true); }
+            foreach (string name in new[] { "sources", "fonts", "payload" }) { string path = Path.Combine(root, name); if (Directory.Exists(path)) Directory.Delete(path, true); }
             if (createdRoot && Directory.Exists(root) && !Directory.EnumerateFileSystemEntries(root).Any()) Directory.Delete(root);
             throw;
         }
@@ -131,14 +148,17 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
         var errors = EditorRecipeValidator.Validate(document);
         if (!errors.IsEmpty) throw new ArgumentException(string.Join(" ", errors.Select(e => $"{e.FieldPath}: {e.Message}")));
         if (document.Recipe is not ImageRecipe recipe) throw new NotSupportedException("An image recipe is required.");
-        if (recipe.Canvas is not null || !recipe.Annotations.IsEmpty || !recipe.Masks.IsEmpty || !recipe.MetadataEdits.IsEmpty || !document.Fonts.IsEmpty) throw new NotSupportedException("Canvas, annotations, masks and metadata edits are not available in this renderer yet.");
+        if (recipe.Canvas is not null || !recipe.MetadataEdits.IsEmpty) throw new NotSupportedException("Canvas and metadata edits are not available in this renderer yet.");
         if (document.Export.Compression is not QualityGoal) throw new NotSupportedException("Measured byte/reduction targets are not available yet. Choose a quality value.");
         ImageRasterSource.Format(document.Export.FormatId);
-        if (document.Sources.Length != 1 || document.Sources[0].Id != recipe.SourceId) throw new ArgumentException("This renderer requires exactly one root source.");
+        var referenced = recipe.Annotations.Select(a => a.Geometry).OfType<InsetImageGeometry>().Select(i => i.SourceId).Append(recipe.SourceId).ToHashSet();
+        if (document.Sources.Any(s => !referenced.Contains(s.Id))) throw new ArgumentException("Image sources must be the root or referenced inset images.");
+        foreach (var layer in recipe.Annotations)
+            if (layer.Geometry is TextGeometry text && (!double.IsFinite(text.Origin.X) || !double.IsFinite(text.Origin.Y) || text.Origin.X is < -16384 or > 32768 || text.Origin.Y is < -16384 or > 32768)) throw new ArgumentException("Text origin must be finite and in canvas coordinate bounds.");
         if (document.Export.Matte.A != 255 && document.Export.FormatId is "jpg" or "jpeg" or "bmp" or "gif") throw new ArgumentException("This output format requires an opaque matte.");
         return recipe;
     }
-    private static MagickImage Render(EditorDocument document, string source, CancellationToken ct, out SizeI sourceSize)
+    internal static MagickImage RenderBeforeAnnotations(EditorDocument document, string source, CancellationToken ct, out SizeI sourceSize)
     {
         var recipe = (ImageRecipe)document.Recipe; var image = ImageRasterSource.Load(source, ct);
         try
@@ -148,6 +168,7 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
             if (recipe.Geometry.QuarterTurns != 0) image.Rotate(90 * recipe.Geometry.QuarterTurns);
             image.Crop(new MagickGeometry((int)crop.X, (int)crop.Y, (uint)crop.Width, (uint)crop.Height)); image.ResetPage();
             ImageAdjustmentsPipeline.Apply(image, recipe, sourceSize, ct);
+            PixelMaskRenderer.Apply(image, recipe, sourceSize, ct);
             if (image.Width != size.Width || image.Height != size.Height) { image.FilterType = FilterType.Lanczos; image.Resize(new MagickGeometry((uint)size.Width, (uint)size.Height) { IgnoreAspectRatio = true }); }
             ct.ThrowIfCancellationRequested(); return image;
         }
@@ -173,7 +194,7 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
         }
         catch { image.Dispose(); throw; }
     }
-    private static void CropDetail(MagickImage image, ImageRecipe recipe, SizeI sourceSize, RectD tile)
+    internal static void CropDetail(MagickImage image, ImageRecipe recipe, SizeI sourceSize, RectD tile)
     {
         if (!double.IsFinite(tile.X) || !double.IsFinite(tile.Y) || !double.IsFinite(tile.Width) || !double.IsFinite(tile.Height) || tile.Width <= 0 || tile.Height <= 0 || tile.X < 0 || tile.Y < 0 || tile.X + tile.Width > sourceSize.Width || tile.Y + tile.Height > sourceSize.Height) throw new ArgumentException("Detail tile must fit normalized source-plane S.");
         PointD[] corners = [new(tile.X, tile.Y), new(tile.X + tile.Width, tile.Y), new(tile.X, tile.Y + tile.Height), new(tile.X + tile.Width, tile.Y + tile.Height)];

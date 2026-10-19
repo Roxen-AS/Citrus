@@ -1,0 +1,14 @@
+Citrus image annotation backend
+
+Image annotations use a direct, exact SkiaSharp 4.150.1 reference, matching the
+already packaged PDF rendering dependency. The native Windows payload and package
+hashes remain those recorded in pdf-backend.lock.json; no additional runtime or
+font download is used. SkiaSharp is MIT, with bundled third-party components.
+
+The complete existing license and third-party notices are distributed at:
+  notices/pdf-licenses/SkiaSharp-4.150.1-LICENSE.txt
+  notices/pdf-licenses/SkiaSharp-4.150.1-THIRD-PARTY-NOTICES.txt
+
+User-selected static fonts are verified private rendering inputs, not output
+assets. No system fallback face is selected. The tiny CC0 fonts under the test
+fixtures are original generated test data and are not included in app output.

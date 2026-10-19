@@ -7,6 +7,7 @@ using ImageMagick;
 
 namespace Citrus.Conversion.Tests;
 
+[Collection(SharedPreviewSchedulerCollection.Name)]
 public sealed class ImagePreviewPerformanceTests : IDisposable
 {
     private readonly string root = Path.Combine(Path.GetTempPath(), "citrus-preview-work-" + Guid.NewGuid().ToString("N"));

@@ -26,6 +26,8 @@ public sealed class ImageEditorPayloadValidator : IEditorPayloadValidator
         if (image.Width != expected.Width || image.Height != expected.Height || image.Orientation is not (Orientation.Undefined or Orientation.TopLeft)) throw new InvalidDataException("Output pixels are not orientation-normalized.");
         if (document.Export.FormatId is "jpg" or "jpeg" or "bmp" or "gif" && image.HasAlpha) throw new InvalidDataException("Opaque output unexpectedly retained alpha.");
         ValidateMetadata(image, document.Export.Metadata);
+        if (recipe.Masks.Any(m => m.Effect == MaskEffect.Solid))
+            ValidateMetadata(image, document.Export.Metadata == MetadataPolicy.StripAll ? MetadataPolicy.StripAll : MetadataPolicy.StripDescriptive);
         // Force access to decoded pixels; Ping alone is insufficient for truncated/corrupt raster payloads.
         using var pixels = image.GetPixels(); _ = pixels.GetPixel(0, 0);
         ct.ThrowIfCancellationRequested();

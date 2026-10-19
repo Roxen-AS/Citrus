@@ -6,6 +6,7 @@
     <PackageReference Include="Magick.NET-Q8-x64" Version="[15.0.0]" />
     <PackageReference Include="SharpCompress" Version="[0.50.5]" />
     <PackageReference Include="PDFsharp" Version="[6.2.4]" />
+    <PackageReference Include="SkiaSharp" Version="[4.150.1]" />
     <PackageReference Include="PDFtoImage" Version="[5.4.0]" />
     <PackageReference Include="PdfPig" Version="[0.1.16]" />
     <!-- Override PDFsharp's vulnerable minimum with the current .NET 10 security patch. -->
@@ -17,6 +18,7 @@
     <Content Include="../../packaging/notices/archive-licenses/*" Link="notices/archive-licenses/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../docs/subtitle-archive-engines.md" Link="docs/subtitle-archive-engines.md" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../packaging/pdf-backend.lock.json" Link="pdf-backend.lock.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Image-Annotation-Notice.txt" Link="notices/Image-Annotation-Notice.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../packaging/notices/PDF-Notice.txt" Link="notices/PDF-Notice.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../packaging/notices/pdf-licenses/**/*" Link="notices/pdf-licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../docs/pdf-engine.md" Link="docs/pdf-engine.md" CopyToPublishDirectory="PreserveNewest" />

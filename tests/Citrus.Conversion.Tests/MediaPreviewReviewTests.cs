@@ -7,6 +7,7 @@ using Citrus.Core.Editing;
 namespace Citrus.Conversion.Tests;
 
 // Real media regressions for Task 6a review findings.
+[Collection(SharedPreviewSchedulerCollection.Name)]
 public sealed class MediaPreviewReviewTests : IAsyncLifetime
 {
     private readonly string directory=Path.Combine(Path.GetTempPath(),"Citrus-media-review-"+Guid.NewGuid().ToString("N"));

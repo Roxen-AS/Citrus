@@ -112,6 +112,7 @@
           "PDFtoImage": "[5.4.0, 5.4.0]",
           "PdfPig": "[0.1.16, 0.1.16]",
           "SharpCompress": "[0.50.5, 0.50.5]",
+          "SkiaSharp": "[4.150.1, 4.150.1]",
           "System.Security.Cryptography.Pkcs": "[10.0.13, 10.0.13]"
         }
       },

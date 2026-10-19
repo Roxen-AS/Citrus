@@ -18,7 +18,12 @@ public sealed class ImageEditorAdmissionInspector(ISourceSnapshotService sources
             if (!ImageEditorEngine.AcceptsDescriptor(request.Operation)) throw new NotSupportedException("This image tool is not implemented yet.");
             ImageRasterSource.CheckAvailable(document.Sources);
             var staged = await sources.StageVerifiedAsync(document.Sources, scope, ct).ConfigureAwait(false);
+            var fonts = await new FontArtifactService().StageVerifiedAsync(document.Fonts, scope, ct).ConfigureAwait(false);
+            FontTextValidator.ValidateDocument(document, fonts, ct);
+            foreach (var auxiliary in document.Sources.Where(s => s.Id != recipe.SourceId)) ImageRasterSource.Inspect(staged[auxiliary.Id], ct);
             using var image = ImageRasterSource.Load(staged[recipe.SourceId], ct);
+            foreach (var mask in recipe.Masks)
+                if (mask.Bounds.X < 0 || mask.Bounds.Y < 0 || mask.Bounds.X + mask.Bounds.Width > image.Width || mask.Bounds.Y + mask.Bounds.Height > image.Height) throw new ArgumentException("Mask must fit normalized source-plane S.");
             ImageGeometryMapper.Resolve(recipe, new((int)image.Width, (int)image.Height));
             ct.ThrowIfCancellationRequested(); return ImmutableArray<ValidationIssue>.Empty;
         }
