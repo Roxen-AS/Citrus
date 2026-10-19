@@ -7,3 +7,5 @@ dist/
 **/TestResults/
 .vs/
 *.user
+
+**/__pycache__/

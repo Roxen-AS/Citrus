@@ -1,3 +1,12 @@
+# Keep provenance inputs byte-stable across Linux and Windows checkouts.
+*.json text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+packaging/patches/** -text
+packaging/notices/media-licenses/** -text
 # Preserve upstream PDF license/notice bytes and hashes across Windows/Linux checkouts.
 # Upstream CRLF/trailing whitespace is intentionally retained, not authored Citrus code.
 packaging/notices/pdf-licenses/** -text -whitespace
+# Preserve the exact upstream .NET runtime license/notice bytes as distributed.
+packaging/notices/dotnet/** -text -whitespace

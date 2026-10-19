@@ -7,6 +7,39 @@ namespace Citrus.Windows.Tests;
 public sealed class ResidentLifecycleTests
 {
     [Fact]
+    public async Task Installer_gate_blocks_concurrent_startup_and_releases_cleanly()
+    {
+        string suffix = Guid.NewGuid().ToString("N");
+        using var user = System.Security.Principal.WindowsIdentity.GetCurrent();
+        string gateName = Citrus.Windows.SingleInstance.InstallGateName(user.User!.Value, suffix);
+        using var release = new ManualResetEventSlim();
+        var ready = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var done = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var owner = new Thread(() =>
+        {
+            try
+            {
+                using var gate = new Mutex(false, gateName);
+                Assert.True(gate.WaitOne(0));
+                try { ready.SetResult(); Assert.True(release.Wait(TimeSpan.FromSeconds(20))); }
+                finally { gate.ReleaseMutex(); }
+                done.SetResult();
+            }
+            catch (Exception error) { ready.TrySetException(error); done.TrySetException(error); }
+        }) { IsBackground = true };
+        owner.Start();
+        try
+        {
+            await ready.Task.WaitAsync(TimeSpan.FromSeconds(20));
+            var error = Assert.Throws<InvalidOperationException>(() => new Citrus.Windows.SingleInstance(suffix));
+            Assert.Contains("installation is being changed", error.Message);
+        }
+        finally { release.Set(); await done.Task.WaitAsync(TimeSpan.FromSeconds(20)); }
+        using var instance = new Citrus.Windows.SingleInstance(suffix);
+        Assert.True(instance.IsOwner);
+    }
+
+    [Fact]
     public async Task Resident_hides_reopens_activates_pauses_quits_and_releases_identity()
     {
         using var files = new NativeFiles();

@@ -80,11 +80,25 @@ no neural model bootstrap downloads are performed.
 The published app includes `source/citrus-media-source.tar.gz`, actual source
 trees, original archives, the LAME patch, build script, lock manifest, toolchain
 versions, build log, FFmpeg configuration, headers and import libraries. To rebuild
-from that source archive without a repository checkout, extract it and copy
-`provenance/build-media.sh`, `provenance/media-lock.json`, and `provenance/patches/`
-into a new directory's `packaging/` folder. Set `CITRUS_MEDIA_SOURCE_CACHE` to the
-extracted `downloads/` directory and run that copied build script. Configuration
-and versions for the distributed build are in `provenance/`.
+from that source archive without a repository checkout (requires the toolchain above):
+
+```sh
+mkdir extracted rebuild
+# Run from the directory containing the distributed source archive:
+tar -xzf citrus-media-source.tar.gz -C extracted
+mkdir -p rebuild/packaging/notices rebuild/docs
+cp extracted/provenance/build-media.sh extracted/provenance/media-lock.json rebuild/packaging/
+cp extracted/provenance/verify-media.py rebuild/packaging/
+cp -R extracted/provenance/patches rebuild/packaging/
+cp -R extracted/provenance/media-licenses rebuild/packaging/notices/
+cp extracted/provenance/media-engine.md rebuild/docs/
+CITRUS_MEDIA_SOURCE_CACHE="$(pwd)/extracted/downloads" bash rebuild/packaging/build-media.sh
+```
+
+The recipe reconstructs every repository input read by the build and source
+redistribution steps. Use a fresh work directory, not the extracted patched source
+as the work tree: the builder extracts the hash-checked original downloads and
+applies the LAME patch once. Configuration and versions are in `provenance/`.
 
 Replace ABI-compatible FFmpeg or LAME DLLs beside the two executables to use
 modified versions; both executables are ordinary dynamically linked programs.
@@ -102,8 +116,9 @@ dotnet test tests/Citrus.Conversion.Tests --filter FullyQualifiedName~MediaEngin
 
 Override `CITRUS_TEST_FFMPEG` and `CITRUS_TEST_FFPROBE` with absolute executable paths
 when needed. The default host test paths are `/usr/bin/ffmpeg` and `/usr/bin/ffprobe`.
-The host FFmpeg needs lavfi for generating fixtures; the shipping binary uses the
-separate raw-file smoke test (no capture devices are shipped):
+Managed fixtures generate PCM WAV and raw YUV files directly, then encode/mux
+with the selected FFmpeg. Windows CI runs both the managed suite and this
+raw-file smoke test against the bundled executables (no capture devices ship):
 
 ```sh
 python packaging/verify-media.py --directory packaging/media/win-x64

@@ -1,0 +1,58 @@
+name: Windows complete candidate
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-x64:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned NSIS compiler
+        run: |
+          choco install nsis --version=3.11 -y --no-progress
+          if ($LASTEXITCODE) { throw 'NSIS acquisition failed' }
+          "MAKENSIS=${env:ProgramFiles(x86)}\NSIS\makensis.exe" >> $env:GITHUB_ENV
+      - name: Restore and build all projects
+        run: |
+          dotnet restore Citrus.sln --locked-mode
+          if ($LASTEXITCODE) { throw 'Restore failed' }
+          dotnet build Citrus.sln -c Release --no-restore -m:1
+          if ($LASTEXITCODE) { throw 'Build failed' }
+      - name: Publish verified payload and compile installer
+        run: ./packaging/publish.ps1
+      - name: Exact shipped media executables and device-free fixture setup
+        run: |
+          "CITRUS_TEST_FFMPEG=$((Resolve-Path dist/Citrus-win-x64/media/ffmpeg.exe).Path)" >> $env:GITHUB_ENV
+          "CITRUS_TEST_FFPROBE=$((Resolve-Path dist/Citrus-win-x64/media/ffprobe.exe).Path)" >> $env:GITHUB_ENV
+          python packaging/verify-media.py --directory dist/Citrus-win-x64/media
+          if ($LASTEXITCODE) { throw 'Shipped media smoke failed' }
+      - name: Core behaviors
+        run: dotnet test tests/Citrus.Core.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/core
+      - name: Complete conversion suite including real Windows image and PDF backends
+        run: dotnet test tests/Citrus.Conversion.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/conversion
+      - name: Real Windows clipboard, Shell, tray and lifecycle integration
+        run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/windows
+      - name: Negative packaging and preservation checks
+        run: python packaging/test-package.py dist/Citrus-win-x64
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-test-results
+          path: TestResults
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Citrus-unsigned-windows-candidate
+          path: |
+            dist/Citrus-Setup.exe
+            dist/Citrus-win-x64/
+            dist/SHA256SUMS

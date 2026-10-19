@@ -6,7 +6,7 @@ using Citrus.Core;
 
 namespace Citrus.Conversion.Tests;
 
-// These are host engine integration tests. Windows shipped-binary smoke tests are separate.
+// Windows CI points these same behavior tests at the actual bundled executables.
 public sealed class MediaEngineTests : IAsyncLifetime
 {
     private readonly string directory = Path.Combine(Path.GetTempPath(), "Citrus media ü " + Guid.NewGuid().ToString("N"));
@@ -22,8 +22,35 @@ public sealed class MediaEngineTests : IAsyncLifetime
         Directory.CreateDirectory(directory);
         tone = Path.Combine(directory, "-tone ' café.wav");
         video = Path.Combine(directory, "-pattern ' 日本語.mp4");
-        await Native(Ffmpeg, "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=4", "-c:a", "pcm_s16le", tone);
-        await Native(Ffmpeg, "-v", "error", "-f", "lavfi", "-i", "testsrc2=size=160x120:rate=24:duration=4", "-i", tone, "-c:v", "mpeg4", "-c:a", "aac", "-shortest", video);
+        // Shipping FFmpeg disables devices, including lavfi. Generate normal file inputs.
+        using (var wav = new BinaryWriter(File.Create(tone)))
+        {
+            const int samples = 48000 * 4;
+            wav.Write("RIFF"u8); wav.Write(36 + samples * 2); wav.Write("WAVEfmt "u8);
+            wav.Write(16); wav.Write((short)1); wav.Write((short)1); wav.Write(48000);
+            wav.Write(96000); wav.Write((short)2); wav.Write((short)16);
+            wav.Write("data"u8); wav.Write(samples * 2);
+            for (int i = 0; i < samples; i++) wav.Write((short)(4096 * Math.Sin(2 * Math.PI * 440 * i / 48000)));
+        }
+        string raw = Path.Combine(directory, "frames.yuv");
+        try
+        {
+            using (var frames = File.Create(raw))
+            {
+                byte[] frame = new byte[160 * 120 * 3 / 2];
+                for (int n = 0; n < 96; n++)
+                {
+                    for (int y = 0; y < 120; y++)
+                        for (int x = 0; x < 160; x++) frame[y * 160 + x] = (byte)(16 + (x + y + n * 3) % 220);
+                    Array.Fill(frame, (byte)96, 160 * 120, 160 * 120 / 4);
+                    Array.Fill(frame, (byte)160, 160 * 120 * 5 / 4, 160 * 120 / 4);
+                    frames.Write(frame);
+                }
+            }
+            await Native(Ffmpeg, "-v", "error", "-f", "rawvideo", "-pixel_format", "yuv420p", "-video_size", "160x120",
+                "-framerate", "24", "-i", raw, "-i", tone, "-c:v", "mpeg4", "-c:a", "aac", "-shortest", video);
+        }
+        finally { File.Delete(raw); }
         process = new(Ffmpeg, Ffprobe);
         engine = await MediaEngine.CreateAsync(process, CancellationToken.None);
     }

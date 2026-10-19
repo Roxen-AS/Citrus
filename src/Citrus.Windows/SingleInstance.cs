@@ -21,10 +21,23 @@ internal sealed class SingleInstance : IAsyncDisposable, IDisposable
         using var process = Process.GetCurrentProcess();
         string sid = user.User?.Value ?? throw new InvalidOperationException("Windows user identity unavailable.");
         Identity = $"Citrus-{sid}-{process.SessionId}" + (testSuffix is null ? "" : "-test-" + testSuffix);
-        mutex = new Mutex(false, MutexName);
-        try { IsOwner = mutex.WaitOne(0); }
-        catch (AbandonedMutexException) { IsOwner = true; }
+        // Serializes startup with per-user installer mutations across logon sessions.
+        // The installer also checks existing resident processes while holding this gate.
+        using var installGate = new Mutex(false, InstallGateName(sid, testSuffix));
+        bool acquired;
+        try { acquired = installGate.WaitOne(0); }
+        catch (AbandonedMutexException) { acquired = true; }
+        if (!acquired) throw new InvalidOperationException("Citrus installation is being changed. Finish setup or uninstall before opening Citrus.");
+        try
+        {
+            mutex = new Mutex(false, MutexName);
+            try { IsOwner = mutex.WaitOne(0); }
+            catch (AbandonedMutexException) { IsOwner = true; }
+        }
+        finally { installGate.ReleaseMutex(); }
     }
+    internal static string InstallGateName(string sid, string? testSuffix = null) => @"Global\Citrus-Install-" + sid + (testSuffix is null ? "" : "-test-" + testSuffix);
+
     public void Listen(Action activate)
     {
         if (!IsOwner || listener is not null) throw new InvalidOperationException("Only the resident can listen once.");

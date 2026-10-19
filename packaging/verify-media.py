@@ -35,8 +35,12 @@ def encode(arguments, output):
     return run('ffmpeg', ['-hide_banner', '-v', 'error', '-nostdin', '-y', '-protocol_whitelist', 'file,pipe'] + arguments + ['-threads', '2', native_path(output)])
 
 
-for file, expected in json.loads((root.parent / 'sha256.json').read_text()).items():
-    actual = hashlib.sha256((root.parent / file).read_bytes()).hexdigest()
+manifest = root.parent / 'media-sha256.json'
+published = manifest.exists()
+if not published: manifest = root.parent / 'sha256.json'
+for file, expected in json.loads(manifest.read_text()).items():
+    relative = file.replace('win-x64/', 'media/', 1) if published else file
+    actual = hashlib.sha256((root.parent / relative).read_bytes()).hexdigest()
     assert actual == expected, f'Hash mismatch: {file}'
 print('PASS: all distributed artifact SHA256 hashes', flush=True)
 version = run('ffmpeg', ['-version']).stdout

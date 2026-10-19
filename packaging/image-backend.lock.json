@@ -45,7 +45,7 @@
     "eps",
     "ps"
   ],
-  "mediaManifest": "FFmpeg/FFprobe source/build manifest belongs to Task 3; no media backend is included in this candidate.",
+  "mediaManifest": "Bundled FFmpeg/FFprobe provenance: media-lock.json and media-sha256.json.",
   "noticeNormalization": "Only whitespace normalized (LF line endings, tabs expanded, trailing spaces/blank lines removed); license text retained.",
   "svgInput": {
     "renderer": "MagickFormat.Msvg (bundled internal MSVG, no external delegate)",

@@ -51,7 +51,7 @@ dotnet test tests/Citrus.Conversion.Tests --filter FullyQualifiedName~PdfEngineT
 
 `packaging/verify-pdf-publish.py PUBLISH_DIRECTORY` checks Windows native hashes,
 managed PDF assemblies, provenance and every notice from a clean self-contained
-win-x64 publish. `.github/workflows/pdf-fixtures.yml` runs PDF fixtures on Windows
+win-x64 publish. `.github/workflows/windows.yml` runs PDF fixtures on Windows
 and checks that publish. Linux fixtures exercise Linux binaries; Linux
 cross-compilation or publishing does not prove Windows rendering, Explorer, WPF,
 installer, focus, drag/drop or accessibility behavior.
