@@ -20,12 +20,11 @@ internal static class VisualArtifacts
             JsonSerializer.Serialize(evidence, new JsonSerializerOptions { WriteIndented = true }));
     }
 
-    public static RenderTargetBitmap Capture(FrameworkElement root, string name, double scale, ThemeChoice theme, object? context = null)
+    public static BitmapSource Capture(FrameworkElement root, string name, double scale, ThemeChoice theme, object? context = null)
     {
-        root.UpdateLayout();
-        int width = (int)Math.Ceiling(root.ActualWidth * scale), height = (int)Math.Ceiling(root.ActualHeight * scale);
-        Assert.True(width > 0 && height > 0, "The actual production view must have layout before rendering.");
-        var bitmap = Render(root, scale);
+        var rendered = RenderCrop(root, scale);
+        var bitmap = rendered.Bitmap;
+        int width = bitmap.PixelWidth, height = bitmap.PixelHeight;
         Directory.CreateDirectory(DirectoryPath);
         var encoder = new PngBitmapEncoder(); encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using (var stream = File.Create(Path.Combine(DirectoryPath, name + ".png"))) encoder.Save(stream);
@@ -38,7 +37,12 @@ internal static class VisualArtifacts
             capturedUtc = DateTimeOffset.UtcNow, os = RuntimeInformation.OSDescription,
             runtime = RuntimeInformation.FrameworkDescription,
             context,
-            captureCoordinates = "Root-local content crop: (0,0) to root.RenderSize; ancestor window margin/chrome excluded",
+            captureCoordinates = "Measured root rectangle cropped from the actual ancestor Window render; no subtree offset normalization or stretching",
+            renderingLimit = "WPF visual tree only; not a screen capture. Native nonclient chrome, DWM composition and desktop backdrops are not captured or simulated.",
+            cropRounding = "Outward raster bounds: floor(left/top), ceil(right/bottom); fractional edge coverage retained",
+            rootBoundsInWindowDip = new { x = rendered.Bounds.X, y = rendered.Bounds.Y, width = rendered.Bounds.Width, height = rendered.Bounds.Height },
+            cropInWindowPixels = new { x = rendered.Crop.X, y = rendered.Crop.Y, width = rendered.Crop.Width, height = rendered.Crop.Height },
+            rootOriginInCropPixels = new { x = rendered.Bounds.X * scale - rendered.Crop.X, y = rendered.Bounds.Y * scale - rendered.Crop.Y },
             rootOriginInWindowDip = new { x = rootOrigin.X, y = rootOrigin.Y },
             windowBackground = window?.Background?.ToString(),
             actualWindowLeftDip = window?.Left, actualWindowTopDip = window?.Top,
@@ -59,29 +63,27 @@ internal static class VisualArtifacts
         return bitmap;
     }
 
-    public static RenderTargetBitmap Render(FrameworkElement root, double scale)
+    public static BitmapSource Render(FrameworkElement root, double scale) => RenderCrop(root, scale).Bitmap;
+
+    private static (BitmapSource Bitmap, Rect Bounds, Int32Rect Crop) RenderCrop(FrameworkElement root, double scale)
     {
-        root.UpdateLayout();
-        var bounds = new Rect(new Point(), root.RenderSize);
-        var visual = new DrawingVisual();
-        using (var drawing = visual.RenderOpen())
-        {
-            // Render(root) retains the root's parent layout offset and omits its ancestor's background.
-            // An explicit local viewbox maps the existing visual into the crop without changing layout.
-            drawing.DrawRectangle(Window.GetWindow(root)?.Background, null, bounds);
-            var brush = new VisualBrush(root)
-            {
-                AutoLayoutContent = false,
-                ViewboxUnits = BrushMappingMode.Absolute, Viewbox = bounds,
-                ViewportUnits = BrushMappingMode.Absolute, Viewport = bounds,
-                Stretch = Stretch.None, AlignmentX = AlignmentX.Left, AlignmentY = AlignmentY.Top
-            };
-            drawing.DrawRectangle(brush, null, bounds);
-        }
-        var bitmap = new RenderTargetBitmap((int)Math.Ceiling(bounds.Width * scale), (int)Math.Ceiling(bounds.Height * scale),
-            96 * scale, 96 * scale, PixelFormats.Pbgra32);
-        bitmap.Render(visual);
-        return bitmap;
+        var window = Window.GetWindow(root) ?? throw new InvalidOperationException("Capture requires an attached Window visual.");
+        window.UpdateLayout();
+        var bounds = root.TransformToAncestor(window).TransformBounds(new Rect(new Point(), root.RenderSize));
+        Assert.True(bounds.Width > 0 && bounds.Height > 0, "The actual production view must have layout before rendering.");
+        // Render the parentless Window once so offsets and ancestor backgrounds are painted by WPF itself.
+        // Cropping the measured root rect neither remaps VisualBrush content bounds nor changes layout.
+        var full = new RenderTargetBitmap((int)Math.Ceiling(window.RenderSize.Width * scale),
+            (int)Math.Ceiling(window.RenderSize.Height * scale), 96 * scale, 96 * scale, PixelFormats.Pbgra32);
+        full.Render(window);
+        int left = (int)Math.Floor(bounds.Left * scale), top = (int)Math.Floor(bounds.Top * scale);
+        int right = (int)Math.Ceiling(bounds.Right * scale), bottom = (int)Math.Ceiling(bounds.Bottom * scale);
+        Assert.True(left >= 0 && top >= 0 && right <= full.PixelWidth && bottom <= full.PixelHeight,
+            $"Measured root crop ({left},{top})–({right},{bottom}) exceeds Window raster {full.PixelWidth}×{full.PixelHeight}.");
+        var crop = new Int32Rect(left, top, right - left, bottom - top);
+        var bitmap = new CroppedBitmap(full, crop);
+        bitmap.Freeze();
+        return (bitmap, bounds, crop);
     }
 
     public static void AssertInside(FrameworkElement element, FrameworkElement root)

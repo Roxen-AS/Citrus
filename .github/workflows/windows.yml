@@ -29,6 +29,7 @@ jobs:
           dotnet build Citrus.sln -c Release --no-restore -m:1
           if ($LASTEXITCODE) { throw 'Build failed' }
       - name: Publish verified payload and compile installer
+        id: publish
         run: ./packaging/publish.ps1
       - name: Exact shipped media executables and device-free fixture setup
         run: |
@@ -43,10 +44,13 @@ jobs:
       - name: Real Windows clipboard, Shell, tray and lifecycle integration
         run: dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/windows
       - name: Negative packaging and preservation checks
+        if: ${{ always() && steps.publish.outcome == 'success' }}
         run: python packaging/test-package.py dist/Citrus-win-x64
       - name: Portable first-install recovery contract
+        if: ${{ always() && steps.publish.outcome == 'success' }}
         run: python packaging/test-install-recovery.py
       - name: Native interrupted first-install recovery
+        if: ${{ always() && steps.publish.outcome == 'success' }}
         run: ./packaging/test-install-recovery.ps1
       - uses: actions/upload-artifact@v4
         if: always()
