@@ -12,6 +12,13 @@ public sealed class MediaWaveInputTests : IDisposable
     private readonly MediaProcess process = new(Environment.GetEnvironmentVariable("CITRUS_TEST_FFMPEG") ?? "/usr/bin/ffmpeg", Environment.GetEnvironmentVariable("CITRUS_TEST_FFPROBE") ?? "/usr/bin/ffprobe");
     public MediaWaveInputTests() => Directory.CreateDirectory(directory);
 
+    [Fact]
+    public async Task Canceled_probe_does_not_open_input_for_format_detection()
+    {
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => process.ProbeAsync(
+            Path.Combine(directory, "missing.wav"), new CancellationToken(canceled: true)));
+    }
+
     [Theory]
     [InlineData("wav")]
     [InlineData("dat")]

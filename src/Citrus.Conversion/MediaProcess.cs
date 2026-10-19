@@ -138,6 +138,7 @@ public sealed class MediaProcess
 
     public async Task<MediaInfo> ProbeAsync(string input, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         using var json = JsonDocument.Parse(await InvokeAsync(FfprobePath,
             ["-v", "error", "-protocol_whitelist", "file,pipe", "-show_entries", "format=duration:stream=codec_type,width,height", "-of", "json", ..InputArguments(Path.GetFullPath(input))], null, cancellationToken).ConfigureAwait(false));
         double duration = 0;
