@@ -11,6 +11,8 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         Theme.ItemsSource = Enum.GetValues<ThemeChoice>();
         Shift.ItemsSource = Alt.ItemsSource = Control.ItemsSource = Enum.GetValues<OperationMode>();
+        Sound.IsChecked = settings.SoundEnabled;
+        Motion.IsChecked = settings.ReduceMotion;
         Startup.IsChecked = settings.LaunchAtSignIn;
         Reveal.IsChecked = settings.RevealCompletedOutputs;
         Gestures.IsChecked = settings.GesturesEnabled;
@@ -24,7 +26,7 @@ public partial class SettingsWindow : Window
     {
         try
         {
-            var settings = new CitrusSettings { LaunchAtSignIn = Startup.IsChecked == true, RevealCompletedOutputs = Reveal.IsChecked == true,
+            var settings = new CitrusSettings { SoundEnabled = Sound.IsChecked == true, ReduceMotion = Motion.IsChecked == true, LaunchAtSignIn = Startup.IsChecked == true, RevealCompletedOutputs = Reveal.IsChecked == true,
                 GesturesEnabled = Gestures.IsChecked == true, Theme = (ThemeChoice)Theme.SelectedItem,
                 ShiftMode = (OperationMode)Shift.SelectedItem, AltMode = (OperationMode)Alt.SelectedItem, ControlMode = (OperationMode)Control.SelectedItem };
             settings.Validate();

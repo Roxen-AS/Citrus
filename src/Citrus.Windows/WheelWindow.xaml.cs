@@ -4,7 +4,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Citrus.Core;
-using ShapePath = System.Windows.Shapes.Path;
+using System.Windows.Media.Animation;
 
 namespace Citrus.Windows;
 
@@ -13,6 +13,15 @@ public sealed record OperationDrop(OperationDescriptor Operation, IReadOnlyList<
 public partial class WheelWindow : Window
 {
     private readonly OperationCatalog catalog;
+    private static readonly SemaphoreSlim catalogWorkers = new(2);
+    private readonly IFilePreviewService previews;
+    private readonly FeedbackAudio audio;
+    private readonly bool ownsAudio;
+    private CancellationTokenSource? presentationWork;
+    private readonly List<WheelPetal> petals = [];
+    private bool preparing, reduceMotion, acceptsEntry;
+    private long presentationEpoch;
+    private bool Motion => !reduceMotion && SystemParameters.ClientAreaAnimation && !SystemParameters.HighContrast;
     private readonly Dictionary<OperationMode, IReadOnlyList<OperationDescriptor>> availableOperations = [];
     private readonly WheelSession session = new();
     private readonly DispatcherTimer timer;
@@ -26,9 +35,12 @@ public partial class WheelWindow : Window
     private nint handle;
     public event Action<OperationDrop>? OperationDropped;
 
-    public WheelWindow(OperationCatalog catalog)
+    public WheelWindow(OperationCatalog catalog, FeedbackAudio? audio = null, IFilePreviewService? previewService = null)
     {
         this.catalog = catalog;
+        previews = previewService ?? new FilePreviewService();
+        this.audio = audio ?? new FeedbackAudio();
+        ownsAudio = audio is null;
         InitializeComponent();
         SourceInitialized += (_, _) =>
         {
@@ -43,11 +55,20 @@ public partial class WheelWindow : Window
         Surface.PreviewDragLeave += (_, e) => { e.Handled = true; Dismiss(); };
         timer = new DispatcherTimer(TimeSpan.FromMilliseconds(25), DispatcherPriority.Input, Tick, Dispatcher);
         timer.Stop();
+        Closed += (_, _) => { CancelWork(); if (ownsAudio) this.audio.Dispose(); };
+    }
+
+    public void ApplySettings(CitrusSettings settings)
+    {
+        reduceMotion = settings.ReduceMotion;
+        audio.Enabled = settings.SoundEnabled;
+        if (!Motion) { StopPresentationAnimation(); if (session.IsConfirmed) Presentation.Opacity = 1; }
     }
 
     public void ShowAtPointer(OperationMode requestedMode)
     {
         Dispatcher.VerifyAccess();
+        acceptsEntry = true;
         NativeMethods.GetCursorPos(out var pointer);
         bool newSession = session.RequestMode(Environment.TickCount64, requestedMode, pointer.X, pointer.Y);
         generation = session.Generation;
@@ -57,7 +78,13 @@ public partial class WheelWindow : Window
         armed = false;
         if (newSession)
         {
+            CancelWork();
+            presentationEpoch++;
+            preparing = false;
             availableOperations.Clear();
+            Preview.Source = null;
+            FileGlyph.Visibility = Visibility.Visible;
+            Caption.Text = "Center to cancel";
             SetPresentationVisible(false);
         }
         // Prepare content before showing a real capture HWND. Threshold/marquee candidates have
@@ -82,9 +109,11 @@ public partial class WheelWindow : Window
 
     private void UpdatePayloadLabel()
     {
-        Badge.Text = paths.Count == 0 ? "Drag a file here" : operations.Count == 0 ? "No supported operations" :
+        CountBadge.Visibility = paths.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        CountLabel.Text = paths.Count.ToString();
+        Badge.Text = paths.Count == 0 ? "Drag a file here" : preparing ? "Checking available tools" : operations.Count == 0 ? "No supported operations" :
             paths.Count == 1 ? Path.GetFileName(paths[0]) : $"{paths.Count} files";
-        Hint.Text = paths.Count > 0 && operations.Count == 0 ? "Release to cancel" : "Hold · glide · release";
+        Hint.Text = preparing ? "Preparing…" : paths.Count > 0 && operations.Count == 0 ? "Release to cancel" : "Hold · glide · release";
     }
 
     private void Place(double scale)
@@ -121,23 +150,64 @@ public partial class WheelWindow : Window
 
     public void Dismiss()
     {
+        acceptsEntry = false;
+        double dismissalOpacity = Presentation.Opacity;
+        bool animate = dismissalOpacity > 0 && Motion;
         session.Cancel(generation);
         timer.Stop();
+        CancelWork();
+        audio.Stop();
+        preparing = false;
         operations = [];
         availableOperations.Clear();
-        Sectors.Children.Clear();
-        SetPresentationVisible(false);
         armed = false;
         selected = -1;
         navigation = 0;
+        long dismissEpoch = ++presentationEpoch;
+        StopPresentationAnimation();
+        if (animate)
+        {
+            // Ownership is already canceled. This tail is presentation only; callbacks cannot submit.
+            var fade = new DoubleAnimation(dismissalOpacity, 0, (Duration)FindResource("DismissDuration"));
+            fade.Completed += (_, _) => { if (presentationEpoch == dismissEpoch) FinishDismiss(); };
+            Presentation.BeginAnimation(OpacityProperty,fade);
+        }
+        else FinishDismiss();
+    }
+
+    private void FinishDismiss()
+    {
+        SetPresentationVisible(false);
+        Sectors.Children.Clear(); petals.Clear(); Preview.Source = null;
         Hide();
+    }
+
+    private void CancelWork()
+    {
+        presentationWork?.Cancel(); presentationWork?.Dispose(); presentationWork = null;
+    }
+
+    private void StopPresentationAnimation()
+    {
+        Presentation.BeginAnimation(OpacityProperty,null);
+        PresentationScale.BeginAnimation(ScaleTransform.ScaleXProperty,null);
+        PresentationScale.BeginAnimation(ScaleTransform.ScaleYProperty,null);
+        PresentationScale.ScaleX = PresentationScale.ScaleY = 1;
     }
 
     private void SetPresentationVisible(bool visible)
     {
-        // Keep Surface itself visible and hit-testable for genuine OLE. Window-level opacity zero
-        // or WS_EX_TRANSPARENT would prevent reliable admission on a layered HWND.
-        foreach (UIElement child in Surface.Children) child.Opacity = visible ? 1 : 0;
+        // Surface remains a real nonzero-alpha OLE target, independent of presentation transforms.
+        StopPresentationAnimation();
+        Presentation.Opacity = visible ? 1 : 0;
+        if (visible && Motion)
+        {
+            var duration = (Duration)FindResource("OpenDuration");
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            Presentation.BeginAnimation(OpacityProperty,new DoubleAnimation(0,1,duration) { EasingFunction = ease });
+            PresentationScale.BeginAnimation(ScaleTransform.ScaleXProperty,new DoubleAnimation(.94,1,duration) { EasingFunction = ease });
+            PresentationScale.BeginAnimation(ScaleTransform.ScaleYProperty,new DoubleAnimation(.94,1,duration) { EasingFunction = ease });
+        }
     }
 
     private bool ReadPhysicalPayload(DragEventArgs e, out string[] payload, out FileAttributes[] attributes)
@@ -163,25 +233,78 @@ public partial class WheelWindow : Window
     {
         e.Handled = true;
         e.Effects = DragDropEffects.None;
-        if (!IsVisible) return;
+        if (!IsVisible || !acceptsEntry) return;
         if (!session.IsConfirmed)
         {
             if (!ReadPhysicalPayload(e, out var payload, out var attributes)) { Dismiss(); return; }
             session.ConfirmPayload(payload); // First admission alone owns the immutable ordered snapshot.
-            foreach (var candidateMode in Enum.GetValues<OperationMode>())
-                availableOperations[candidateMode] = attributes.All(value => DropValidation.AttributesAllowed(value, candidateMode))
-                    ? catalog.GetOperations(paths, candidateMode) : [];
-            operations = availableOperations[mode];
+            preparing = true;
+            presentationWork = new CancellationTokenSource();
+            operations = [];
             paging = new();
             selected = -1;
             navigation = 0;
             var entry = e.GetPosition(Surface);
             session.ResetPointer(entry.X, entry.Y);
             UpdatePayloadLabel();
-            SetPresentationVisible(true);
             RenderSectors();
+            SetPresentationVisible(true);
+            audio.Play(FeedbackCue.Open);
+            _ = PrepareAsync(payload, attributes, generation, presentationWork.Token);
+            _ = PreviewAsync(payload[0], generation, presentationWork.Token);
         }
         OnPreviewDragOver(sender, e);
+    }
+
+    private async Task PrepareAsync(string[] payload, FileAttributes[] attributes, long expected, CancellationToken token)
+    {
+        try
+        {
+            await catalogWorkers.WaitAsync(token);
+            Dictionary<OperationMode,IReadOnlyList<OperationDescriptor>> prepared;
+            try
+            {
+                prepared = await Task.Run(() =>
+                {
+                    var result = new Dictionary<OperationMode,IReadOnlyList<OperationDescriptor>>();
+                    foreach (var candidateMode in Enum.GetValues<OperationMode>())
+                    {
+                        token.ThrowIfCancellationRequested();
+                        result[candidateMode] = attributes.All(value => DropValidation.AttributesAllowed(value,candidateMode))
+                            ? catalog.GetOperations(payload,candidateMode) : [];
+                    }
+                    return result;
+                },token);
+            }
+            finally { catalogWorkers.Release(); }
+            if (token.IsCancellationRequested || !session.IsConfirmed || expected != generation) return;
+            foreach (var pair in prepared) availableOperations[pair.Key] = pair.Value;
+            preparing = false;
+            operations = availableOperations[mode]; // Mode may have changed while the worker was busy.
+            selected = -1; armed = false;
+            NativeMethods.GetCursorPos(out var pointer);
+            var local = Surface.PointFromScreen(new Point(pointer.X,pointer.Y));
+            session.ResetPointer(local.X,local.Y);
+            UpdatePayloadLabel(); RenderSectors();
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or InvalidOperationException)
+        {
+            if (!token.IsCancellationRequested && session.IsConfirmed && expected == generation)
+            { preparing = false; operations = []; UpdatePayloadLabel(); Hint.Text = "Unavailable · release to cancel"; }
+        }
+    }
+
+    private async Task PreviewAsync(string path, long expected, CancellationToken token)
+    {
+        try
+        {
+            var image = await previews.LoadAsync(path,192,token);
+            if (token.IsCancellationRequested || !session.IsConfirmed || expected != generation) return;
+            Preview.Source = image;
+            FileGlyph.Visibility = image is null ? Visibility.Visible : Visibility.Hidden;
+        }
+        catch (OperationCanceledException) { }
     }
 
     private void OnPreviewDragOver(object sender, DragEventArgs e)
@@ -192,19 +315,20 @@ public partial class WheelWindow : Window
         // Neither COM extraction nor filesystem/catalog work belongs here.
         if (!session.IsConfirmed) return;
         if ((e.AllowedEffects & DragDropEffects.Copy) == 0) { Dismiss(); return; }
+        if (preparing) return;
         var point = e.GetPosition(Surface);
         armed = session.ObservePointer(point.X, point.Y);
         navigation = armed ? NavigationAt(point) : 0;
-        int next = armed && navigation == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(8, operations.Count - paging.Page * 8)) : -1;
-        if (next != selected) { selected = next; RenderSectors(); }
+        int next = armed && navigation == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(WheelGeometry.MaxTargetsPerPage, operations.Count - paging.Page * WheelGeometry.MaxTargetsPerPage)) : -1;
+        if (next != selected) Select(next);
         if (selected >= 0 || navigation != 0) e.Effects = DragDropEffects.Copy;
     }
 
     private int NavigationAt(Point point)
     {
-        if (operations.Count <= 8 || point.Y is < 328 or > 362) return 0;
-        if (point.X is >= 18 and <= 74 && paging.Page > 0) return -1;
-        if (point.X is >= 262 and <= 318 && (paging.Page + 1) * 8 < operations.Count) return 1;
+        if (operations.Count <= WheelGeometry.MaxTargetsPerPage || point.Y is < 370 or > 410) return 0;
+        if (point.X is >= 18 and <= 58 && paging.Page > 0) return -1;
+        if (point.X is >= 310 and <= 350 && (paging.Page + 1) * WheelGeometry.MaxTargetsPerPage < operations.Count) return 1;
         return 0;
     }
 
@@ -218,10 +342,10 @@ public partial class WheelWindow : Window
             attributes.All(value => DropValidation.AttributesAllowed(value, mode)))
         {
             var point = e.GetPosition(Surface);
-            int index = armed && NavigationAt(point) == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(8, operations.Count - paging.Page * 8)) : -1;
+            int index = armed && NavigationAt(point) == 0 ? WheelGeometry.HitTest(point.X, point.Y, Math.Min(WheelGeometry.MaxTargetsPerPage, operations.Count - paging.Page * WheelGeometry.MaxTargetsPerPage)) : -1;
             if (index >= 0 && session.TryCompleteDrop(generation))
             {
-                var operation = operations[paging.Page * 8 + index];
+                var operation = operations[paging.Page * WheelGeometry.MaxTargetsPerPage + index];
                 accepted = new(operation, Array.AsReadOnly(payload));
                 e.Effects = DragDropEffects.Copy;
             }
@@ -239,39 +363,32 @@ public partial class WheelWindow : Window
         if (old != paging.Page) { selected = -1; RenderSectors(); }
     }
 
-    private void RenderSectors()
+    private void Select(int next)
     {
-        Sectors.Children.Clear();
-        var items = operations.Skip(paging.Page * 8).Take(8).ToArray();
-        for (int i = 0; i < items.Length; i++)
+        if (selected >= 0 && selected < petals.Count) petals[selected].SetSelected(false,Motion);
+        selected = next;
+        if (selected >= 0)
         {
-            double start = i * 45 - 21, end = i * 45 + 21;
-            Point At(double radius, double angle) => new(WheelGeometry.CenterX + radius * Math.Sin(angle * Math.PI / 180), WheelGeometry.CenterY - radius * Math.Cos(angle * Math.PI / 180));
-            var geometry = new StreamGeometry();
-            using (var context = geometry.Open())
-            {
-                context.BeginFigure(At(70, start), true, true);
-                context.LineTo(At(146, start), true, false);
-                context.ArcTo(At(146, end), new Size(146, 146), 0, false, SweepDirection.Clockwise, true, false);
-                context.LineTo(At(70, end), true, false);
-                context.ArcTo(At(70, start), new Size(70, 70), 0, false, SweepDirection.Counterclockwise, true, false);
-            }
-            geometry.Freeze();
-            var sector = new ShapePath { Data = geometry, StrokeThickness = i == selected ? 3 : 1 };
-            sector.SetResourceReference(ShapePath.FillProperty, i == selected ? "Accent" : "PanelBackground");
-            sector.SetResourceReference(ShapePath.StrokeProperty, "PrimaryText");
-            Sectors.Children.Add(sector);
-            var label = new TextBlock { Text = items[i].Label, Width = 73, FontSize = items[i].Label.Length > 9 ? 10 : 12, FontWeight = FontWeights.SemiBold, TextAlignment = TextAlignment.Center, TextWrapping = TextWrapping.Wrap, Foreground = (Brush)FindResource(i == selected ? "AccentText" : "PrimaryText") };
-            label.SetResourceReference(TextBlock.ForegroundProperty, i == selected ? "AccentText" : "PrimaryText");
-            var center = At(108, i * 45);
-            Canvas.SetLeft(label, center.X - 36.5);
-            Canvas.SetTop(label, center.Y - 8);
-            Sectors.Children.Add(label);
+            petals[selected].SetSelected(true,Motion);
+            Caption.Text = operations[paging.Page * WheelGeometry.MaxTargetsPerPage + selected].Label;
+            audio.Play(FeedbackCue.Selection);
         }
-        Previous.Visibility = Next.Visibility = operations.Count > 8 ? Visibility.Visible : Visibility.Hidden;
-        Previous.Opacity = paging.Page == 0 ? 0.35 : 1;
-        Next.Opacity = (paging.Page + 1) * 8 >= operations.Count ? 0.35 : 1;
-        if (operations.Count > 8) Hint.Text = $"{paging.Page + 1} / {(operations.Count + 7) / 8} · hover arrows";
+        else Caption.Text = "Center to cancel";
     }
 
+    private void RenderSectors()
+    {
+        Sectors.Children.Clear(); petals.Clear();
+        var items = operations.Skip(paging.Page * WheelGeometry.MaxTargetsPerPage).Take(WheelGeometry.MaxTargetsPerPage).ToArray();
+        for (int i=0;i<items.Length;i++)
+        {
+            var petal = new WheelPetal(items[i],i,items.Length);
+            petals.Add(petal); Sectors.Children.Add(petal);
+        }
+        Caption.Text = "Center to cancel";
+        Previous.Visibility = Next.Visibility = operations.Count > WheelGeometry.MaxTargetsPerPage ? Visibility.Visible : Visibility.Hidden;
+        Previous.Opacity = paging.Page == 0 ? .35 : 1;
+        Next.Opacity = (paging.Page+1)*WheelGeometry.MaxTargetsPerPage >= operations.Count ? .35 : 1;
+        if (operations.Count > WheelGeometry.MaxTargetsPerPage) Hint.Text = $"{paging.Page+1} / {(operations.Count+WheelGeometry.MaxTargetsPerPage-1)/WheelGeometry.MaxTargetsPerPage} · hover arrows";
+    }
 }

@@ -124,21 +124,21 @@ public class GestureTests
         Assert.Equal(-1, WheelGeometry.HitTest(168, 162, 8));
         Assert.Equal(-1, WheelGeometry.HitTest(0, 0, 8));
         Assert.Equal(0, WheelGeometry.HitTest(168, 50, 8));
-        Assert.Equal(-1, WheelGeometry.HitTest(56, 162, 2));
+        Assert.Equal(-1, WheelGeometry.HitTest(62, 184, 2));
     }
 
     [Fact]
     public void Page_hover_waits_400ms_and_navigation_never_selects_an_operation()
     {
         var pages = new WheelPaging();
-        Assert.Equal(0, pages.UpdateHover(1, 0, 18));
-        Assert.Equal(0, pages.UpdateHover(1, 399, 18));
-        Assert.Equal(1, pages.UpdateHover(1, 400, 18));
-        Assert.Equal(1, pages.UpdateHover(1, 799, 18));
-        Assert.Equal(2, pages.UpdateHover(1, 800, 18));
-        Assert.Equal(2, pages.UpdateHover(1, 1200, 18));
-        Assert.Equal(2, pages.UpdateHover(-1, 1300, 18));
-        Assert.Equal(1, pages.UpdateHover(-1, 1700, 18));
+        Assert.Equal(0, pages.UpdateHover(1, 0, 19));
+        Assert.Equal(0, pages.UpdateHover(1, 399, 19));
+        Assert.Equal(1, pages.UpdateHover(1, 400, 19));
+        Assert.Equal(1, pages.UpdateHover(1, 799, 19));
+        Assert.Equal(2, pages.UpdateHover(1, 800, 19));
+        Assert.Equal(2, pages.UpdateHover(1, 1200, 19));
+        Assert.Equal(2, pages.UpdateHover(-1, 1300, 19));
+        Assert.Equal(1, pages.UpdateHover(-1, 1700, 19));
     }
 
     [Theory]

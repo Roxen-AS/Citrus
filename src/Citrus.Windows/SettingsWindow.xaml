@@ -5,6 +5,8 @@
   <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
    <TextBlock Text="Settings" FontSize="24" FontWeight="SemiBold" Margin="0,0,0,14"/>
    <CheckBox x:Name="Startup" Content="Launch quietly at sign-in" Margin="0,0,0,12"/>
+   <CheckBox x:Name="Sound" Content="Play quiet feedback sounds (uncheck to mute)" Margin="0,0,0,12"/>
+   <CheckBox x:Name="Motion" Content="Reduce motion" Margin="0,0,0,12"/>
    <CheckBox x:Name="Reveal" Content="Reveal completed outputs in Explorer" Margin="0,0,0,12"/>
    <Label Content="_Theme" Target="{Binding ElementName=Theme}"/><ComboBox x:Name="Theme" AutomationProperties.Name="Theme"/>
    <CheckBox x:Name="Gestures" Content="Enable drag gestures" Margin="0,18,0,10"/>
@@ -14,7 +16,7 @@
     <Label Content="_Alt" Grid.Row="1" Target="{Binding ElementName=Alt}"/><ComboBox x:Name="Alt" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" AutomationProperties.Name="Alt gesture mode"/>
     <Label Content="_Control" Grid.Row="2" Target="{Binding ElementName=Control}"/><ComboBox x:Name="Control" Grid.Row="2" Grid.Column="1" Margin="0,8,0,0" AutomationProperties.Name="Control gesture mode"/>
    </Grid>
-   <TextBlock Text="Windows high contrast takes priority over the selected theme. Reduced motion follows Windows settings." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryText}" Margin="0,18,0,0"/>
+   <TextBlock Text="Windows high contrast takes priority over the selected theme. Windows reduced motion is always respected." TextWrapping="Wrap" Foreground="{DynamicResource SecondaryText}" Margin="0,18,0,0"/>
   </StackPanel></ScrollViewer>
  </DockPanel>
 </Window>

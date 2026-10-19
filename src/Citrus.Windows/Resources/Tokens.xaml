@@ -1,0 +1,24 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+ <FontFamily x:Key="AppFont">Segoe UI Variable, Segoe UI</FontFamily>
+ <SolidColorBrush x:Key="WindowBackground" Color="#F7F5F2"/>
+ <SolidColorBrush x:Key="PanelBackground" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="InsetBackground" Color="#F0EFEC"/>
+ <SolidColorBrush x:Key="BorderBrush" Color="#E4E1DC"/>
+ <SolidColorBrush x:Key="PrimaryText" Color="#202020"/>
+ <SolidColorBrush x:Key="SecondaryText" Color="#62605D"/>
+ <SolidColorBrush x:Key="Accent" Color="#C14D00"/>
+ <SolidColorBrush x:Key="ActionInk" Color="#B84900"/>
+ <SolidColorBrush x:Key="DecorativeOrange" Color="#FF7900"/>
+ <SolidColorBrush x:Key="AccentText" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="ControlBackground" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="ControlText" Color="#202020"/>
+ <SolidColorBrush x:Key="WheelShell" Color="#ECF7F5F2"/>
+ <SolidColorBrush x:Key="PetalBackground" Color="#F5FFFFFF"/>
+ <LinearGradientBrush x:Key="SelectedPetal" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FF870A" Offset="0"/><GradientStop Color="#F36A00" Offset="1"/></LinearGradientBrush>
+ <SolidColorBrush x:Key="SelectedPetalText" Color="#FFFFFF"/>
+ <sys:Double x:Key="TitleSize">28</sys:Double><sys:Double x:Key="EditorTitleSize">22</sys:Double><sys:Double x:Key="SectionSize">16</sys:Double><sys:Double x:Key="BodySize">14</sys:Double><sys:Double x:Key="MetadataSize">12</sys:Double>
+ <CornerRadius x:Key="InputRadius">10</CornerRadius><CornerRadius x:Key="CardRadius">16</CornerRadius><CornerRadius x:Key="LargeRadius">24</CornerRadius>
+ <sys:Double x:Key="Space4">4</sys:Double><sys:Double x:Key="Space8">8</sys:Double><sys:Double x:Key="Space12">12</sys:Double><sys:Double x:Key="Space16">16</sys:Double><sys:Double x:Key="Space24">24</sys:Double><sys:Double x:Key="Space32">32</sys:Double><sys:Double x:Key="Space40">40</sys:Double>
+ <CornerRadius x:Key="PanelRadius">12</CornerRadius>
+ <Thickness x:Key="PagePadding">24</Thickness><Thickness x:Key="CardPadding">16</Thickness>
+</ResourceDictionary>

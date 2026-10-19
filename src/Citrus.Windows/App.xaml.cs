@@ -22,6 +22,7 @@ public partial class App : Application
     private ShelfWindow? shelf;
     private SettingsWindow? settingsWindow;
     private ThemeManager? themes;
+    private FeedbackAudio? feedbackAudio;
     private readonly SettingsStore settingsStore;
     private CitrusSettings settings = new();
     private Task<EngineRegistry>? discovery;
@@ -58,7 +59,8 @@ public partial class App : Application
             instance.Listen(() => Dispatcher.BeginInvoke(new Action(OpenHome)));
             settings = settingsStore.Load();
             themes = new(this);
-            themes.Apply(settings.Theme);
+            themes.Apply(settings.Theme, settings.ReduceMotion);
+            feedbackAudio = new() { Enabled = settings.SoundEnabled };
             home = new(this);
             MainWindow = home;
             actions = options.NativeActions ?? new(floatPaths: FloatPaths, cancellationToken: lifetime.Token);
@@ -85,7 +87,8 @@ public partial class App : Application
             submissions = new(queue, registry.Inspector.InspectAsync);
             // Native actions participate in discovery only; the worker queue owns conversion engines exclusively.
             var catalog = new OperationCatalog(registry.Engines.Concat([new NativeActionCatalog()]));
-            wheel = new(catalog);
+            wheel = new(catalog, feedbackAudio);
+            wheel.ApplySettings(settings);
             wheel.OperationDropped += SubmitDrop;
             home.Configure(catalog, registry.Warnings);
             try
@@ -157,7 +160,9 @@ public partial class App : Application
             throw;
         }
         settings = updated;
-        themes?.Apply(settings.Theme);
+        themes?.Apply(settings.Theme, settings.ReduceMotion);
+        wheel?.ApplySettings(settings);
+        if (feedbackAudio is not null) feedbackAudio.Enabled = settings.SoundEnabled;
         SetGestures(settings.GesturesEnabled, persist: false);
         home?.UpdateGestureGuide(settings);
         return Task.CompletedTask;
@@ -234,6 +239,7 @@ public partial class App : Application
             home?.RefreshJobs();
             if (job.State is ConversionJobState.Succeeded or ConversionJobState.Failed && notified.Add(job))
             {
+                feedbackAudio?.Play(job.State == ConversionJobState.Succeeded ? FeedbackCue.Success : FeedbackCue.Error);
                 tray?.ShowBalloonTip(3000, "Citrus", job.State == ConversionJobState.Succeeded ? "Your copies are ready. Open Citrus to reveal them." : "An item failed. Open Citrus for details and retry options.",
                     job.State == ConversionJobState.Succeeded ? Forms.ToolTipIcon.Info : Forms.ToolTipIcon.Warning);
                 if (settings.RevealCompletedOutputs && job.State == ConversionJobState.Succeeded && job.Outputs.Count > 0)
@@ -269,6 +275,7 @@ public partial class App : Application
         if (queue is not null) queue.JobChanged -= JobChanged;
         shelf?.Dispose();
         themes?.Dispose();
+        feedbackAudio?.Dispose();
         tray?.ContextMenuStrip?.Dispose();
         tray?.Dispose();
         trayIcon?.Dispose();

@@ -9,8 +9,11 @@ public readonly record struct ScreenRect(double Left, double Top, double Width, 
 
 public static class WheelGeometry
 {
-    public const double Width = 336, Height = 382;
-    public const double CenterX = 168, CenterY = 162, InnerRadius = 70, OuterRadius = 146;
+    public const int MaxTargetsPerPage = 9;
+    public const double Width = 368, Height = 414;
+    public const double CenterX = 184, CenterY = 184, InnerRadius = 78, OuterRadius = 166;
+    private static readonly IReadOnlyList<WheelPoint>[][] petals = Enumerable.Range(1, MaxTargetsPerPage)
+        .Select(count => Enumerable.Range(0, count).Select(index => BuildPetal(index, count)).ToArray()).ToArray();
 
     public static ScreenRect Place(double x, double y, ScreenRect work, double scale)
     {
@@ -20,17 +23,60 @@ public static class WheelGeometry
             Math.Clamp(y - CenterY * scale, work.Top, work.Bottom - height), width, height);
     }
 
-    /// <summary>WPF local DIPs. Fixed eight-sector ring; absent sectors and gaps are neutral.</summary>
+    // These immutable flattened outlines are used verbatim by both rendering and hit testing.
+    // Two-degree arc samples and eight samples per quadratic keep rounding error below 0.03 DIP.
+    public static IReadOnlyList<WheelPoint> Petal(int index, int count) => petals[Math.Clamp(count, 1, MaxTargetsPerPage) - 1][index];
+    public static WheelPoint At(double radius, double degrees) =>
+        new(CenterX + radius * Math.Sin(degrees * Math.PI / 180), CenterY - radius * Math.Cos(degrees * Math.PI / 180));
+
     public static int HitTest(double x, double y, int count)
     {
-        double dx = x - CenterX, dy = y - CenterY, radius = Math.Sqrt(dx * dx + dy * dy);
-        if (radius < InnerRadius || radius > OuterRadius || count <= 0) return -1;
-        double angle = (Math.Atan2(dx, -dy) * 180 / Math.PI + 382.5) % 360;
-        int sector = (int)(angle / 45);
-        if (angle % 45 < 1.5 || angle % 45 > 43.5) return -1;
-        return sector < Math.Min(8, count) ? sector : -1;
+        for (int i = 0; i < Math.Clamp(count, 0, MaxTargetsPerPage); i++)
+        {
+            var points = Petal(i, count);
+            bool inside = false;
+            for (int j = 0, k = points.Count - 1; j < points.Count; k = j++)
+            {
+                var a = points[j]; var b = points[k];
+                if ((a.Y > y) != (b.Y > y) && x < (b.X - a.X) * (y - a.Y) / (b.Y - a.Y) + a.X) inside = !inside;
+            }
+            if (inside) return i;
+        }
+        return -1;
+    }
+
+    private static IReadOnlyList<WheelPoint> BuildPetal(int index, int count)
+    {
+        double start = (index - .5) * 360 / count + 2, end = (index + .5) * 360 / count - 2;
+        const double corner = 8;
+        double outerInset = corner / OuterRadius * 180 / Math.PI, innerInset = corner / InnerRadius * 180 / Math.PI;
+        var points = new List<WheelPoint> { At(InnerRadius + corner, start), At(OuterRadius - corner, start) };
+        void Curve(WheelPoint control, WheelPoint to)
+        {
+            var from = points[^1];
+            for (int i = 1; i <= 8; i++)
+            {
+                double t = i / 8d, u = 1 - t;
+                points.Add(new(u*u*from.X + 2*u*t*control.X + t*t*to.X, u*u*from.Y + 2*u*t*control.Y + t*t*to.Y));
+            }
+        }
+        void Arc(double radius, double from, double to)
+        {
+            int steps = (int)Math.Ceiling(Math.Abs(to-from)/2);
+            for (int i = 1; i <= steps; i++) points.Add(At(radius, from + (to-from)*i/steps));
+        }
+        Curve(At(OuterRadius,start),At(OuterRadius,start+outerInset));
+        Arc(OuterRadius,start+outerInset,end-outerInset);
+        Curve(At(OuterRadius,end),At(OuterRadius-corner,end));
+        points.Add(At(InnerRadius+corner,end));
+        Curve(At(InnerRadius,end),At(InnerRadius,end-innerInset));
+        Arc(InnerRadius,end-innerInset,start+innerInset);
+        Curve(At(InnerRadius,start),At(InnerRadius+corner,start));
+        return points.AsReadOnly();
     }
 }
+
+public readonly record struct WheelPoint(double X, double Y);
 
 public sealed class WheelSession
 {
@@ -105,7 +151,7 @@ public sealed class WheelPaging
         if (nextDirection != direction) { direction = nextDirection; hoverStarted = now; }
         if (direction != 0 && now - hoverStarted >= 400)
         {
-            Page = Math.Clamp(Page + Math.Sign(direction), 0, Math.Max(0, (count - 1) / 8));
+            Page = Math.Clamp(Page + Math.Sign(direction), 0, Math.Max(0, (count - 1) / WheelGeometry.MaxTargetsPerPage));
             hoverStarted = now;
         }
         return Page;

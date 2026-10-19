@@ -1,16 +1,20 @@
 <Window x:Class="Citrus.Windows.WheelWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Citrus wheel" Width="336" Height="382" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent" ShowActivated="False" ShowInTaskbar="False" Topmost="True" Focusable="False">
-  <Canvas x:Name="Surface" Background="#01000000" AllowDrop="True" Focusable="False">
-    <Ellipse Width="308" Height="308" Canvas.Left="14" Canvas.Top="8" Fill="{DynamicResource WindowBackground}" Stroke="{DynamicResource SecondaryText}" StrokeThickness="1" IsHitTestVisible="False"/>
-    <Canvas x:Name="Sectors" Width="336" Height="324" IsHitTestVisible="False"/>
-    <StackPanel Width="126" Canvas.Left="105" Canvas.Top="114" IsHitTestVisible="False">
-      <Image Source="{StaticResource CitrusMark}" Width="36" Height="36"/>
-      <TextBlock x:Name="ModeLabel" Text="CONVERT" Foreground="{DynamicResource Accent}" FontWeight="SemiBold" FontSize="10" HorizontalAlignment="Center" Margin="0,5,0,0"/>
-      <TextBlock x:Name="Badge" Text="Drag a file here" Foreground="{DynamicResource PrimaryText}" FontSize="11" TextAlignment="Center" TextWrapping="Wrap" Margin="0,5,0,0"/>
-      <TextBlock Text="center to cancel" Foreground="{DynamicResource SecondaryText}" FontSize="9" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-    </StackPanel>
-    <Border x:Name="Previous" Canvas.Left="18" Canvas.Top="328" Width="56" Height="34" CornerRadius="10" Background="{DynamicResource PanelBackground}" IsHitTestVisible="False"><TextBlock Text="←" Foreground="{DynamicResource PrimaryText}" FontSize="22" HorizontalAlignment="Center"/></Border>
-    <Border x:Name="Next" Canvas.Left="262" Canvas.Top="328" Width="56" Height="34" CornerRadius="10" Background="{DynamicResource PanelBackground}" IsHitTestVisible="False"><TextBlock Text="→" Foreground="{DynamicResource PrimaryText}" FontSize="22" HorizontalAlignment="Center"/></Border>
-    <TextBlock x:Name="Hint" Width="180" Canvas.Left="78" Canvas.Top="332" Text="Hold · glide · release" TextAlignment="Center" Foreground="{DynamicResource SecondaryText}" FontSize="11" IsHitTestVisible="False"/>
+ Title="Citrus wheel" Width="368" Height="414" WindowStyle="None" ResizeMode="NoResize" AllowsTransparency="True" Background="Transparent" ShowActivated="False" ShowInTaskbar="False" Topmost="True" Focusable="False" FontFamily="{DynamicResource AppFont}">
+ <Canvas x:Name="Surface" Background="#01000000" AllowDrop="True" Focusable="False">
+  <Canvas x:Name="Presentation" Width="368" Height="414" IsHitTestVisible="False" RenderTransformOrigin=".5,.444444">
+   <Canvas.RenderTransform><ScaleTransform x:Name="PresentationScale"/></Canvas.RenderTransform>
+   <Ellipse Width="352" Height="352" Canvas.Left="8" Canvas.Top="8" Fill="{DynamicResource WheelShell}" Stroke="{DynamicResource BorderBrush}" StrokeThickness="1"/>
+   <Canvas x:Name="Sectors" Width="368" Height="368"/>
+   <Border Canvas.Left="144" Canvas.Top="136" Width="80" Height="72" CornerRadius="12" Background="{DynamicResource PanelBackground}">
+    <Grid><Path x:Name="FileGlyph" Data="{StaticResource Icon.File}" Stroke="{DynamicResource PrimaryText}" StrokeThickness="1.5" Width="34" Height="40" Stretch="Uniform" StrokeLineJoin="Round"/><Image x:Name="Preview" Width="72" Height="64" Stretch="Uniform"/></Grid>
+   </Border>
+   <Border x:Name="CountBadge" Canvas.Left="204" Canvas.Top="128" CornerRadius="10" Background="{DynamicResource Accent}" Padding="6,2"><TextBlock x:Name="CountLabel" Foreground="{DynamicResource AccentText}" FontSize="12" FontWeight="SemiBold"/></Border>
+   <TextBlock x:Name="ModeLabel" Canvas.Left="122" Canvas.Top="215" Width="124" Text="CONVERT" Foreground="{DynamicResource ActionInk}" FontWeight="SemiBold" FontSize="10" TextAlignment="Center"/>
+   <TextBlock x:Name="Badge" Canvas.Left="120" Canvas.Top="233" Width="128" Text="Drag a file here" Foreground="{DynamicResource SecondaryText}" FontSize="11" TextAlignment="Center" TextTrimming="CharacterEllipsis"/>
+   <TextBlock x:Name="Caption" Canvas.Left="76" Canvas.Top="364" Width="216" Text="Center to cancel" TextAlignment="Center" Foreground="{DynamicResource PrimaryText}" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+   <Border x:Name="Previous" Canvas.Left="18" Canvas.Top="370" Width="40" Height="40" CornerRadius="10" Background="{DynamicResource PanelBackground}"><TextBlock Text="←" Foreground="{DynamicResource PrimaryText}" FontSize="22" HorizontalAlignment="Center"/></Border>
+   <Border x:Name="Next" Canvas.Left="310" Canvas.Top="370" Width="40" Height="40" CornerRadius="10" Background="{DynamicResource PanelBackground}"><TextBlock Text="→" Foreground="{DynamicResource PrimaryText}" FontSize="22" HorizontalAlignment="Center"/></Border>
+   <TextBlock x:Name="Hint" Width="244" Canvas.Left="62" Canvas.Top="389" Text="Hold · glide · release" TextAlignment="Center" Foreground="{DynamicResource SecondaryText}" FontSize="11"/>
   </Canvas>
+ </Canvas>
 </Window>

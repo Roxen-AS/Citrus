@@ -10,5 +10,6 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="[3.1.5]"><PrivateAssets>all</PrivateAssets></PackageReference>
     <ProjectReference Include="../../src/Citrus.Core/Citrus.Core.csproj" />
     <Using Include="Xunit" />
+    <Compile Include="../../src/Citrus.Windows/CitrusSettings.cs" Link="CitrusSettings.cs" />
   </ItemGroup>
 </Project>
