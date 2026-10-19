@@ -12,7 +12,7 @@ public static class FontTextValidator
     public static ImmutableArray<ValidationIssue> Validate(FontArtifact font,string text)
     {
         try { using var face=FontArtifactService.OpenVerified(font,font.OriginalPath,default); return Validate(face,text); }
-        catch(Exception error) when(error is IOException or ArgumentException or NotSupportedException)
+        catch(Exception error) when(error is IOException or InvalidDataException or UnauthorizedAccessException or ArgumentException or NotSupportedException)
         { return [new("Font",error.Message)]; }
     }
     internal static ImmutableArray<ValidationIssue> Validate(SKTypeface face,string text)
