@@ -6,14 +6,20 @@ using ImageMagick;
 
 namespace Citrus.Conversion.Editing.Image;
 
-/// <summary>Own one instance per editor session. Cached verified source copies live until disposal;
+/// <summary>Own one instance per editor session. Verified source copies and unadjusted pixels use bounded LRU caches;
 /// export always stages and verifies the original snapshots again in the supplied private scope.</summary>
 public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDisposable
 {
     private readonly ISourceSnapshotService sources;
     private readonly string cacheDirectory;
     private readonly SemaphoreSlim serial = new(1, 1);
-    private readonly Dictionary<string, ImmutableDictionary<Guid, string>> cached = new();
+    private sealed record StagedSource(string Scope, ImmutableDictionary<Guid, string> Paths, SizeI Size, long LastUse);
+    private readonly Dictionary<string, StagedSource> cached = new();
+    private readonly ImagePreviewWorkingCache workingCache = new();
+    private long sourceUse;
+    private ImagePreviewDiagnostics diagnostics = new(default, 0, 0, 0, 0, 0, 0);
+    internal ImagePreviewDiagnostics Diagnostics => Volatile.Read(ref diagnostics);
+    private void Observe(SizeI size) => Volatile.Write(ref diagnostics, new(size, workingCache.Bytes, workingCache.Count, workingCache.Hits, workingCache.Misses, workingCache.Evictions, cached.Count));
     private bool ownsCache, disposed;
     public ImageRecipeRenderer(ISourceSnapshotService sources, string? cacheDirectory = null)
     {
@@ -22,7 +28,13 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
         SafeEditorFiles.RejectLinks(this.cacheDirectory);
         if (File.Exists(this.cacheDirectory) || Directory.Exists(this.cacheDirectory)) throw new IOException("Preview cache must be a fresh owned directory.");
     }
-    public async Task<PreviewFrame> RenderPreviewAsync(EditorDocument document, PreviewRequest request, CancellationToken ct)
+    /// <summary>Fast viewport preview, at most 512 pixels per working edge when zoomed out.
+    /// Native-size and explicit source-detail requests always use exact rendering.</summary>
+    public Task<PreviewFrame> RenderPreviewAsync(EditorDocument document, PreviewRequest request, CancellationToken ct) => RenderPreviewCoreAsync(document, request, ct, 512);
+    /// <summary>Optional idle/gesture-end refinement, at most 1024 pixels per working edge
+    /// when zoomed out. Shares this session's cache and worker leases with fast previews.</summary>
+    public Task<PreviewFrame> RenderRefinedPreviewAsync(EditorDocument document, PreviewRequest request, CancellationToken ct) => RenderPreviewCoreAsync(document, request, ct, 1024);
+    private async Task<PreviewFrame> RenderPreviewCoreAsync(EditorDocument document, PreviewRequest request, CancellationToken ct, int workingEdge)
     {
         Validate(document);
         if (request.Bounds.Width is <= 0 or > 2048 || request.Bounds.Height is <= 0 or > 2048 || request.Time is not null || request.PageId is not null) throw new ArgumentException("Invalid raster preview request.");
@@ -35,22 +47,44 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
             {
                 ct.ThrowIfCancellationRequested(); ImageRasterSource.CheckAvailable(document.Sources);
                 string key = string.Join("|", document.Sources.Select(s => $"{s.Id}:{s.Length}:{s.Sha256}:{s.Path}"));
+                var recipe = (ImageRecipe)document.Recipe;
                 if (!cached.TryGetValue(key, out var staged))
                 {
                     if (!ownsCache) { Directory.CreateDirectory(cacheDirectory); ownsCache = true; }
                     string scope = Path.Combine(cacheDirectory, Guid.NewGuid().ToString("N"));
-                    staged = await sources.StageVerifiedAsync(document.Sources, scope, ct).ConfigureAwait(false);
-                    cached.Add(key, staged);
+                    try
+                    {
+                        var paths = await sources.StageVerifiedAsync(document.Sources, scope, ct).ConfigureAwait(false);
+                        var size = ImageRasterSource.Inspect(paths[recipe.SourceId], ct); ct.ThrowIfCancellationRequested();
+                        while (cached.Count >= 4)
+                        {
+                            var oldest = cached.MinBy(pair => pair.Value.LastUse); workingCache.RemoveSource(oldest.Key);
+                            Directory.Delete(oldest.Value.Scope, true); cached.Remove(oldest.Key);
+                        }
+                        staged = new(scope, paths, size, ++sourceUse); cached.Add(key, staged);
+                    }
+                    catch { if (Directory.Exists(scope)) Directory.Delete(scope, true); throw; }
                 }
-                var recipe = (ImageRecipe)document.Recipe;
-                using var image = Render(document, staged[recipe.SourceId], ct, out SizeI sourceSize);
+                else cached[key] = staged = staged with { LastUse = ++sourceUse };
+                SizeI sourceSize = staged.Size; var (crop, outputSize) = ImageGeometryMapper.Resolve(recipe, sourceSize);
+                bool approximate = request.SourceTile is null && (outputSize.Width > request.Bounds.Width || outputSize.Height > request.Bounds.Height);
+                SizeI croppedSize = new((int)crop.Width, (int)crop.Height);
+                SizeI viewportBounds = new(Math.Min(request.Bounds.Width, workingEdge), Math.Min(request.Bounds.Height, workingEdge));
+                SizeI workSize = approximate ? Fit(croppedSize, viewportBounds) : croppedSize;
+                var workingKey = new ImagePreviewWorkingKey(key, recipe.Geometry, workSize);
+                using var image = workingCache.GetOrCreate(workingKey, () => PrepareWorkingBase(recipe, staged.Paths[recipe.SourceId], sourceSize, workSize, ct), ct);
+                Observe(new((int)image.Width, (int)image.Height));
+                if (approximate) ImageAdjustmentsPipeline.ApplyScaled(image, recipe, sourceSize, ct, Math.Sqrt(workSize.Width / crop.Width * (workSize.Height / crop.Height)));
+                else ImageAdjustmentsPipeline.Apply(image, recipe, sourceSize, ct);
+                SizeI renderedSize = approximate ? Fit(outputSize, workSize) : outputSize;
+                if (image.Width != renderedSize.Width || image.Height != renderedSize.Height) Resize(image, renderedSize);
                 PrepareOutput(image, document.Export);
                 if (request.SourceTile is { } tile) CropDetail(image, recipe, sourceSize, tile);
                 double scale = Math.Min(1, Math.Min(request.Bounds.Width / (double)image.Width, request.Bounds.Height / (double)image.Height));
                 if (scale < 1) image.Resize(new MagickGeometry((uint)Math.Max(1, Math.Floor(image.Width * scale)), (uint)Math.Max(1, Math.Floor(image.Height * scale))) { IgnoreAspectRatio = true });
                 ct.ThrowIfCancellationRequested();
                 byte[] bytes = image.GetPixels().ToByteArray(PixelMapping.BGRA)!;
-                return new PreviewFrame(document.Revision, request.Generation, new((int)image.Width, (int)image.Height), checked((int)image.Width * 4), ImmutableArray.CreateRange(bytes), null, null, []);
+                return new PreviewFrame(document.Revision, request.Generation, new((int)image.Width, (int)image.Height), checked((int)image.Width * 4), ImmutableArray.CreateRange(bytes), null, null, approximate ? ["Scaled preview; use a 100% source detail tile or export for exact pixels."] : []);
             }, ct).ConfigureAwait(false);
         }
         finally { serial.Release(); }
@@ -119,6 +153,26 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
         }
         catch { image.Dispose(); throw; }
     }
+    private static SizeI Fit(SizeI size, SizeI bounds)
+    {
+        double scale = Math.Min(1, Math.Min(bounds.Width / (double)size.Width, bounds.Height / (double)size.Height));
+        return new(Math.Max(1, (int)Math.Floor(size.Width * scale)), Math.Max(1, (int)Math.Floor(size.Height * scale)));
+    }
+    private static void Resize(MagickImage image, SizeI size)
+    { image.FilterType = FilterType.Lanczos; image.Resize(new MagickGeometry((uint)size.Width, (uint)size.Height) { IgnoreAspectRatio = true }); }
+    private static MagickImage PrepareWorkingBase(ImageRecipe recipe, string source, SizeI sourceSize, SizeI size, CancellationToken ct)
+    {
+        var image = ImageRasterSource.Load(source, ct);
+        try
+        {
+            var (crop, _) = ImageGeometryMapper.Resolve(recipe, sourceSize);
+            if (recipe.Geometry.FlipX) image.Flop(); if (recipe.Geometry.FlipY) image.Flip(); if (recipe.Geometry.QuarterTurns != 0) image.Rotate(90 * recipe.Geometry.QuarterTurns);
+            image.Crop(new MagickGeometry((int)crop.X, (int)crop.Y, (uint)crop.Width, (uint)crop.Height)); image.ResetPage(); ct.ThrowIfCancellationRequested();
+            if (image.Width != size.Width || image.Height != size.Height) Resize(image, size);
+            ct.ThrowIfCancellationRequested(); return image;
+        }
+        catch { image.Dispose(); throw; }
+    }
     private static void CropDetail(MagickImage image, ImageRecipe recipe, SizeI sourceSize, RectD tile)
     {
         if (!double.IsFinite(tile.X) || !double.IsFinite(tile.Y) || !double.IsFinite(tile.Width) || !double.IsFinite(tile.Height) || tile.Width <= 0 || tile.Height <= 0 || tile.X < 0 || tile.Y < 0 || tile.X + tile.Width > sourceSize.Width || tile.Y + tile.Height > sourceSize.Height) throw new ArgumentException("Detail tile must fit normalized source-plane S.");
@@ -146,10 +200,10 @@ public sealed class ImageRecipeRenderer : IEditorRenderer, IDisposable, IAsyncDi
     }
     public void Dispose()
     {
-        serial.Wait(); try { if (disposed) return; disposed = true; if (ownsCache && Directory.Exists(cacheDirectory)) Directory.Delete(cacheDirectory, true); cached.Clear(); } finally { serial.Release(); }
+        serial.Wait(); try { if (disposed) return; disposed = true; if (ownsCache && Directory.Exists(cacheDirectory)) Directory.Delete(cacheDirectory, true); cached.Clear(); workingCache.Dispose(); Observe(default); } finally { serial.Release(); }
     }
     public async ValueTask DisposeAsync()
     {
-        await serial.WaitAsync().ConfigureAwait(false); try { if (disposed) return; disposed = true; if (ownsCache && Directory.Exists(cacheDirectory)) Directory.Delete(cacheDirectory, true); cached.Clear(); } finally { serial.Release(); }
+        await serial.WaitAsync().ConfigureAwait(false); try { if (disposed) return; disposed = true; if (ownsCache && Directory.Exists(cacheDirectory)) Directory.Delete(cacheDirectory, true); cached.Clear(); workingCache.Dispose(); Observe(default); } finally { serial.Release(); }
     }
 }

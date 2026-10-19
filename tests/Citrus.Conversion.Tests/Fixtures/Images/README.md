@@ -32,10 +32,9 @@ IHDR data tests pre-allocation pixel limits. No binary fixture acquisition is re
 Normalize EXIF once and transform embedded ICC to SDR sRGB. Untagged images are
 interpreted as sRGB. Apply flips in source plane S, clockwise quarter turns, then
 crop in G using floor(left/top), ceil(right/bottom). Reject crop outside actual
-source bounds and forbidden upscaling. Tone/detail runs at crop resolution; exact
-output resize follows, using Magick Lanczos. Rendering scale is currently **1** for
-all spatial effects: bounded preview downsampling happens only after the complete
-full-resolution render. This maximizes fidelity but has a documented latency cost.
+source bounds and forbidden upscaling. Native-size previews, explicit source tiles and exports run tone/detail at crop
+resolution, followed by exact output resize using Magick Lanczos. Zoomed-out
+viewports use the explicitly approximate execution described below.
 
 `PreviewRequest.SourceTile` is an S pixel-edge rectangle. Map its four corners
 through the same geometry to final C, intersect output, floor/ceil and crop that
@@ -108,10 +107,11 @@ its encoder to optimize it away. Metadata field edits remain rejected.
 
 Linux executes the real pinned Magick native kernels. Native Windows codec/pixel
 runs and the WPF shared-worker fixture remain required; cross-compilation is not
-native evidence. The renderer remains unregistered. Full-resolution 8/16 MP
-adjusted viewport rendering is too slow for an interactive host (see task report).
-A follow-up must improve performance while preserving these exact detail/export
-goldens and explicitly specifying any reduced-scale viewport approximation.
+native evidence. The renderer remains unregistered. Exact full-resolution detail
+and export remain expensive; their pixel semantics are unchanged. The bounded fast
+viewport and optional idle refinement avoid applying every filter to the original
+8/16 MP raster on each adjustment. See the performance report for actual measured
+latency, allocation and cold-decode limitations; no hardware timing is a CI gate.
 
 ## Independent publication-policy validation
 
@@ -130,3 +130,51 @@ or no ICC and update both staged-file and compression byte measurements before
 publication. They assert rejection, no destination output and unchanged payload hash.
 PNG StripDescriptive clears Magick's `png:exclude-chunk` artifact after Strip() has
 removed metadata so the encoder can retain its newly restored sRGB working profile.
+
+
+## Bounded viewport execution and cache
+
+Approximation applies only when SourceTile is absent and actual final output exceeds
+at least one requested Bounds edge. Native-size requests remain exact even if their
+Bounds exceed the fast cap. `RenderPreviewAsync` caps each working edge at 512;
+concrete `RenderRefinedPreviewAsync` caps at 1024 for optional idle/gesture-end work.
+Both share the same session serial lease and global two-preview scheduler. Bounds
+are upper limits: no 512-pixel raster is enlarged to pretend it contains 2048-pixel
+detail. Every approximate frame reports a scaled-preview warning and truthful Size.
+
+After normalized S geometry and rounded crop, fit the crop aspect inside the minimum
+of requested Bounds and the execution cap, flooring dimensions (minimum one). Filter
+this unadjusted working raster. Fit the actual final output aspect inside that work
+size, never enlarging either edge; thus an intentional nonuniform output resize can
+produce a smaller frame. Work scale is the geometric mean
+`s=sqrt(workWidth/cropWidth * workHeight/cropHeight)`; this resolves the tiny axis
+scale difference caused by integer fitting. Clarity sigma is `12s`, sharpen sigma
+`s`, blur sigma `BlurSigma*s`; dark-channel radius is `round(7s)`, and median radius
+is `round(clamp(ceil(3*strength),1,3)*s)`. Radius rounding uses ties away from zero;
+a zero radius is a 1×1 window. Vignette uses normalized working coordinates. Grain
+inverse-maps the actual working pixel center through geometry to S before flooring
+and hashing, so it never substitutes viewport coordinates for source coordinates.
+All tone/color math and Q8 stage boundaries remain v1. Approximate pixels are not
+expected to equal a downsampled exact export.
+
+The renderer caches immutable, unadjusted straight RGBA8 bytes, keyed by verified
+source identity, geometry and actual working dimensions. Revision and adjustments
+are deliberately absent: each request reconstructs its own native working image
+and applies its current recipe. Four-entry LRU and 64 MiB decoded-byte budget both
+apply; an over-budget exact crop bypasses retention. No native image handle is
+retained by the cache. Verified source staging has a separate four-source LRU;
+evicting a source deletes its private scope and associated decoded bases. Session
+disposal clears both. Cancellation disposes request-owned native images and never
+publishes a frame; a successfully created unadjusted base can safely remain cached.
+The budget covers retained decoded bytes, not transient decode/filter/output memory.
+
+Exact optimization evaluates the unchanged Tone function once for each possible Q8
+input (256 doubles) and request-constant warmth/tint powers once. The first dark
+channel's 256-value histogram determines the top 0.1% cutoff; a row-major scan
+retains the same tied cutoff pixels and brightest-luminance/row-major atmosphere as
+the original heap. Reusing dark-channel storage does not change float boundaries.
+`ImageScaledKernelTests` independently brute-forces multiple-candidate/tied dehaze
+windows and compares scaled Gaussian/median results with opaque native-plane
+references. `ImagePreviewPerformanceTests` checks real processed dimensions,
+truthful fast/refined frames, independent inverse grain geometry, exact tile/export,
+cache revision isolation, byte/source LRU eviction, disposal and cancellation.
