@@ -10,4 +10,12 @@
  <Style x:Key="CitrusInput" TargetType="TextBox"><Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="BorderBrush" Value="{DynamicResource BorderBrush}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
  <Style TargetType="TextBox" BasedOn="{StaticResource CitrusInput}"/>
  <Style TargetType="ComboBox"><Setter Property="MinHeight" Value="40"/><Setter Property="Padding" Value="12,8"/><Setter Property="Background" Value="{DynamicResource ControlBackground}"/><Setter Property="Foreground" Value="{DynamicResource ControlText}"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/></Style>
+ <Style x:Key="WorkspaceListItem" TargetType="ListBoxItem">
+  <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource PrimaryText}"/>
+  <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="FocusVisualStyle" Value="{StaticResource FocusRing}"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ListBoxItem">
+   <Border x:Name="Surface" Background="{TemplateBinding Background}" BorderBrush="Transparent" BorderThickness="2" CornerRadius="10" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/></Border>
+   <ControlTemplate.Triggers><Trigger Property="IsSelected" Value="True"><Setter TargetName="Surface" Property="Background" Value="{DynamicResource InsetBackground}"/><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource Accent}"/></Trigger><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="Surface" Property="BorderBrush" Value="{DynamicResource BorderBrush}"/></Trigger></ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
 </ResourceDictionary>

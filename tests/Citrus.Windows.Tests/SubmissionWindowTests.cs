@@ -92,6 +92,62 @@ public sealed class SubmissionWindowTests(DesktopFixture desktop)
         Assert.Null(choice); return Task.CompletedTask;
     });
 
+    [Fact]
+    public Task Workspace_preview_changes_preserve_checkbox_inclusion_and_pending_decode_is_canceled() => desktop.RunAsync(async () =>
+    {
+        using var files = new NativeFiles();
+        string first = files.File("first.png", "fallback"), second = files.File("second.png", "fallback");
+        var previews = new PendingPreview();
+        var window = new MainWindow((App)System.Windows.Application.Current, previews);
+        try
+        {
+            window.AddFiles([first, second]);
+            var list = (System.Windows.Controls.ListBox)window.FindName("SelectedFiles");
+            Assert.Equal(System.Windows.Controls.SelectionMode.Single, list.SelectionMode);
+            var items = list.Items.Cast<WorkspaceInput>().ToArray();
+            items[0].IsIncluded = false;
+            list.SelectedItem = items[1];
+            list.SelectedItem = items[0];
+            Assert.False(items[0].IsIncluded); Assert.True(items[1].IsIncluded);
+            Assert.True(previews.Tokens.Take(previews.Tokens.Count - 1).All(token => token.IsCancellationRequested));
+            window.Dispose();
+            Assert.All(previews.Tokens, token => Assert.True(token.IsCancellationRequested));
+            await Task.Yield();
+        }
+        finally { window.Dispose(); window.Close(); }
+    });
+
+    [Fact]
+    public Task Failed_jobs_remain_available_for_retry_and_success_exposes_committed_outputs() => desktop.RunAsync(async () =>
+    {
+        using var files = new NativeFiles();
+        string input = files.File("captions.srt", "invalid subtitle");
+        var engine = new SubtitleEngine();
+        var service = new SubmissionService(new JobQueue([engine]), (_, _) => Task.FromResult<IReadOnlyList<InputInspection>>([]));
+        var operation = engine.Operations.First(o => o.OutputExtension == ".vtt");
+        var failed = Assert.Single(await service.SubmitAsync(operation, [input], (_, _) => throw new InvalidOperationException()));
+        await failed.Completion;
+        var model = new JobViewModel(failed);
+        Assert.True(model.CanRetry); Assert.True(model.CanChooseFolder); Assert.Empty(model.Outputs);
+        await File.WriteAllTextAsync(input, "1\n00:00:00,000 --> 00:00:01,000\nhello\n");
+        var retry = Assert.Single(await service.SubmitAsync(failed.Request.Operation, failed.Request.Inputs, (_, _) => throw new InvalidOperationException(), failed.Request.Options));
+        await retry.Completion;
+        var result = new JobViewModel(retry);
+        Assert.False(result.CanRetry); Assert.True(File.Exists(Assert.Single(result.Outputs).Path));
+        Assert.True(model.CanRetry); Assert.True(File.Exists(input));
+    });
+
+    private sealed class PendingPreview : IFilePreviewService
+    {
+        public List<CancellationToken> Tokens { get; } = [];
+        public async Task<System.Windows.Media.ImageSource?> LoadAsync(string path, int pixelLimit, CancellationToken token)
+        {
+            Tokens.Add(token);
+            await Task.Delay(Timeout.Infinite, token);
+            return null;
+        }
+    }
+
     private static SubmissionChoice? Show(SubmissionDraft draft, Action<ToolOptionsWindow> action)
     {
         var dialog = new ToolOptionsWindow(draft);

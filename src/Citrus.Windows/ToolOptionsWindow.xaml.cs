@@ -24,6 +24,9 @@ public partial class ToolOptionsWindow : Window
         destination = draft.DestinationDirectory;
         InitializeComponent();
         Heading.Text = draft.Operation.Label;
+        InputSummary.Text = $"{draft.Inputs.Count} included file(s) · {draft.Operation.OutputExtension?.TrimStart('.').ToUpperInvariant() ?? "new"} output";
+        OperationDescription.Text = OperationCard.Describe(draft.Operation);
+        Loaded += (_, _) => { if (fields.Values.FirstOrDefault() is { } first) first.Focus(); else CreateButton.Focus(); };
         Title = draft.Operation.Label + " · Citrus";
         CreateButton.Content = draft.Operation.IsGroup ? "Create group copy" : "Create copies";
         if (draft.Operation.IsGroup)
@@ -71,6 +74,7 @@ public partial class ToolOptionsWindow : Window
         Fields.Children.Add(new Label { Content = label, Target = box, Padding = new(0, 6, 0, 6) });
         Fields.Children.Add(box);
         fields.Add(key, box);
+        box.TextChanged += (_, _) => ErrorText.Text = "";
     }
 
     private void OrderSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -105,8 +109,20 @@ public partial class ToolOptionsWindow : Window
         try
         {
             string? Text(string key) => fields.TryGetValue(key, out var box) ? box.Text : null;
-            int? Integer(string key) => string.IsNullOrWhiteSpace(Text(key)) ? null : int.Parse(Text(key)!, CultureInfo.InvariantCulture);
-            double Real(string key, double fallback) => Text(key) is string text ? double.Parse(text, CultureInfo.InvariantCulture) : fallback;
+            int? Integer(string key)
+            {
+                if (string.IsNullOrWhiteSpace(Text(key))) return null;
+                if (int.TryParse(Text(key), NumberStyles.Integer, CultureInfo.InvariantCulture, out int value)) return value;
+                fields[key].Focus(); fields[key].SelectAll();
+                throw new ArgumentException(key + ": enter a whole number within the displayed bounds.");
+            }
+            double Real(string key, double fallback)
+            {
+                if (Text(key) is not string text) return fallback;
+                if (double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) && double.IsFinite(value)) return value;
+                fields[key].Focus(); fields[key].SelectAll();
+                throw new ArgumentException(key + ": enter a finite number using a decimal point.");
+            }
             var options = draft.Options with
             {
                 Width = fields.ContainsKey("Width") ? Integer("Width") : draft.Options.Width, Height = fields.ContainsKey("Height") ? Integer("Height") : draft.Options.Height,

@@ -25,8 +25,21 @@ internal static class LifecycleHost
         }
         var app = new App(new ResidentOptions(args[2], args[1], ObserveGestures: false, Background: args.Contains("--background"), NativeActions: actions));
         app.InitializeComponent();
+        // Surface product startup errors from a hidden Home instead of waiting 45 seconds for READY.
+        var startupWatch = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(200) };
+        startupWatch.Tick += (_, _) =>
+        {
+            if (app.MainWindow is MainWindow home && home.FindName("Status") is System.Windows.Controls.TextBlock status &&
+                status.Text.StartsWith("Citrus could not initialize.", StringComparison.Ordinal))
+            {
+                startupWatch.Stop();
+                Console.WriteLine("STARTUP_FAILED:" + status.Text);
+            }
+        };
+        startupWatch.Start();
         app.ResidentReady += () =>
         {
+            startupWatch.Stop();
             Console.WriteLine("READY:" + new WindowInteropHelper(app.MainWindow).EnsureHandle());
             _ = Task.Run(async () =>
             {
@@ -39,12 +52,42 @@ internal static class LifecycleHost
                             case "open": app.OpenHome(); break;
                             case "close": app.CloseHome(); break;
                             case "pause": app.ShowWheelForLifecycleTest(); app.SetGestures(false, persist: false); break;
+                            case "wheel-submit":
+                                await app.SubmitAsync(new(new Citrus.Conversion.SubtitleEngine().Operations.First(o => o.OutputExtension == ".vtt"), [Path.Combine(args[2], "quiet.srt")]), origin: Citrus.Core.SubmissionOrigin.Wheel);
+                                await Task.WhenAll(((System.Windows.Controls.ItemsControl)((MainWindow)app.MainWindow).FindName("JobList")).Items.Cast<JobViewModel>().Select(model => model.Job.Completion));
+                                break;
+                            case "wheel-options":
+                                bool? owned = null;
+                                var optionsWatch = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
+                                optionsWatch.Tick += (_, _) =>
+                                {
+                                    var dialog = app.Windows.OfType<ToolOptionsWindow>().FirstOrDefault();
+                                    if (dialog is null || !dialog.IsVisible) return;
+                                    owned = dialog.Owner is not null;
+                                    optionsWatch.Stop();
+                                    dialog.Close();
+                                };
+                                optionsWatch.Start();
+                                try
+                                {
+                                    await app.SubmitAsync(new(new Citrus.Conversion.ArchiveEngine().Operations.First(o => o.Id == "archive.zip"), [Path.Combine(args[2], "quiet.srt")]), origin: Citrus.Core.SubmissionOrigin.Wheel);
+                                }
+                                finally { optionsWatch.Stop(); }
+                                Console.WriteLine($"OPTIONS:owned={owned};home={app.HomeVisible}");
+                                return;
+                            case "wheel-error":
+                                await app.SubmitAsync(new(new Citrus.Conversion.SubtitleEngine().Operations.First(o => o.OutputExtension == ".vtt"), [Path.Combine(args[2], "missing.srt")]), origin: Citrus.Core.SubmissionOrigin.Wheel);
+                                await Task.WhenAll(((System.Windows.Controls.ItemsControl)((MainWindow)app.MainWindow).FindName("JobList")).Items.Cast<JobViewModel>().Select(model => model.Job.Completion));
+                                break;
                             case "move":
                                 _ = app.SubmitAsync(new(FileActions.Operations.Single(operation => operation.Id == "action.move"), [Path.Combine(args[2], "move-source.txt")]));
                                 return;
                             case "quit": Console.WriteLine("QUIT_REQUESTED"); await app.QuitAsync(); return;
                         }
-                        Console.WriteLine($"STATE:home={app.HomeVisible};wheel={app.WheelVisible}");
+                        var home = (MainWindow)app.MainWindow;
+                        var jobs = ((System.Windows.Controls.ItemsControl)home.FindName("JobList")).Items.Cast<JobViewModel>().ToArray();
+                        int errors = jobs.Count(model => model.Job.State == Citrus.Core.ConversionJobState.Failed) + ((System.Windows.Controls.ItemsControl)home.FindName("SubmissionFailures")).Items.Count;
+                        Console.WriteLine($"STATE:home={app.HomeVisible};wheel={app.WheelVisible};succeeded={jobs.Count(model => model.Job.State == Citrus.Core.ConversionJobState.Succeeded)};errors={errors}");
                     }));
                     if (command == "quit") return;
                 }

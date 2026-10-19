@@ -87,6 +87,24 @@ public sealed class ResidentLifecycleTests
         Assert.Equal("owned move", File.ReadAllText(Path.Combine(files.Root, "move-target", "move-source.txt")));
     }
 
+    [Fact]
+    public async Task Quiet_wheel_submission_and_failure_never_open_home_and_results_remain_recoverable()
+    {
+        using var files = new NativeFiles();
+        files.File("quiet.srt", "1\n00:00:00,000 --> 00:00:01,000\nhello\n");
+        using var child = Start(Guid.NewGuid().ToString("N"), files.Root, background: true);
+        Assert.StartsWith("READY:", await ReadLine(child));
+        string submitted = await Command(child, "wheel-submit");
+        Assert.Contains("home=False", submitted); Assert.Contains("succeeded=1", submitted);
+        string error = await Command(child, "wheel-error");
+        Assert.Contains("home=False", error); Assert.Contains("errors=1", error);
+        Assert.Equal("OPTIONS:owned=False;home=False", await Command(child, "wheel-options"));
+        Assert.Contains("home=True", await Command(child, "open"));
+        Assert.Contains("home=False", await Command(child, "close"));
+        await Quit(child);
+        Assert.Single(Directory.GetFiles(files.Root, "*.vtt"));
+    }
+
     private static ChildProcess Start(string identity, string root, bool background, bool ownedMove = false)
     {
         var start = new ProcessStartInfo(Environment.GetEnvironmentVariable("DOTNET_HOST_PATH") ?? "dotnet")

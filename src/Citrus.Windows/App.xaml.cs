@@ -20,6 +20,8 @@ public partial class App : Application
     private WheelWindow? wheel;
     private MainWindow? home;
     private ShelfWindow? shelf;
+    private JobToastWindow? toast;
+    private readonly HashSet<ConversionJob> quietJobs = [];
     private SettingsWindow? settingsWindow;
     private ThemeManager? themes;
     private FeedbackAudio? feedbackAudio;
@@ -64,7 +66,7 @@ public partial class App : Application
             home = new(this);
             MainWindow = home;
             actions = options.NativeActions ?? new(floatPaths: FloatPaths, cancellationToken: lifetime.Token);
-            using var iconStream = GetResourceStream(new Uri("pack://application:,,,/Resources/Citrus.ico")).Stream;
+            using var iconStream = GetResourceStream(new Uri("pack://application:,,,/Citrus.Windows;component/Resources/Citrus.ico")).Stream;
             trayIcon = new System.Drawing.Icon(iconStream);
             tray = new Forms.NotifyIcon { Icon = trayIcon, Text = "Citrus · local files", Visible = true };
             var menu = new Forms.ContextMenuStrip();
@@ -96,7 +98,7 @@ public partial class App : Application
                 if (options.ObserveGestures)
                 {
                     monitor = new(Dispatcher);
-                    monitor.ModeRequested += mode => wheel.ShowAtPointer(settings.Remap(mode));
+                    monitor.ModeRequested += mode => { toast?.Hide(); wheel.ShowAtPointer(settings.Remap(mode)); };
                     monitor.EscapePressed += wheel.Dismiss;
                     monitor.DragReleased += wheel.ObserveGlobalRelease;
                 }
@@ -180,23 +182,24 @@ public partial class App : Application
                 catch (Exception error) when (error is IOException or UnauthorizedAccessException) { home?.Report("Gesture setting could not be saved: " + error.Message); }
             }
             if (monitor?.Enabled != enabled) monitor?.SetEnabled(enabled);
-            if (!enabled) wheel?.Dismiss();
+            if (!enabled) { wheel?.Dismiss(); toast?.Close(); feedbackAudio?.Stop(); }
             if (pauseItem is not null) pauseItem.Checked = !enabled;
             home?.SetGestureCheck(enabled);
             home?.UpdateGestureGuide(settings);
         }
         finally { updatingGestures = false; }
     }
-    private async void SubmitDrop(OperationDrop drop) => await SubmitAsync(drop);
-    internal Task RetryAsync(ConversionJob job, string? destination) => SubmitAsync(new(job.Request.Operation, job.Request.Inputs), job.Request.Options, destination);
-    internal async Task SubmitAsync(OperationDrop drop, OperationOptions? options = null, string? destination = null)
+    private async void SubmitDrop(OperationDrop drop) => await SubmitAsync(drop, origin: SubmissionOrigin.Wheel);
+    internal Task RetryAsync(ConversionJob job, string? destination) => SubmitAsync(new(job.Request.Operation, job.Request.Inputs), job.Request.Options, destination, SubmissionOrigin.Retry);
+    internal async Task SubmitAsync(OperationDrop drop, OperationOptions? options = null, string? destination = null, SubmissionOrigin origin = SubmissionOrigin.Home)
     {
         if (IsQuitting || submissions is null || home is null) return;
-        if (preparing) { home.Report("Finish the current action or options dialog before starting another submission."); return; }
+        if (preparing) { ReportSubmission("Finish the current action or options dialog before starting another submission.", origin); return; }
         preparing = true;
         home.SetBusy(true);
-        OpenHome();
-        home.Report("Checking inputs…");
+        // Origin affects feedback only. All routes still use one authoritative submission service.
+        if (origin == SubmissionOrigin.Home) OpenHome();
+        ReportSubmission("Checking inputs…", origin, pending: true);
         var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         activeAction = completed.Task; // Installed before a destination dialog can pump nested Quit messages.
         try
@@ -205,20 +208,49 @@ public partial class App : Application
             {
                 await actions!.ExecuteAsync(drop.Operation.Id, drop.Paths);
                 home.RefreshSelection();
-                home.Report(drop.Operation.Id == "action.move" ? "Moved to: " + string.Join("; ", actions.LastMoveDestinations) :
-                    $"{drop.Operation.Label.TrimEnd('…')} completed for {drop.Paths.Count} selected item(s).");
+                ReportSubmission(drop.Operation.Id == "action.move" ? "Moved to: " + string.Join("; ", actions.LastMoveDestinations) :
+                    $"{drop.Operation.Label.TrimEnd('…')} completed for {drop.Paths.Count} included item(s).", origin);
             }
             else
             {
                 var submitted = await submissions.SubmitAsync(drop.Operation, drop.Paths, ConfirmAsync, options, destination, lifetime.Token);
                 jobs.AddRange(submitted);
+                if (origin == SubmissionOrigin.Wheel) foreach (var job in submitted) quietJobs.Add(job);
                 home.AddJobs(submitted);
-                home.Report(submitted.Count == 0 ? "Canceled. No work was submitted." : $"Submitted {submitted.Count} job(s). Each ordinary input has its own result.");
+                if (submitted.Count == 0) { home.Report("Canceled. No work was submitted."); if (origin == SubmissionOrigin.Wheel) toast?.Close(); }
+                else ReportSubmission($"Submitted {submitted.Count} job(s). Your originals stay safe.", origin, pending: true);
             }
         }
-        catch (OperationCanceledException) { home.Report("Canceled. No new work was submitted."); }
-        catch (Exception error) { home.Report("Could not complete: " + error.Message); }
+        catch (OperationCanceledException) { home.Report("Canceled. No new work was submitted."); if (origin == SubmissionOrigin.Wheel) toast?.Close(); }
+        catch (Exception error)
+        {
+            string message = "Could not complete: " + error.Message;
+            home.AddSubmissionFailure(message, drop.Operation.Mode == OperationMode.Actions ? null : () => SubmitAsync(drop, options, destination, SubmissionOrigin.Retry));
+            ReportSubmission(message, origin);
+        }
         finally { preparing = false; home.SetBusy(false); completed.TrySetResult(); }
+    }
+    private void ReportSubmission(string message, SubmissionOrigin origin, bool pending = false)
+    {
+        home?.Report(message);
+        if (origin != SubmissionOrigin.Wheel || IsQuitting) return;
+        if (toast is null)
+        {
+            toast = new(() => { OpenHome(); home?.ShowJobs(); }, RevealAsync, () => !IsQuitting && wheel?.IsVisible != true);
+            toast.Closed += (_, _) => toast = null;
+        }
+        toast.Update(message, pending);
+    }
+    private void RefreshQuietJobs()
+    {
+        if (toast is null) return; // Dismissal stays dismissed during later progress updates.
+        int pending = quietJobs.Count(job => job.State is ConversionJobState.Running or ConversionJobState.Queued);
+        int failed = quietJobs.Count(job => job.State == ConversionJobState.Failed);
+        int complete = quietJobs.Count(job => job.State == ConversionJobState.Succeeded);
+        if (pending == 0 && failed == 0 && complete == 0) { toast.Close(); return; }
+        string message = pending > 0 ? $"{pending} job(s) in progress · {complete} ready · {failed} failed"
+            : failed > 0 ? $"{complete} ready · {failed} failed. View jobs for details and retry." : $"{complete} job(s) complete. Your copies are ready.";
+        toast.Update(message, pending > 0, quietJobs.Where(job => job.State == ConversionJobState.Succeeded).SelectMany(job => job.Outputs).ToArray());
     }
     internal async Task RevealAsync(IReadOnlyList<string> paths)
     {
@@ -228,7 +260,11 @@ public partial class App : Application
     private Task<SubmissionChoice?> ConfirmAsync(SubmissionDraft draft, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        var dialog = new ToolOptionsWindow(draft) { Owner = home };
+        var dialog = new ToolOptionsWindow(draft);
+        // A never-shown background Home is not a valid modal owner.
+        if (home?.IsVisible == true) dialog.Owner = home;
+        else dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        using var registration = token.Register(() => Dispatcher.BeginInvoke(new Action(() => dialog.Close())));
         return Task.FromResult(dialog.ShowDialog() == true ? dialog.Choice : null);
     }
     private void JobChanged(ConversionJob job)
@@ -237,11 +273,10 @@ public partial class App : Application
         {
             if (IsQuitting) return;
             home?.RefreshJobs();
+            if (quietJobs.Contains(job)) RefreshQuietJobs();
             if (job.State is ConversionJobState.Succeeded or ConversionJobState.Failed && notified.Add(job))
             {
                 feedbackAudio?.Play(job.State == ConversionJobState.Succeeded ? FeedbackCue.Success : FeedbackCue.Error);
-                tray?.ShowBalloonTip(3000, "Citrus", job.State == ConversionJobState.Succeeded ? "Your copies are ready. Open Citrus to reveal them." : "An item failed. Open Citrus for details and retry options.",
-                    job.State == ConversionJobState.Succeeded ? Forms.ToolTipIcon.Info : Forms.ToolTipIcon.Warning);
                 if (settings.RevealCompletedOutputs && job.State == ConversionJobState.Succeeded && job.Outputs.Count > 0)
                     await RevealAsync(job.Outputs);
             }
@@ -254,6 +289,8 @@ public partial class App : Application
         lifetime.Cancel();
         monitor?.Dispose();
         wheel?.Dismiss();
+        toast?.Close();
+        home?.Dispose();
         settingsWindow?.Close();
         foreach (Window dialog in Windows.Cast<Window>().Where(window => window is ToolOptionsWindow).ToArray()) dialog.Close();
         if (tray is not null) tray.Visible = false;
@@ -274,6 +311,8 @@ public partial class App : Application
         monitor?.Dispose();
         if (queue is not null) queue.JobChanged -= JobChanged;
         shelf?.Dispose();
+        toast?.Dispose();
+        home?.Dispose();
         themes?.Dispose();
         feedbackAudio?.Dispose();
         tray?.ContextMenuStrip?.Dispose();
