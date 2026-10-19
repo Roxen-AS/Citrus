@@ -176,3 +176,17 @@ public sealed partial class EditorDocumentTests
         Assert.Contains(Citrus.Core.Editing.EditorRecipeValidator.Validate(invalidDestination), issue => issue.FieldPath == "Export.DestinationDirectory");
     }
 }
+
+public sealed partial class EditorDocumentTests
+{
+    [Fact]
+    public void Video_crop_uses_probed_source_canvas_not_smaller_output_dimensions()
+    {
+        var document = EditorTestData.Image();
+        var clip = new Citrus.Core.Editing.MediaClip(Guid.NewGuid(),document.Sources[0].Id,0,null,new(new(0,1),new(1,1)),1);
+        var video = new Citrus.Core.Editing.VideoRecipe([clip],new(400,300,1000,600),new(320,180),Citrus.Core.Editing.ImageFit.Contain,true,[],[],null,[]);
+        Assert.Empty(Citrus.Core.Editing.EditorRecipeValidator.Validate(document with { Recipe=video }));
+        Assert.NotEmpty(Citrus.Core.Editing.EditorRecipeValidator.Validate(document with { Recipe=video with { Crop=new(double.NaN,0,1000,600) } }));
+        Assert.NotEmpty(Citrus.Core.Editing.EditorRecipeValidator.Validate(document with { Recipe=video with { Crop=new(0,0,-1,600) } }));
+    }
+}

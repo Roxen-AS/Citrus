@@ -33,6 +33,94 @@ public sealed class MediaProcess
         await InvokeAsync(FfmpegPath, args, progress, cancellationToken).ConfigureAwait(false);
     }
 
+    // Shared by preview/probe jobs; limits native process and pipe memory even across editor sessions.
+    private static readonly SemaphoreSlim BinaryWorkers = new(2);
+
+    public async Task<long> RunBinaryAsync(IReadOnlyList<string> arguments, Stream output, long maximumBytes, CancellationToken ct)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumBytes);
+        var args = new List<string> { "-hide_banner", "-nostdin", "-nostats", "-loglevel", "error", "-protocol_whitelist", "file,pipe" };
+        args.AddRange(arguments);
+        long bytes = 0;
+        await InvokeStreamAsync(FfmpegPath, args, async stream =>
+        {
+            byte[] buffer = new byte[64 * 1024]; int count;
+            while ((count = await stream.ReadAsync(buffer, ct).ConfigureAwait(false)) != 0)
+            {
+                if (count > maximumBytes - bytes) throw new MediaProcessException("Binary media output exceeds its declared limit.");
+                await output.WriteAsync(buffer.AsMemory(0, count), ct).ConfigureAwait(false);
+                bytes += count;
+            }
+        }, ct).ConfigureAwait(false);
+        return bytes;
+    }
+
+    /// <summary>Structured output is rejected on overflow, never tail-truncated like diagnostics.</summary>
+    public async Task<JsonDocument> ProbeJsonAsync(IReadOnlyList<string> arguments, int maximumBytes, CancellationToken ct)
+    {
+        if (maximumBytes is < 1 or > OutputLimit) throw new ArgumentOutOfRangeException(nameof(maximumBytes));
+        using var output = new MemoryStream();
+        await InvokeStreamAsync(FfprobePath, ProbeArguments(arguments), async stream =>
+        {
+            byte[] buffer = new byte[8192]; int count;
+            while ((count = await stream.ReadAsync(buffer, ct).ConfigureAwait(false)) != 0)
+            {
+                if (count > maximumBytes - output.Length) throw new MediaProcessException("Structured probe output exceeds its limit.");
+                output.Write(buffer, 0, count);
+            }
+        }, ct).ConfigureAwait(false);
+        return JsonDocument.Parse(output.ToArray());
+    }
+
+    // Incremental frame records keep long sources bounded. Only trusted probe fields are requested.
+    internal Task ProbeLinesAsync(IReadOnlyList<string> arguments, Action<string> consume, CancellationToken ct) =>
+        InvokeStreamAsync(FfprobePath, ProbeArguments(arguments), async stream =>
+        {
+            using var reader = new StreamReader(stream, Encoding.UTF8, false, 4096, leaveOpen: true);
+            char[] buffer = new char[4096]; var line = new StringBuilder(); int count;
+            while ((count = await reader.ReadAsync(buffer.AsMemory(), ct).ConfigureAwait(false)) != 0)
+                for (int i = 0; i < count; i++)
+                {
+                    if (buffer[i] == '\n') { consume(line.ToString().TrimEnd('\r')); line.Clear(); }
+                    else { if (line.Length == 8192) throw new MediaProcessException("Probe record exceeds its limit."); line.Append(buffer[i]); }
+                }
+            if (line.Length > 0) consume(line.ToString());
+        }, ct);
+
+    private static List<string> ProbeArguments(IReadOnlyList<string> arguments)
+    {
+        var result = new List<string> { "-v", "error", "-protocol_whitelist", "file,pipe" };
+        result.AddRange(arguments); return result;
+    }
+
+    private static async Task InvokeStreamAsync(string executable, IReadOnlyList<string> arguments, Func<Stream, Task> consume, CancellationToken ct)
+    {
+        await BinaryWorkers.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ct.ThrowIfCancellationRequested();
+            if (!File.Exists(executable)) throw new FileNotFoundException("The offline media engine is missing. Reinstall Citrus.", executable);
+            var start = new ProcessStartInfo(executable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = Path.GetDirectoryName(executable)! };
+            foreach (string argument in arguments) start.ArgumentList.Add(argument);
+            using var child = new Process { StartInfo = start };
+            child.Start();
+            void Kill() { try { if (!child.HasExited) child.Kill(entireProcessTree: true); } catch (InvalidOperationException) { } }
+            using var registration = ct.Register(Kill);
+            async Task ReadOutput() { try { await consume(child.StandardOutput.BaseStream).ConfigureAwait(false); } catch { Kill(); throw; } }
+            async Task<string> ReadError() { try { return await ReadBoundedAsync(child.StandardError, ErrorLimit, null).ConfigureAwait(false); } catch { Kill(); throw; } }
+            var stderr = ReadError(); var stdout = ReadOutput();
+            try
+            {
+                await Task.WhenAll(stdout, stderr, child.WaitForExitAsync()).ConfigureAwait(false);
+                ct.ThrowIfCancellationRequested();
+                if (child.ExitCode != 0) throw new MediaProcessException($"The media engine failed (exit {child.ExitCode}). {await stderr.ConfigureAwait(false)}");
+            }
+            catch when (ct.IsCancellationRequested) { throw new OperationCanceledException(ct); }
+            finally { Kill(); await child.WaitForExitAsync().ConfigureAwait(false); }
+        }
+        finally { BinaryWorkers.Release(); }
+    }
+
     public async Task<MediaInfo> ProbeAsync(string input, CancellationToken cancellationToken)
     {
         using var json = JsonDocument.Parse(await InvokeAsync(FfprobePath,

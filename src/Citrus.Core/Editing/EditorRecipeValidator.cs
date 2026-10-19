@@ -162,7 +162,10 @@ public static class EditorRecipeValidator
                 foreach (var item in collage.Items) { if (item.Crop is { } r) Rect(r,"Items.Crop"); Number(item.Anchor.X,0,1,"Items.Anchor"); Number(item.Anchor.Y,0,1,"Items.Anchor"); Number(item.Weight,double.Epsilon,100000,"Items.Weight"); }
                 Background(collage.Background,"Background"); Number(collage.CornerRadius,0,16384,"CornerRadius"); Shadow(collage.Shadow,"Shadow"); break;
             case VideoRecipe video:
-                ExactTime duration = Clips(video.Clips); Size(video.Canvas,"Canvas"); if (video.Crop is { } vc) { Rect(vc,"Crop"); Check(vc.X + vc.Width <= video.Canvas.Width && vc.Y + vc.Height <= video.Canvas.Height,"Crop","Crop exceeds canvas."); }
+                ExactTime duration = Clips(video.Clips); Size(video.Canvas,"Canvas");
+                // Crop is in the first stream's normalized display plane, not final output Canvas.
+                // Its actual upper bounds require inspected source geometry in the media compiler.
+                if (video.Crop is { } vc) Rect(vc,"Crop");
                 Check(video.SplitAt.Length <= 99 && (video.SplitAt.IsEmpty || video.SnapshotAt is null),"SplitAt","At most 100 segments; snapshot and split are exclusive.");
                 RationalTime previous = new(0,1);
                 foreach (var split in video.SplitAt) { Time(split,"SplitAt"); if (split.Denominator > 0) { Check(split.CompareTo(previous) > 0 && duration.CompareTo(split) > 0,"SplitAt","Splits must be unique, sorted and inside duration."); previous = split; } }
