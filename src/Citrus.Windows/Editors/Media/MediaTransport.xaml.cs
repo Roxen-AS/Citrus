@@ -82,12 +82,12 @@ public partial class MediaTransport : UserControl
             Waveform.StartFraction = Math.Clamp((Seconds(controller.WaveformRange.Start) - Seconds(range.Start)) / duration, 0, 1);
             Waveform.EndFraction = Math.Clamp((Seconds(controller.WaveformRange.End) - Seconds(range.Start)) / duration, 0, 1);
         }
-        if (controller.TryTakeFrame(out var frame) && frame is not null)
+        controller.TryPresentFrame(frame =>
         {
-            var pixels = frame.Bgra32.AsSpan().ToArray();
+            var pixels = MediaPresentation.Pixels(frame);
             var bitmap = BitmapSource.Create(frame.Size.Width, frame.Size.Height, 96, 96, PixelFormats.Bgra32, null, pixels, frame.Stride);
             bitmap.Freeze(); Preview.Source = bitmap;
-        }
+        });
     }
     private async void PlayClicked(object sender, RoutedEventArgs e) => await Act(async () =>
     {
@@ -112,8 +112,12 @@ public partial class MediaTransport : UserControl
     private Task Seek() => Act(async () =>
     {
         if (controller is null || document is null) return;
-        var position = new RationalTime(checked((long)Math.Round(Timeline.Value * 1_000_000)), 1_000_000);
-        if (position.CompareTo(range.End) >= 0) { controller.Pause(); return; }
+        var position = MediaPresentation.SeekPosition(Timeline.Value, range);
+        if (position.CompareTo(range.End) >= 0)
+        {
+            // The range is half-open. The right edge pauses without issuing an invalid seek.
+            controller.Pause(); Timeline.Value = Seconds(controller.Position); return;
+        }
         await controller.SeekAsync(position, lifetime.Token);
         Refresh();
     });

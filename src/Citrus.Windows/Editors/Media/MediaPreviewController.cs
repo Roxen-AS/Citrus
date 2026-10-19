@@ -44,7 +44,7 @@ public interface IMediaPlaybackPreparation
     Task<IPreparedMediaPlayback> PrepareAsync(EditorDocument document, TimeRange range, bool original, long generation, CancellationToken ct);
 }
 
-/// <summary>Session-local transport. Events run on worker threads; UI consumes frames with TryTakeFrame,
+/// <summary>Session-local transport. Events run on worker threads; UI consumes frames with TryPresentFrame,
 /// never posts a dispatcher work item per frame. Pause/seek invalidate the generation and flush pixels.
 /// Await WaitForIdleAsync/DisposeAsync to join child termination and staging cleanup.</summary>
 public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
@@ -60,7 +60,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
     private Channel<PreviewFrame>? frames;
     private EditorDocument? document;
     private TimeRange selection;
-    private bool original, disposed;
+    private bool original, disposed, playRequested, presenting;
     private long generation;
     private RationalTime position = new(0, 1), start = new(0, 1), end = new(0, 1);
     private MediaPlaybackState state;
@@ -135,7 +135,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
         {
             selected = document ?? throw new InvalidOperationException("Load a playback document first.");
             if (position.CompareTo(selection.Start) < 0 || position.CompareTo(selection.End) >= 0) throw new ArgumentOutOfRangeException(nameof(position));
-            resume = play ?? (state is MediaPlaybackState.Playing or MediaPlaybackState.Preparing);
+            resume = play ?? playRequested;
         }
         long ticket = StopCurrent(MediaPlaybackState.Paused);
         await commands.WaitAsync(ct).ConfigureAwait(false);
@@ -157,9 +157,10 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
             active?.Dispose();
             active = CancellationTokenSource.CreateLinkedTokenSource(ct);
             long current = ++generation;
-            // Two queued frames plus the decoder's current/in-flight frame = at most three decoded pixel buffers.
-            frames = Channel.CreateBounded<PreviewFrame>(new BoundedChannelOptions(2) { FullMode = BoundedChannelFullMode.Wait, SingleReader = false, SingleWriter = true });
-            position = start = range.Start; end = range.End; Error = null; Waveform = []; state = MediaPlaybackState.Preparing;
+            // One queued + one decoder/in-flight + one synchronous presentation payload = at most three.
+            frames = Channel.CreateBounded<PreviewFrame>(new BoundedChannelOptions(1) { FullMode = BoundedChannelFullMode.Wait, SingleReader = false, SingleWriter = true });
+            position = start = range.Start; end = range.End; Error = null; Waveform = [];
+            playRequested = !paused; state = MediaPlaybackState.Preparing;
             var loaded = document!; var audition = original; var queue = frames; var cancellation = active;
             running = Task.Run(() => RunAsync(loaded, range, audition, current, paused, queue, cancellation, ready));
         }
@@ -230,14 +231,14 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
                     await Task.Delay(10, ct).ConfigureAwait(false);
                 }
                 if (ownedSink is not null) await ownedSink.Completion.ConfigureAwait(false);
-                lock (sync) if (current == generation) { position = range.End; state = MediaPlaybackState.Stopped; }
+                lock (sync) if (current == generation) { position = range.End; playRequested = false; state = MediaPlaybackState.Stopped; }
                 cancellation.Cancel();
             }
         }
         catch (OperationCanceledException) { ready.TrySetCanceled(cancellation.Token); }
         catch (Exception ex)
         {
-            lock (sync) if (current == generation) { position = Position; Error = ex; state = MediaPlaybackState.Failed; }
+            lock (sync) if (current == generation) { position = Position; playRequested = false; Error = ex; state = MediaPlaybackState.Failed; }
             ready.TrySetException(ex);
         }
         finally
@@ -260,30 +261,41 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
                     if (cleanupFailure is not null && Error is null) { Error = cleanupFailure; state = MediaPlaybackState.Failed; }
                     sink = null; silentClock.Stop();
                     if (state is MediaPlaybackState.Playing or MediaPlaybackState.Preparing) state = MediaPlaybackState.Stopped;
-                    if (!paused) while (queue.Reader.TryRead(out _)) { }
+                    playRequested = false;
                 }
+                if (!paused || current != generation) while (queue.Reader.TryRead(out _)) { }
             }
             Notify();
         }
     }
-    /// <summary>Drop obsolete UI frames against the device clock; keep the next future frame queued.
-    /// This method never advances the playback clock, including after a blocked dispatcher.</summary>
-    public bool TryTakeFrame(out PreviewFrame? frame)
+    /// <summary>Synchronously consumes at most one presentation payload. The callback must finish its
+    /// bitmap copy before returning and must not retain the frame/pixel array. A second consumer is
+    /// refused until that copy finishes, even across pause/seek/generation changes. Together with one
+    /// queued and one decoder/in-flight payload this bounds the complete managed pipeline to three.
+    /// The callback runs outside the controller lock so cancellation and device teardown stay responsive.</summary>
+    public bool TryPresentFrame(Action<PreviewFrame> present)
     {
+        ArgumentNullException.ThrowIfNull(present);
+        PreviewFrame? frame = null;
         lock (sync)
         {
-            frame = null;
-            if (frames is null) return false;
+            if (disposed || presenting || frames is null) return false;
             var now = Position;
             while (frames.Reader.TryPeek(out var next))
             {
                 if (next.Generation != generation) { frames.Reader.TryRead(out _); continue; }
                 if (next.ActualTime!.Value.CompareTo(now) > 0 && state != MediaPlaybackState.Paused) break;
+                // Release an obsolete candidate before taking its replacement. The producer may
+                // refill the single queue slot immediately when TryRead frees it.
+                frame = null;
                 frames.Reader.TryRead(out frame);
                 if (state == MediaPlaybackState.Paused) break;
             }
-            return frame is not null;
+            if (frame is null) return false;
+            presenting = true;
         }
+        try { present(frame); return true; }
+        finally { frame = null; lock (sync) presenting = false; }
     }
     private long StopCurrent(MediaPlaybackState next)
     {
@@ -293,7 +305,7 @@ public sealed class MediaPreviewController : IEditorPlayback, IAsyncDisposable
         {
             position = Position;
             ticket = ++generation; active?.Cancel(); release = sink; sink = null;
-            silentClock.Stop(); state = next;
+            silentClock.Stop(); playRequested = false; state = next;
             if (frames is not null) while (frames.Reader.TryRead(out _)) { }
             frames = null;
         }

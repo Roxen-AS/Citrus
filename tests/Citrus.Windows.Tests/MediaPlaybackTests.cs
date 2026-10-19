@@ -24,12 +24,12 @@ public sealed class MediaPlaybackTests
         controller.Pause(); await controller.WaitForIdleAsync().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(sinks[0].Released); Assert.True(preparation.Sessions[0].Disposed);
         Assert.Equal(MediaPlaybackState.Paused, controller.State);
-        Assert.False(controller.TryTakeFrame(out _));
+        Assert.False(controller.TryPresentFrame(_ => { }));
         await controller.SeekAsync(new(3, 4), default);
         await controller.WaitForIdleAsync().WaitAsync(TimeSpan.FromSeconds(5));
         Assert.Single(sinks); // Paused seek cannot briefly play audio.
-        Assert.True(controller.TryTakeFrame(out var seek)); Assert.Equal(new RationalTime(3, 4), seek!.ActualTime);
-        Assert.False(controller.TryTakeFrame(out _));
+        Assert.True(controller.TryPresentFrame(seek => Assert.Equal(new RationalTime(3, 4), seek.ActualTime)));
+        Assert.False(controller.TryPresentFrame(_ => { }));
         await controller.ResumeAsync(default);
         Assert.Equal(2, sinks.Count);
         using var canceled = new CancellationTokenSource(); canceled.Cancel();
@@ -47,15 +47,15 @@ public sealed class MediaPlaybackTests
         sink.At = new(7, 5);
         await Task.Delay(60);
         Assert.Equal(new RationalTime(7, 5), controller.Position);
-        Assert.InRange(preparation.Sessions[0].CompletedWrites, 1, 2);
-        PreviewFrame? frame = null;
+        Assert.InRange(preparation.Sessions[0].CompletedWrites, 1, 1);
+        RationalTime? actualTime = null;
         for (int i = 0; i < 40; i++)
         {
-            if (controller.TryTakeFrame(out var next)) frame = next;
-            if (frame?.ActualTime == new RationalTime(7, 5)) break;
+            controller.TryPresentFrame(next => actualTime = next.ActualTime);
+            if (actualTime == new RationalTime(7, 5)) break;
             await Task.Delay(5);
         }
-        Assert.NotNull(frame); Assert.Equal(new RationalTime(7, 5), frame.ActualTime);
+        Assert.NotNull(actualTime); Assert.Equal(new RationalTime(7, 5), actualTime);
         Assert.Equal(new RationalTime(7, 5), controller.Position); // UI never becomes the clock.
         controller.Stop(); await controller.WaitForIdleAsync(); Assert.True(sink.Released);
     }
@@ -162,6 +162,7 @@ public sealed class MediaPlaybackTests
     internal sealed class Prepared(TimeRange range, long generation, bool silent, bool fail) : IPreparedMediaPlayback
     {
         public int CompletedWrites;
+        public int FramesCreated;
         public bool Disposed;
         public TimeRange Range => range;
         public AudioPcmInfo? Audio { get; } = silent ? null : new(Guid.NewGuid() + ".pcm", 48000, 1, 96000);
@@ -175,6 +176,7 @@ public sealed class MediaPlaybackTests
                 var offset = FrameTimes[i];
                 var time = new RationalTime(range.Start.Numerator * offset.Denominator + offset.Numerator * range.Start.Denominator, range.Start.Denominator * offset.Denominator);
                 if (time.CompareTo(range.End) >= 0) break;
+                Interlocked.Increment(ref FramesCreated);
                 await consume(new(8, generation, new(1, 1), 4, [1, 2, 3, 255], time, new(Guid.Empty, 0, i), []), ct);
                 Interlocked.Increment(ref CompletedWrites);
                 if (fail) throw new IOException("Decoder failed after the first frame.");

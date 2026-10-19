@@ -1,4 +1,7 @@
 using System.Windows;
+using System.Windows.Input;
+using KeyEventArgs = System.Windows.Input.KeyEventArgs;
+using Slider = System.Windows.Controls.Slider;
 using Image = System.Windows.Controls.Image;
 using Button = System.Windows.Controls.Button;
 using System.Windows.Media.Imaging;
@@ -12,6 +15,35 @@ namespace Citrus.Windows.Tests;
 [Collection("Desktop")]
 public sealed class MediaTransportPresentationTests(DesktopFixture desktop)
 {
+    [Fact]
+    public Task Home_key_seeks_to_exact_one_thirtieth_start() => desktop.RunAsync(async () =>
+    {
+        var preparation = new MediaPlaybackTests.Preparation();
+        await using var controller = new MediaPreviewController(preparation, () => new MediaPlaybackTests.Sink());
+        var control = new MediaTransport { Controller = controller };
+        var window = new Window { Content = control, Width = 800, Height = 420, ShowInTaskbar = false };
+        var doc = new EditorDocument(1, 8, [], [], new AudioRecipe([], 48000, new(["FC"], ["FC"], [1], false), [], null, []),
+            new("wav", null, "test", new QualityGoal(80), MetadataPolicy.StripAll, new(0, 0, 0, 255)));
+        var start = new RationalTime(1, 30);
+        try
+        {
+            window.Show(); await Dispatcher.Yield(DispatcherPriority.ContextIdle);
+            await control.LoadAsync(doc, new(start, new(2, 1)), default);
+            await controller.SeekAsync(new(1, 2), default);
+            await controller.WaitForIdleAsync();
+            var timeline = Assert.IsType<Slider>(control.FindName("Timeline"));
+            timeline.Value = timeline.Minimum;
+            timeline.RaiseEvent(new KeyEventArgs(Keyboard.PrimaryDevice, PresentationSource.FromVisual(window)!, Environment.TickCount, Key.Home)
+                { RoutedEvent = Keyboard.PreviewKeyUpEvent });
+            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            while (controller.Position != start || controller.State != MediaPlaybackState.Paused)
+                await Task.Delay(10, timeout.Token);
+            Assert.Equal(start, controller.Position);
+            Assert.Equal(start, preparation.Calls[^1].Range.Start);
+            Assert.DoesNotContain("outside", Assert.IsType<System.Windows.Controls.TextBlock>(control.FindName("Status")).Text, StringComparison.OrdinalIgnoreCase);
+        }
+        finally { window.Close(); }
+    });
     [Fact]
     public Task Reusable_transport_presents_frozen_exact_pixels_consumes_press_style_and_stops_on_unload() => desktop.RunAsync(async () =>
     {
