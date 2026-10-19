@@ -1,0 +1,24 @@
+<UserControl x:Class="Citrus.Windows.Editors.Media.MediaTransport"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:media="clr-namespace:Citrus.Windows.Editors.Media"
+ Background="{DynamicResource MaterialContentSurface}" Foreground="{DynamicResource PrimaryText}"
+ FontFamily="{DynamicResource AppFont}" FontSize="{DynamicResource BodySize}">
+ <Grid Margin="12">
+  <Grid.RowDefinitions><RowDefinition Height="*"/><RowDefinition Height="64"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+  <Image x:Name="Preview" Stretch="Uniform" MinHeight="80" AutomationProperties.Name="Exact video preview"/>
+  <media:WaveformView x:Name="Waveform" Grid.Row="1" Foreground="{DynamicResource Accent}"/>
+  <Slider x:Name="Timeline" Grid.Row="2" Minimum="0" Maximum="1" SmallChange="0.1" LargeChange="1"
+    PreviewMouseLeftButtonUp="SeekReleased" PreviewKeyUp="SeekKeyReleased" AutomationProperties.Name="Playback position in seconds"/>
+  <WrapPanel Grid.Row="3" Margin="0,8,0,0">
+   <Button x:Name="Play" Content="Play" Click="PlayClicked" Style="{DynamicResource CitrusButton}" MinWidth="80" Margin="0,0,8,0"/>
+   <Button Content="Pause" Click="PauseClicked" Style="{DynamicResource SecondaryButton}" Margin="0,0,8,0"/>
+   <Button Content="Stop" Click="StopClicked" Style="{DynamicResource SecondaryButton}" Margin="0,0,16,0"/>
+   <Button Content="Previous frame" Click="PreviousClicked" Style="{DynamicResource SecondaryButton}" Margin="0,0,8,0"/>
+   <Button Content="Next frame" Click="NextClicked" Style="{DynamicResource SecondaryButton}" Margin="0,0,16,0"/>
+   <CheckBox x:Name="Original" Content="Original" VerticalAlignment="Center" Click="OriginalClicked"
+     ToolTip="Bypass pixel and sample effects. Keep trims, clip order, speed and output format for comparison."/>
+   <TextBlock x:Name="Timecode" VerticalAlignment="Center" Margin="16,0,0,0"/>
+  </WrapPanel>
+  <TextBlock x:Name="Status" Grid.Row="4" Margin="0,8,0,0" TextWrapping="Wrap" AutomationProperties.LiveSetting="Polite"/>
+ </Grid>
+</UserControl>

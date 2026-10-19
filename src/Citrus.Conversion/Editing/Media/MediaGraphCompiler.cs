@@ -5,7 +5,7 @@ using Citrus.Core.Editing;
 namespace Citrus.Conversion.Editing.Media;
 
 /// <summary>Compiles prepared, verified media to raw preview output. Export/effect capabilities are added by the family renderer, not silently discarded here.</summary>
-public sealed class MediaGraphCompiler(MediaProbe probe,MediaCapabilities capabilities)
+public sealed partial class MediaGraphCompiler(MediaProbe probe,MediaCapabilities capabilities)
 {
     public MediaGraphPlan Compile(EditorDocument document,RenderPurpose purpose,PreviewRequest? preview,ImmutableDictionary<Guid,string> stagedSources)
     {
