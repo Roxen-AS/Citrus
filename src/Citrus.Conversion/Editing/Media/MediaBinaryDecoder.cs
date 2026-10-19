@@ -12,6 +12,8 @@ public sealed class MediaBinaryDecoder(MediaProcess process)
         using var cancel=CancellationTokenSource.CreateLinkedTokenSource(ct,plan.Owner.LifetimeToken);
         ct=cancel.Token;
         using var lease=await plan.Owner.AcquireDecodeAsync(ct).ConfigureAwait(false);
+        // Exactly one shared preview slot covers hashing, decoding and result materialization.
+        using var previewLease=await PreviewWorkScheduler.AcquireAsync(ct).ConfigureAwait(false);
         if(plan.VideoSize is not {} size||size.Width is <1 or >2048||size.Height is <1 or >2048||plan.FrameIdentity is null||plan.FrameTime is null)
             throw new ArgumentException("A bounded exact video frame plan is required.");
         int bytes=checked(checked(size.Width*size.Height)*4);
@@ -27,6 +29,8 @@ public sealed class MediaBinaryDecoder(MediaProcess process)
         using var cancel=CancellationTokenSource.CreateLinkedTokenSource(ct,plan.Owner.LifetimeToken);
         ct=cancel.Token;
         using var lease=await plan.Owner.AcquireDecodeAsync(ct).ConfigureAwait(false);
+        // Exactly one shared preview slot covers hashing, decoding and result materialization.
+        using var previewLease=await PreviewWorkScheduler.AcquireAsync(ct).ConfigureAwait(false);
         if(plan.SampleRate is not {} rate||rate is <8000 or >192000||plan.Channels is not {} channels||channels is <1 or >64||plan.VideoSize is not null)
             throw new ArgumentException("A PCM audio plan is required.");
         if(!Path.IsPathFullyQualified(pcmPath)||plan.Sources.Any(s=>EditorPathPolicy.Same(s.Path,pcmPath)||EditorPathPolicy.Same(s.Snapshot.Path,pcmPath))) throw new ArgumentException("PCM must have a fresh private output path.");

@@ -99,7 +99,7 @@ public sealed class MediaGraphCompiler(MediaProbe probe,MediaCapabilities capabi
         int channels=audio.Channels.OutputChannels.Length;
         if(audio.Channels.LimitPeak||!audio.Channels.InputChannels.SequenceEqual(audio.Channels.OutputChannels)||audio.Channels.Coefficients.Where((value,index)=>value!=(index/channels==index%channels?1:0)).Any())
             throw new NotSupportedException("Only an explicit identity channel matrix is available in this preview backend.");
-        Require(["atrim","asetpts","aresample","atempo","apad","concat"],"pcm_s16le","s16le");
+        Require(["asettb","atrim","asetpts","aresample","atempo","apad","concat"],"pcm_s16le","s16le");
         var args=new List<string>{"-copyts","-filter_threads","1","-filter_complex_threads","1"};
         var graph=new List<string>(); long totalSampleFrames=0;
         for(int i=0;i<audio.Clips.Length;i++)
@@ -110,12 +110,14 @@ public sealed class MediaGraphCompiler(MediaProbe probe,MediaCapabilities capabi
             args.AddRange(["-i",bindings.Single(b=>b.Snapshot.Id==clip.SourceId).Path]);
             var start=MediaTime.Add(source.PresentationOrigin,clip.Range.Start);
             var end=MediaTime.Add(source.PresentationOrigin,clip.Range.End);
-            // atrim boundaries are in source ticks; aresample first_pts preserves late stream starts as silence.
-            long startPts=MediaTime.CeilingTicks(start,stream.TimeBase),endPts=MediaTime.CeilingTicks(end,stream.TimeBase);
+            // Decoded audio can use a different time base from its container (e.g. Matroska 1/1000).
+            // Establish sample ticks explicitly before trimming; all boundaries stay exact rationals.
+            var filterTimeBase=new RationalTime(1,stream.SampleRate);
+            long startPts=MediaTime.CeilingTicks(start,filterTimeBase),endPts=MediaTime.CeilingTicks(end,filterTimeBase);
             var length=MediaTime.Div(MediaTime.Sub(clip.Range.End,clip.Range.Start),MediaTime.Speed(clip.Speed));
             long sampleFrames=MediaTime.Ceiling(length,audio.SampleRate);
             totalSampleFrames=checked(totalSampleFrames+sampleFrames);
-            var chain=$"[{i}:{stream.Index}]atrim=start_pts={Number(startPts)}:end_pts={Number(endPts)},asetpts=PTS-{MediaTime.Expression(start)}/TB,aresample={audio.SampleRate}:first_pts=0";
+            var chain=$"[{i}:{stream.Index}]asettb=1/{stream.SampleRate},atrim=start_pts={Number(startPts)}:end_pts={Number(endPts)},asetpts=PTS-({Number(startPts)}),aresample={audio.SampleRate}:first_pts=0";
             double tempo=clip.Speed;
             while(tempo>2) { chain+=",atempo=2"; tempo/=2; }
             while(tempo<.5) { chain+=",atempo=0.5"; tempo/=.5; }
