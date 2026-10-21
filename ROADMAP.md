@@ -39,14 +39,12 @@ Broader compatibility depends on tested engines, platform behavior, maintainersh
 
 Start with [Contributing](CONTRIBUTING.md), then browse [good first issues](https://github.com/Skytuhua/Citrus/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) or [help wanted](https://github.com/Skytuhua/Citrus/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22). The initial contribution areas are:
 
-| Task | Contribution type | Intended result |
-|---|---|---|
-| [Core settings-validation matrix #2](https://github.com/Skytuhua/Citrus/issues/2) | Focused tests · good first issue | Cover valid key permutations, invalid enum values and duplicate assignments without changing the settings contract. |
-| [File/directory output collisions #3](https://github.com/Skytuhua/Citrus/issues/3) | Focused tests · good first issue | Protect existing entries when the requested output name is occupied by a different filesystem kind. |
-| [Offline documentation target check #4](https://github.com/Skytuhua/Citrus/issues/4) | Tooling · help wanted | Report missing relative files and images without fetching websites or assets. |
-| [File-actions quick start #5](https://github.com/Skytuhua/Citrus/issues/5) | Documentation · good first issue | Help users choose the correct action while preserving move and cancellation qualifications. |
-| [Test-suite prerequisite map #6](https://github.com/Skytuhua/Citrus/issues/6) | Documentation · good first issue | Show which commands and prerequisites a contributor needs for a particular change. |
-| [Settings accessibility qualification #7](https://github.com/Skytuhua/Citrus/issues/7) | Text-based Windows verification · help wanted | Record reproducible keyboard and screen-reader findings without a blanket accessibility claim. |
+- [Core settings-validation matrix #2](https://github.com/Skytuhua/Citrus/issues/2) (good first issue): cover valid key permutations, invalid enum values and duplicate assignments without changing the settings contract.
+- [File/directory output collisions #3](https://github.com/Skytuhua/Citrus/issues/3) (good first issue): add focused tests that protect existing entries when the requested output name is occupied by a different filesystem kind.
+- [Offline documentation target check #4](https://github.com/Skytuhua/Citrus/issues/4) (help wanted): report missing relative files and images without fetching websites or assets.
+- [File-actions quick start #5](https://github.com/Skytuhua/Citrus/issues/5) (good first issue): help users choose the correct action while preserving move and cancellation qualifications.
+- [Test-suite prerequisite map #6](https://github.com/Skytuhua/Citrus/issues/6) (good first issue): show which commands and prerequisites a contributor needs for a particular change.
+- [Settings accessibility qualification #7](https://github.com/Skytuhua/Citrus/issues/7) (help wanted): record reproducible keyboard and screen-reader findings as text, with conclusions limited to the tested configurations.
 
 Comment on the relevant issue with the scope you intend to take. Use its acceptance checks and exclusions to keep the change reviewable. Larger proposals belong in a [feature request](https://github.com/Skytuhua/Citrus/issues/new/choose) before implementation.
 
