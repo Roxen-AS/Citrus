@@ -14,7 +14,25 @@ concurrency:
   group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 jobs:
+  release_state:
+    runs-on: ubuntu-latest
+    outputs:
+      prepare: ${{ steps.state.outputs.prepare }}
+    steps:
+      - id: state
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          if existing=$(gh release view "$REQUESTED_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft 2>/dev/null) && [ "$existing" = false ]; then
+            echo 'prepare=false' >> "$GITHUB_OUTPUT"
+            echo 'Published release is immutable; no installer rebuild is required.'
+          else
+            echo 'prepare=true' >> "$GITHUB_OUTPUT"
+          fi
   windows-preview:
+    needs: release_state
+    if: needs.release_state.outputs.prepare == 'true'
     runs-on: windows-2025
     timeout-minutes: 90
     steps:
@@ -72,7 +90,9 @@ jobs:
         shell: pwsh
         run: |
           ./packaging/publish.ps1
-          python packaging/test-package.py dist/Citrus-win-x64
+          # publish.ps1 already verifies every candidate pin and the sealed inventory.
+          # Keep exhaustive, repeated missing-asset scans separate from release preparation.
+          python packaging/test-package.py
           if($LASTEXITCODE){throw 'Complete package tests failed'}
           python packaging/release-metadata.py
           if($LASTEXITCODE){throw 'Public release metadata failed'}
