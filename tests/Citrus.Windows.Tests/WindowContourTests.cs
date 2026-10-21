@@ -23,6 +23,49 @@ namespace Citrus.Windows.Tests;
 public sealed class WindowContourTests(DesktopFixture desktop)
 {
     [Theory]
+    [InlineData(1d)]
+    [InlineData(1.5d)]
+    [InlineData(2d)]
+    public Task Media_editor_native_corners_are_transparent_before_and_after_resize_and_theme_changes(double scale) => desktop.RunAsync(async () =>
+    {
+        using var theme = new ThemeManager(Application.Current);
+        using var presentation = new WindowPresentationService(Application.Current, theme, () => new CitrusSettings { ReduceTransparency = true });
+        var empty = new HashSet<string>();
+        string unused = System.IO.Path.GetFullPath("unused-media-contour-engine");
+        var engine = new MediaEditorEngine(new MediaProcess(unused, unused), new(empty, empty, empty, empty, false), new());
+        var window = new MediaEditorWindow(engine) { ShowActivated = false };
+        var surface = Assert.IsType<MaterialSurface>(window.Content);
+        try
+        {
+            // This must be set before the HWND is created; transparent WPF paint alone
+            // leaves an opaque native rectangle behind the rounded editor surface.
+            Assert.True(window.AllowsTransparency);
+            presentation.Attach(window, surface);
+            window.Show();
+            foreach (var choice in new[] { ThemeChoice.Light, ThemeChoice.Dark })
+            foreach (var size in new[] { new Size(640, 540), new Size(460, 410) })
+            {
+                theme.Apply(choice, true);
+                window.Width = size.Width; window.Height = size.Height;
+                await Dispatcher.Yield(DispatcherPriority.ApplicationIdle);
+                var hwnd = new WindowInteropHelper(window).Handle;
+                Assert.NotEqual(0, BackdropNativeMethods.GetWindowLongPtr(hwnd, -20).ToInt64() & BackdropNativeMethods.WsExLayered);
+                Assert.Equal(0, HwndSource.FromHwnd(hwnd)!.CompositionTarget.BackgroundColor.A);
+                var bitmap = VisualArtifacts.Render(surface, scale);
+                int near = (int)(2 * scale);
+                foreach (var point in new[] { (near, near), (bitmap.PixelWidth - near - 1, near),
+                    (near, bitmap.PixelHeight - near - 1), (bitmap.PixelWidth - near - 1, bitmap.PixelHeight - near - 1) })
+                    Assert.Equal(0, Pixel(bitmap, point.Item1, point.Item2).A);
+                Assert.Equal(255, ((SolidColorBrush)surface.EffectiveTint).Color.A);
+                if (size.Width == 640)
+                    VisualArtifacts.Capture(surface, $"contour-media-{choice}-{scale}", scale, choice,
+                        new { nativeLayered = true, nativeClearAlpha = true, source = "Production MediaEditorWindow; no source media or desktop captured" });
+            }
+        }
+        finally { window.Close(); theme.Apply(ThemeChoice.Light, true); }
+    });
+
+    [Theory]
     [InlineData(0x1A)]
     [InlineData(0x31A)]
     [InlineData(0x31E)]
@@ -188,6 +231,7 @@ public sealed class WindowContourTests(DesktopFixture desktop)
     [InlineData("shelf")]
     [InlineData("image")]
     [InlineData("video")]
+    [InlineData("media")]
     [InlineData("toast")]
     [InlineData("demo")]
     public Task Every_program_window_keeps_ancestor_paint_outside_the_material(string kind) => desktop.RunAsync(async () =>
@@ -223,6 +267,7 @@ public sealed class WindowContourTests(DesktopFixture desktop)
         "shelf" => new ShelfWindow(),
         "image" => new EditorHostWindow(new(new())),
         "video" => new VideoCropWindow(new(new MediaProcess(System.IO.Path.GetFullPath("unused-ffmpeg"), System.IO.Path.GetFullPath("unused-ffprobe")), new(new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), false), new())),
+        "media" => new MediaEditorWindow(new(new MediaProcess(System.IO.Path.GetFullPath("unused-ffmpeg"), System.IO.Path.GetFullPath("unused-ffprobe")), new(new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), new HashSet<string>(), false), new())),
         "toast" => new JobToastWindow(() => { }, _ => Task.CompletedTask, () => true),
         "demo" => new WheelDemoWindow(),
         _ => throw new ArgumentException(kind)

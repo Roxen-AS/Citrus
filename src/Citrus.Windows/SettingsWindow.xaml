@@ -12,6 +12,13 @@
    <CheckBox x:Name="Transparency" Margin="0,0,0,12"><TextBlock Text="Reduce transparency" TextWrapping="Wrap"/></CheckBox>
    <CheckBox x:Name="Reveal" Margin="0,0,0,12"><TextBlock Text="Reveal completed outputs in Explorer" TextWrapping="Wrap"/></CheckBox>
    <Label Content="_Theme" Target="{Binding ElementName=Theme}"/><ComboBox x:Name="Theme" AutomationProperties.Name="Theme"/>
+   <TextBlock Text="Updates" FontSize="{DynamicResource SectionSize}" FontWeight="SemiBold" Margin="0,24,0,10"/>
+   <CheckBox x:Name="AutomaticUpdates" Margin="0,0,0,10"><TextBlock Text="Automatically download and install updates when Citrus is idle" TextWrapping="Wrap"/></CheckBox>
+   <TextBlock x:Name="UpdateStatus" TextWrapping="Wrap" Style="{StaticResource MetadataText}" AutomationProperties.LiveSetting="Polite" Margin="0,0,0,10"/>
+   <WrapPanel><Button x:Name="CheckUpdates" Content="Check for updates" Click="CheckForUpdates" Style="{DynamicResource MenuButton}" Margin="0,0,8,8"/>
+    <Button x:Name="RestartUpdate" Content="Restart to update" Click="RestartForUpdate" Style="{DynamicResource MenuPrimaryButton}" Visibility="Collapsed" Margin="0,0,8,8"/>
+    <Button x:Name="OpenReleases" Content="GitHub releases" Click="OpenGitHubReleases" Style="{DynamicResource MenuButton}" Margin="0,0,0,8"/></WrapPanel>
+   <TextBlock Text="Uses published GitHub app releases. Editing and conversions finish before a restart; website and README changes do not replace the app." TextWrapping="Wrap" Style="{StaticResource MetadataText}"/>
    <TextBlock Text="Wheel gestures" FontSize="{DynamicResource SectionSize}" FontWeight="SemiBold" Margin="0,24,0,10"/>
    <CheckBox x:Name="Gestures" Margin="0,0,0,6"><TextBlock Text="Enable drag gestures" TextWrapping="Wrap"/></CheckBox>
    <TextBlock Text="Hold a key before dragging, or tap one during a drag. The wheel opens as soon as dragging starts. Shift and Ctrl selection clicks still work." TextWrapping="Wrap" Style="{StaticResource MetadataText}" Margin="0,6,0,14"/>

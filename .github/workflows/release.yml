@@ -1,0 +1,109 @@
+name: Prepare verified Windows release draft
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to build (must match CitrusVersion.props)
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ inputs.tag || github.ref }}
+  cancel-in-progress: false
+jobs:
+  windows-preview:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Require exact version tag
+        shell: pwsh
+        env:
+          REQUESTED_TAG: ${{ inputs.tag || github.ref_name }}
+        run: |
+          [xml]$versions=Get-Content CitrusVersion.props
+          $version=[string]$versions.Project.PropertyGroup.Version
+          if($env:REQUESTED_TAG -cne ('v'+$version)){throw 'Tag must match the central application and installer version'}
+          "CITRUS_RELEASE_TAG=$env:REQUESTED_TAG" >> $env:GITHUB_ENV
+      - name: Fetch pinned NSIS 3.11 compiler
+        shell: pwsh
+        run: |
+          $toolRoot=Join-Path $env:RUNNER_TEMP 'citrus-nsis-3.11'
+          New-Item -ItemType Directory -Path $toolRoot | Out-Null
+          $archive=Join-Path $toolRoot 'nsis-3.11.zip'
+          Invoke-WebRequest 'https://downloads.sourceforge.net/project/nsis/NSIS%203/3.11/nsis-3.11.zip' -OutFile $archive
+          if((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash -ine 'c7d27f780ddb6cffb4730138cd1591e841f4b7edb155856901cdf5f214394fa1'){throw 'NSIS compiler archive hash mismatch'}
+          Expand-Archive -LiteralPath $archive -DestinationPath $toolRoot
+          $compiler=Join-Path $toolRoot 'nsis-3.11/makensis.exe'
+          if(!(Test-Path -LiteralPath $compiler -PathType Leaf)){throw 'Pinned compiler executable missing'}
+          "MAKENSIS=$compiler" >> $env:GITHUB_ENV
+      - name: Restore frozen, individually pinned offline engines
+        run: python packaging/bootstrap-engines.py
+      - name: Restore, build and test source
+        shell: pwsh
+        run: |
+          dotnet restore Citrus.sln --locked-mode
+          if($LASTEXITCODE){throw 'Locked restore failed'}
+          dotnet build Citrus.sln -c Release --no-restore -m:1
+          if($LASTEXITCODE){throw 'Source build failed'}
+          dotnet test tests/Citrus.Core.Tests -c Release --no-build --no-restore
+          if($LASTEXITCODE){throw 'Core contracts failed'}
+          dotnet test tests/Citrus.Windows.Tests -c Release --no-build --no-restore --filter 'FullyQualifiedName~Update'
+          if($LASTEXITCODE){throw 'Managed updater contracts failed'}
+      - name: Verify updater metadata and real isolated installer transitions
+        shell: pwsh
+        run: |
+          python packaging/test-update-metadata.py
+          if($LASTEXITCODE){throw 'Updater metadata contracts failed'}
+          python packaging/test-update-installer.py
+          if($LASTEXITCODE){throw 'Native installer transition fixtures failed'}
+      - name: Build complete offline installer and verify prepared inventory
+        shell: pwsh
+        run: |
+          ./packaging/publish.ps1
+          python packaging/test-package.py dist/Citrus-win-x64
+          if($LASTEXITCODE){throw 'Complete package tests failed'}
+          python packaging/release-metadata.py
+          if($LASTEXITCODE){throw 'Public release metadata failed'}
+      - name: Upload complete assets to a draft only
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $existing=gh release view $env:CITRUS_RELEASE_TAG --json isDraft --jq .isDraft 2>$null
+          if($LASTEXITCODE -eq 0){
+            if($existing -cne 'true'){throw 'Refuse replacement of an already published installer'}
+          }else{
+            $preview=$env:CITRUS_RELEASE_TAG.Contains('-')
+            $arguments=@('release','create',$env:CITRUS_RELEASE_TAG,'--draft','--title',('Citrus '+$env:CITRUS_RELEASE_TAG),'--notes','Verified automated packaging draft. Promote only after native workflow, clean-machine, visual and public-download checks.')
+            if($preview){$arguments+='--prerelease'}
+            & gh @arguments
+            if($LASTEXITCODE){throw 'Draft creation failed'}
+          }
+          gh release upload $env:CITRUS_RELEASE_TAG dist/Citrus-Setup.exe dist/release-manifest.json dist/release/SHA256SUMS --clobber
+          if($LASTEXITCODE){throw 'Complete draft upload failed'}
+          $release=gh release view $env:CITRUS_RELEASE_TAG --json assets,isDraft | ConvertFrom-Json
+          $expected=Get-Content dist/release-manifest.json -Raw | ConvertFrom-Json
+          $asset=@($release.assets|Where-Object name -ceq 'Citrus-Setup.exe')
+          if($release.isDraft -ne $true -or $asset.Count -ne 1 -or $asset[0].size -ne $expected.installer.bytes -or $asset[0].digest -cne ('sha256:'+$expected.installer.sha256)){throw 'Draft asset digest/size verification failed'}
+          Write-Output 'Draft is complete. It is intentionally excluded from application update feeds until publication.'
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-metadata-and-test-receipts
+          path: |
+            dist/release-manifest.json
+            dist/release/SHA256SUMS
+            .local/update-*.log
+          if-no-files-found: warn

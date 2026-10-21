@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0-preview.2 — 2026-10-21
+
+- Fixed square black corners around the rounded video and audio editor windows.
+- Added background checks for published GitHub versions, verified installer downloads, idle-only installation and update controls in Settings and the tray.
+- Added transactional upgrades, failed-install rollback, interrupted-install recovery and protection against repeated update failures.
+- Preserved files, settings and existing conversion workflows. The first updater-enabled release requires one manual installation for earlier previews.
+
 ## 0.3.0-preview.1 — 2026-10-21
 
 Public Windows preview launch, not a stable-release or universal acceptance claim.

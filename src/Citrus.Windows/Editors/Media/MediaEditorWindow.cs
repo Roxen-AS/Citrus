@@ -72,7 +72,6 @@ public sealed class MediaEditorWindow : Window
         NameScope.SetNameScope(this,new NameScope());
         Width=640;Height=540;MinWidth=440;MinHeight=400;WindowStartupLocation=WindowStartupLocation.CenterOwner;
         SetResourceReference(FontFamilyProperty,"AppFont");SetResourceReference(FontSizeProperty,"BodySize");SetResourceReference(ForegroundProperty,"PrimaryText");SetResourceReference(BackgroundProperty,"PanelBackground");
-        WindowChromeSetup.Apply(this);
         var root=new Grid();root.RowDefinitions.Add(new(){Height=GridLength.Auto});root.RowDefinitions.Add(new(){Height=GridLength.Auto});root.RowDefinitions.Add(new(){Height=new(1,GridUnitType.Star)});root.RowDefinitions.Add(new(){Height=GridLength.Auto});
         var header=new ChromeHeader{Content=heading,MinHeight=52};heading.SetResourceReference(TextBlock.FontSizeProperty,"EditorTitleSize");root.Children.Add(header);
         Grid.SetRow(videoPane,1);root.Children.Add(videoPane);
@@ -83,7 +82,9 @@ public sealed class MediaEditorWindow : Window
         var footerLine=new Border{Child=footer,BorderThickness=new(0,1,0,0)};footerLine.SetResourceReference(Border.BorderBrushProperty,"BorderBrush");Grid.SetRow(footerLine,3);root.Children.Add(footerLine);
         apply.SetResourceReference(Control.StyleProperty,"PrimaryButton");
         apply.Click+=(_,_)=>Run(ApplyAsync);apply.IsDefault=true;apply.IsEnabled=false;
-        var surface=new MaterialSurface{Child=root};Content=surface;(Application.Current as App)?.AttachPresentation(this,surface);
+        var surface=new MaterialSurface{Child=root};Content=surface;
+        WindowChromeSetup.Apply(this);
+        (Application.Current as App)?.AttachPresentation(this,surface);
         RegisterName("ApplyButton",apply);RegisterName("StatusText",status);
         previewDelay.Tick+=(_,_)=>{previewDelay.Stop();Run(RefreshPreviewAsync);};
         PreviewKeyDown+=KeyPressed;

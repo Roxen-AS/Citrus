@@ -107,6 +107,7 @@ public partial class App : Application
             var menu = new Forms.ContextMenuStrip { ShowImageMargin = false, ShowCheckMargin = true, Padding = new Forms.Padding(5) };
             menu.Items.Add("Open Citrus", null, (_, _) => OpenHome());
             menu.Items.Add("Settings…", null, (_, _) => OpenSettings());
+            AddUpdateMenu(menu);
             menu.Items.Add(new Forms.ToolStripSeparator());
             pauseItem = new Forms.ToolStripMenuItem("Pause drag gestures") { CheckOnClick = true };
             pauseItem.CheckedChanged += (_, _) => { if (!updatingGestures) SetGestures(!pauseItem.Checked); };
@@ -171,7 +172,7 @@ public partial class App : Application
                 if (options.ObserveGestures)
                 {
                     monitor = new(Dispatcher);
-                    monitor.ModeRequested += mode => { toast?.Hide(); wheel.ShowAtPointer(settings.Remap(mode)); };
+                    monitor.ModeRequested += mode => { if (IsQuitting || updateAdmissionClosed) return; toast?.Hide(); wheel.ShowAtPointer(settings.Remap(mode)); };
                     monitor.CancellationObserved += wheel.ObserveCancellation;
                     monitor.RightButtonCancellationRequested += wheel.TryObserveCancellation;
                     monitor.DragReleased += wheel.ObserveGlobalRelease;
@@ -186,6 +187,7 @@ public partial class App : Application
             }
             if (settingsStore.LoadWarning is { } warning) home.Report(warning);
             ResidentReady?.Invoke();
+            StartAutomaticUpdates();
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception error)
@@ -223,7 +225,7 @@ public partial class App : Application
 
     internal void OpenHome()
     {
-        if (IsQuitting) return;
+        if (IsQuitting || updateAdmissionClosed) return;
         home?.ShowLauncher();
         BringHomeToFront();
     }
@@ -237,15 +239,17 @@ public partial class App : Application
     internal void ShowWheelForLifecycleTest() => wheel?.ShowAtPointer(OperationMode.Actions);
     internal void OpenSettings()
     {
-        if (IsQuitting) return;
+        if (IsQuitting || updateAdmissionClosed) return;
         if (settingsWindow is not null) { settingsWindow.Activate(); return; }
         if (home?.IsVisible != true) OpenHome();
-        settingsWindow = new(settings, ApplySettingsAsync) { Owner = home };
+        settingsWindow = new(settings, ApplySettingsAsync, CheckForUpdatesAsync, RestartForUpdateAsync, OpenUpdateReleases) { Owner = home };
+        settingsWindow.SetUpdateStatus(updateStatus);
         settingsWindow.Closed += (_, _) => settingsWindow = null;
         settingsWindow.Show();
     }
     private void FloatPaths(IReadOnlyList<string> paths)
     {
+        if (IsQuitting || updateAdmissionClosed) return;
         if (shelf is null)
         {
             shelf = new();
@@ -255,7 +259,7 @@ public partial class App : Application
     }
     internal Task ApplySettingsAsync(CitrusSettings updated)
     {
-        if (IsQuitting) throw new InvalidOperationException("Citrus is quitting.");
+        if (IsQuitting || updateAdmissionClosed) throw new InvalidOperationException("Citrus is quitting.");
         updated.Validate();
         // Only an explicit preference change writes HKCU Run. Test hosts never use the real startup key.
         var startup = new StartupRegistration();
@@ -274,11 +278,12 @@ public partial class App : Application
         if (feedbackAudio is not null) feedbackAudio.Enabled = settings.SoundEnabled;
         SetGestures(settings.GesturesEnabled, persist: false);
         home?.UpdateGestureGuide(settings);
+        UpdatePreferenceChanged();
         return Task.CompletedTask;
     }
     internal void SetGestures(bool enabled, bool persist = true)
     {
-        if (updatingGestures || IsQuitting) return;
+        if (updatingGestures || IsQuitting || updateAdmissionClosed) return;
         updatingGestures = true;
         try
         {
@@ -300,7 +305,7 @@ public partial class App : Application
     internal async Task RetryAsync(ConversionJob job, string? destination)
     {
         if (job.Request.Editor is null) { await SubmitAsync(new(job.Request.Operation, job.Request.Inputs), job.Request.Options, destination, SubmissionOrigin.Retry); return; }
-        if (IsQuitting || home is null) return;
+        if (IsQuitting || updateAdmissionClosed || home is null) return;
         if (preparing) { home.Report("Finish the current editor before retrying."); return; }
         if (editorWorkflows?.Contains(job.Request.Operation.Id) != true) { home.Report("The editor renderer is unavailable. Restore the bundled tools before retrying this recipe."); return; }
         preparing = true; home.SetBusy(true);
@@ -316,7 +321,7 @@ public partial class App : Application
     }
     internal async Task SubmitAsync(OperationDrop drop, OperationOptions? options = null, string? destination = null, SubmissionOrigin origin = SubmissionOrigin.Home)
     {
-        if (IsQuitting || submissions is null || home is null) return;
+        if (IsQuitting || updateAdmissionClosed || submissions is null || home is null) return;
         if (preparing) { ReportSubmission("Finish the current action or options dialog before starting another submission.", origin); return; }
         drop = new(drop.Operation, Array.AsReadOnly(drop.Paths.ToArray())); // Freeze the actual incoming payload before any await/modal pump.
         preparing = true;
@@ -474,6 +479,7 @@ public partial class App : Application
         foreach (Window dialog in Windows.Cast<Window>().Where(window => window is ToolOptionsWindow or EditorHostWindow or VideoCropWindow or MediaEditorWindow or PdfEditorWindow or ImageMetadataWindow).ToArray()) dialog.Close();
         if (tray is not null) tray.Visible = false;
         foreach (var job in jobs) job.Cancel();
+        await StopAutomaticUpdatesAsync();
         await activeAction; // A native Move is never abandoned midway through its filesystem work.
         await Task.WhenAll(jobs.Select(job => job.Completion));
         await glassPreparation;

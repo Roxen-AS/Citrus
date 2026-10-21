@@ -4,9 +4,9 @@
 <p align="center"><strong>Convert files. Keep your flow.</strong></p>
 <p align="center">A compact wheel and focused editors for the file you are already working with.<br>Images, video, audio, PDFs, documents and archives. Processed locally. Originals preserved.</p>
 
-<p align="center"><a href="https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1"><strong>Download the Windows preview →</strong></a> &nbsp; · &nbsp; <a href="https://citrous.app/#product-demo">Watch the walkthrough</a> &nbsp; · &nbsp; <a href="https://citrous.app">Explore the website</a></p>
+<p align="center"><a href="https://github.com/Skytuhua/Citrus/releases"><strong>Download the Windows preview →</strong></a> &nbsp; · &nbsp; <a href="https://citrous.app/#product-demo">Watch the walkthrough</a> &nbsp; · &nbsp; <a href="https://citrous.app">Explore the website</a></p>
 
-<p align="center">Windows x64 · 0.3.0-preview.1 · Open-source application</p>
+<p align="center">Windows x64 · 0.3.0-preview.2 · Open-source application</p>
 
 [![Citrus: the compact wheel and real image and video editors](docs/launch/2026-10-21/media/product-hero.webp)](https://citrous.app/#product-demo)
 
@@ -45,11 +45,13 @@ See the video while you work. Drag trim or crop handles, scrub to a moment, and 
 
 ## Download and start
 
-1. Get **Citrus-Setup.exe** from the [0.3 preview release](https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1), or use the [download page](https://citrous.app/download/).
+1. Get **Citrus-Setup.exe** from [GitHub releases](https://github.com/Skytuhua/Citrus/releases), or use the [download page](https://citrous.app/download/).
 2. Check its published SHA-256 and release notes. This preview is **unsigned**; Windows may report an unknown publisher. Make your own trust decision before running it.
 3. Install for your Windows user, open Citrus and add a local file. Choose a format or tool and review the separate output.
 
 The installer includes the runtime and offline engine pack; its download is substantial. See the download page for the measured size and requirements. Closing the launcher keeps the tray app running; choose **Quit** from the tray to exit fully.
+
+Installed releases check for updates in the background. Verified updates install when Citrus is idle, with no edits or conversions interrupted. Version 0.3.0-preview.1 needs one manual upgrade to acquire this updater. [Automatic updates and controls](docs/AUTOMATIC-UPDATES.md).
 
 **Windows x64 only.** Windows 11 is recommended; the application's technical minimum is Windows 10 build 19041. No macOS, Linux or native ARM64 installer is provided. [Quick start and uninstall help](docs/QUICKSTART.md).
 
