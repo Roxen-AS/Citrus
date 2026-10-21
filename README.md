@@ -1,79 +1,99 @@
-<p align="center"><img src="docs/launch/2026-10-21/media/citrus-mark.png" width="76" height="76" alt="Citrus"></p>
+<p align="center"><img src="docs/launch/2026-10-21/media/citrus-mark.png" width="64" height="64" alt="Citrus"></p>
 
 <h1 align="center">Citrus for Windows</h1>
 <p align="center"><strong>Convert files. Keep your flow.</strong></p>
-<p align="center">A compact wheel and focused editors for the file you are already working with.<br>Images, video, audio, PDFs, documents and archives. Processed locally. Originals preserved.</p>
+<p align="center">Local file conversion and focused editors for Windows.<br>Choose a task from a compact wheel or the workspace. Save a separate result.</p>
 
-<p align="center"><a href="https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1"><strong>Download the Windows preview →</strong></a> &nbsp; · &nbsp; <a href="https://citrous.app/#product-demo">Watch the walkthrough</a> &nbsp; · &nbsp; <a href="https://citrous.app">Explore the website</a></p>
+<p align="center"><a href="https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1"><strong>Download the Windows preview →</strong></a> · <a href="docs/QUICKSTART.md">Quick start</a> · <a href="https://citrous.app">Website</a></p>
 
-<p align="center">Windows x64 · 0.3.0-preview.1 · Open-source application</p>
+<p align="center">Windows x64 · v0.3.0-preview.1 · Unsigned preview · 1.30 GB download</p>
 
-[![Citrus: the compact wheel and real image and video editors](docs/launch/2026-10-21/media/product-hero.webp)](https://citrous.app/#product-demo)
+<p align="center"><a href="https://github.com/Skytuhua/Citrus/actions/workflows/ci.yml"><img src="https://github.com/Skytuhua/Citrus/actions/workflows/ci.yml/badge.svg?branch=main" alt="Source build and core contracts"></a> · <a href="LICENSE">MIT application license</a></p>
 
-## The next useful thing, close to your file
+<p align="center"><a href="#what-you-can-do">Features</a> · <a href="#how-it-works">How it works</a> · <a href="#install-the-preview">Installation</a> · <a href="#preview-boundaries">Preview limits</a> · <a href="#help-and-contributions">Contributing</a></p>
 
-Drag a local file and tap **Shift** to convert, **Alt** for tools or **Ctrl** for file actions. Pick a destination on the wheel, then drop. You can also add files in the workspace and choose a task there.
+[![Citrus wheel and focused editors, composed from the actual interface with sample files](docs/launch/2026-10-21/media/product-hero.webp)](https://citrous.app/#product-demo)
 
-The wheel stays compact. Menus use clear white surfaces. Photo adjustments, crop handles, video playback and audio waveforms give each task the controls it needs.
+*Actual Citrus interface arranged with sample files. [Demonstration and media provenance](docs/launch/2026-10-21/media/README.md).*
 
-[![An edited Citrus product walkthrough with sample files](docs/launch/2026-10-21/media/wheel-workflow.gif)](https://citrous.app/#product-demo)
+## What you can do
 
-*Edited product demonstration using sample files and exports of the actual Citrus interface. Composited wheel sequences are not a real-time Explorer recording or a performance benchmark. [Watch the 10-second launch film](https://citrous.app/assets/launch-v1/citrus-launch-10s.mp4).*
+- **Images:** Convert PNG, JPEG, WebP, HEIC, TIFF, AVIF, BMP and more. Adjust light and color, crop, annotate, redact, add a background, compress or edit metadata.
+- **Video:** Convert, trim, crop, change speed, mute, redact, take a snapshot or split a clip. Play and scrub the video while editing.
+- **Audio:** Convert, trim, normalize, adjust channels, add bleep ranges, visualize, compress and edit metadata. Audition the edited result.
+- **PDFs:** Reorder, rotate, duplicate, split or merge pages. Export text, images and reconstructed editable documents, with OCR for supported scans.
+- **Documents and books:** Convert documents, presentations, spreadsheets and EPUB locally. Pages destinations produce clearly labeled, Pages-compatible DOCX files.
+- **Archives and subtitles:** Create or repack archives, extract supported archives, and convert SRT/VTT or readable text.
 
-## A useful set of tools
+Available operations depend on the actual file and codec. PDF reconstruction and document layout are best effort. Check the [capability table](docs/operations.md) for individual operations and the [preview notes](docs/PREVIEW-NOTES.md) for boundaries.
 
-| Your file | What you can do |
-|---|---|
-| **Images** | Convert PNG, JPEG, WebP, HEIC, TIFF, AVIF, BMP and more. Adjust light and color, crop, annotate, redact, add a background, compress or edit metadata. |
-| **Video** | Convert formats; play and scrub the real picture. Trim with handles, crop directly, change speed, mute, redact, take a snapshot or split a clip. |
-| **Audio** | Convert, trim, normalize, adjust channels, add bleep ranges, visualize, compress and edit metadata. Audition the edited result. |
-| **PDFs** | Organize pages with thumbnails, reorder, rotate, duplicate, split or merge. Export text, images and reconstructed editable documents, with OCR for supported scans. |
-| **Documents & books** | Offline document, presentation, spreadsheet and EPUB conversions. Pages destinations produce clearly labeled, Pages-compatible DOCX files. |
-| **Archives & subtitles** | Create or repack archives, extract supported archives, and convert SRT/VTT or readable text. |
+## How it works
 
-Format and codec support depends on the actual file. PDF reconstruction and document layout are best effort. See the [complete capability table](docs/operations.md) and [preview limitations](docs/PREVIEW-NOTES.md).
+**From the workspace:** Open Citrus, choose **Add files** or **Open workspace**, then pick a format or tool and review the output.
 
-### Make a small edit without losing the original
+**From Explorer:** Start dragging a local file, then tap a mode key:
 
-![The actual Citrus Add BG editor and its saved sample image](docs/launch/2026-10-21/media/image-editor.webp)
+- <kbd>Shift</kbd> **Convert**
+- <kbd>Alt</kbd> **Tools**
+- <kbd>Ctrl</kbd> **Files**
 
-Adjust the photograph, compare the original and save a separate result. Add a background, padding and rounded corners when the image needs a little more room.
+Move over a choice and release. A key held before dragging also works after the normal Windows drag threshold. Scroll for more wheel pages; gaps retain the last choice, and dropping outside accepts it. The neutral center, Escape or right-click cancels. [Gesture details and settings](docs/QUICKSTART.md#choose-a-task).
 
-![The actual Citrus video editor with direct trim controls](docs/launch/2026-10-21/media/video-editor.webp)
+<details>
+<summary>View the edited walkthrough (animated)</summary>
 
-See the video while you work. Drag trim or crop handles, scrub to a moment, and step through exact source frames. Advanced controls stay out of the way until needed.
+[![Edited Citrus walkthrough using sample files and actual interface exports](docs/launch/2026-10-21/media/wheel-workflow.gif)](https://citrous.app/#product-demo)
 
-## Download and start
+This demonstration uses exports of the actual Citrus interface. Composited wheel sequences are not a real-time Explorer recording or a performance benchmark. [Watch the 10-second launch film](https://citrous.app/assets/launch-v1/citrus-launch-10s.mp4).
 
-1. Get **Citrus-Setup.exe** from the [0.3 preview release](https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1), or use the [download page](https://citrous.app/download/).
-2. Check its published SHA-256 and release notes. This preview is **unsigned**; Windows may report an unknown publisher. Make your own trust decision before running it.
-3. Install for your Windows user, open Citrus and add a local file. Choose a format or tool and review the separate output.
+</details>
 
-The installer includes the runtime and offline engine pack; its download is substantial. See the download page for the measured size and requirements. Closing the launcher keeps the tray app running; choose **Quit** from the tray to exit fully.
+<details>
+<summary>See the image and video editors</summary>
 
-**Windows x64 only.** Windows 11 is recommended; the application's technical minimum is Windows 10 build 19041. No macOS, Linux or native ARM64 installer is provided. [Quick start and uninstall help](docs/QUICKSTART.md).
+![Citrus Add BG editor and its saved sample image](docs/launch/2026-10-21/media/image-editor.webp)
 
-## Made for your files
+Compare the photograph with its original and save a separate result. Add a background, padding and rounded corners when needed.
 
-- **Local processing.** Conversions and edits run on your computer, without an upload workflow or an account.
-- **Separate outputs.** Conversion and editing jobs preserve original bytes and location. Moving originals is a separate, explicit action.
-- **Deliberate interaction.** Scroll for wheel pages; gaps retain the last selection. The neutral center, Escape or right-click cancels.
-- **Readable controls.** Compact white menus, centered titles and right-side close buttons. Glass is limited to the wheel backing and page control.
+![Citrus video editor with direct trim controls](docs/launch/2026-10-21/media/video-editor.webp)
 
-## A preview, with clear limits
+Drag trim or crop handles, scrub to a moment, and step through source frames.
 
-This is an actively developed preview. It is not a claim of universal format fidelity, zero delay or completed testing on every Windows configuration. Opening-time targets and full Explorer/mixed-DPI acceptance remain open. The workspace's static video thumbnail is limited; the actual video editors show playable video.
+</details>
 
-Current verification includes 604 backend passes across two disjoint batches, 234 core passes and a 52-pass final compact-video UI batch. Those are bounded checks, not acceptance of every native workflow. See [preview notes](docs/PREVIEW-NOTES.md) and the [changelog](CHANGELOG.md).
+## Install the preview
 
-## Help make Citrus better
+1. Download **Citrus-Setup.exe** from the [v0.3.0-preview.1 release](https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1). Read the release notes and check the published **SHA256SUMS**.
+2. Verify that the release comes from the official Citrus repository before running the installer. It is **unsigned**, so Windows may report an unknown publisher. A matching checksum establishes consistency with the published file, not publisher identity or a guarantee of safety.
+3. Install for your Windows user, open Citrus and add a local file. Review the resulting copy, especially after lossy conversion or document reconstruction.
 
-[Report a bug](https://github.com/Skytuhua/Citrus/issues/new/choose) · [Support](SUPPORT.md) · [Contribute](CONTRIBUTING.md) · [Build from source](docs/DEVELOPMENT.md) · [Security](SECURITY.md)
+Windows 11 x64 is recommended; the technical minimum is Windows 10 build 19041. No macOS, Linux or native ARM64 installer is supplied. The **1,302,313,670-byte** installer includes the runtime and offline engines; the expanded pack is approximately **3.1 GB**. See the [download page](https://citrous.app/download/) for release details.
 
-Please use a non-sensitive sample when reporting a file issue. Never attach private documents, credentials or unredacted desktop captures.
+Closing the launcher leaves Citrus in the tray. Choose **Quit** from the tray to exit before updating or uninstalling. [Installation and uninstall help](docs/QUICKSTART.md).
+
+## Local processing, separate outputs
+
+Conversion and editing run on your computer, without an upload workflow or account. Jobs preserve the original file's bytes and location; moving originals is a separate, explicit action. Review the returned file and destination before relying on the result.
+
+## Preview boundaries
+
+Citrus is actively developed. Format and codec compatibility, output fidelity and processing time vary by file. The workspace's static video thumbnail is limited; the video editors show playable video.
+
+Full Explorer/OLE, physical mixed-DPI and clean-machine installation acceptance remain unqualified. The [source CI](https://github.com/Skytuhua/Citrus/actions/workflows/ci.yml) covers source builds and core contracts. Detailed verification scope, performance observations and known limitations live in the [preview notes](docs/PREVIEW-NOTES.md); release changes are in the [changelog](CHANGELOG.md).
+
+## Help and contributions
+
+Citrus is maintained by [Skytuhua](https://github.com/Skytuhua). Reproducible file issues, documentation corrections and focused contributions are welcome.
+
+- [Report a bug or suggest a feature](https://github.com/Skytuhua/Citrus/issues/new/choose). Include the version, Windows build and exact steps, using a small, non-sensitive sample.
+- Read [Support](SUPPORT.md) for troubleshooting and [Contributing](CONTRIBUTING.md) before proposing a change.
+- Follow the [development guide](docs/DEVELOPMENT.md) to build and test from source.
+- Report vulnerabilities through the private route in [Security](SECURITY.md).
+
+Never attach private documents, credentials or unredacted desktop captures to public issues.
 
 ## License and credits
 
-Citrus application code is available under the [MIT License](LICENSE). Bundled engines, fonts and Windows components retain their own licenses and terms; see [third-party notices](THIRD-PARTY-NOTICES.md), the installer's component notice and the sources included with the engine pack.
+Citrus application code uses the [MIT License](LICENSE). Bundled engines, fonts and Windows components retain their own licenses and terms; see [third-party notices](THIRD-PARTY-NOTICES.md), the installer's component notice and the sources included with the engine pack.
 
-The native wheel material adapts Liquid Glass Studio's optical work with attribution. Launch photography is original AI-generated sample content; product UI is rendered from the app. [Media provenance](docs/launch/2026-10-21/media/README.md).
+The native wheel material adapts Liquid Glass Studio's optical work with attribution. Launch photography is original AI-generated sample content; product UI is rendered from the app. See [media provenance](docs/launch/2026-10-21/media/README.md).
