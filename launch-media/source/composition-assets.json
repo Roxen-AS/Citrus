@@ -33,10 +33,10 @@
       "sha256": "b3a5c04f79ec2f471504d84d22fbd2a6cf7e05899a598296035b28970007374e"
     },
     {
-      "file": "captions/citrus-launch.vtt",
+      "file": "captions/citrus-launch-10s.vtt",
       "role": "Launch film descriptive captions",
-      "bytes": 661,
-      "sha256": "e9bfb379c0ae98496d2b4424d18755e8673768c467f3f7972a696bfaa258ae7f"
+      "bytes": 257,
+      "sha256": "a3784077de7ca8b9b967dc947c372da1f147163ccdd962e6be2943a8d946fc84"
     },
     {
       "file": "captions/wheel-workflow.vtt",

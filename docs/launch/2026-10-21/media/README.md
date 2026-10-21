@@ -8,7 +8,7 @@ These assets show the current Citrus preview interface with sample files created
 | [Image editing](image-editor.webp) | 1920 × 1200 | Actual Add BG window and independently reopened saved image |
 | [Video editing](video-editor.webp) | 1920 × 1200 | Actual Trim Video window |
 | [Social preview](product-social.jpg) | 1200 × 630 | Launch composition with current native UI |
-| [Launch film](citrus-launch.mp4) | 1920 × 1080 · 30 seconds | Conversion, photo editing, backgrounds and video trimming |
+| [Launch film](citrus-launch-10s.mp4) | 1920 × 1080 · 10 seconds | Conversion, photo editing, backgrounds and video trimming |
 | [Wheel workflow](wheel-workflow.mp4) | 1600 × 1000 · 8 seconds | Actual wheel states and a verified PNG-to-WEBP conversion |
 | [Video trim](video-trim.mp4) | 1600 × 1000 · 8 seconds | Actual trim handles and processed preview playback |
 | [README animation](wheel-workflow.gif) | 720 × 450 · 8 seconds | Compact version of the wheel demonstration |

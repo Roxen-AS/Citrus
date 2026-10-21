@@ -68,11 +68,11 @@
   },
   "webVideoDecode": [
     {
-      "file": "citrus-launch.mp4",
+      "file": "citrus-launch-10s.mp4",
       "fullDecode": "Passed",
       "width": 1920,
       "height": 1080,
-      "durationSeconds": 30,
+      "durationSeconds": 10,
       "codec": "h264",
       "frameRate": "30/1"
     },

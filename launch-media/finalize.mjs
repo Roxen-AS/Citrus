@@ -39,12 +39,12 @@ for(const [movie,poster,at]of[['wheel-workflow.mp4','wheel-workflow-poster.webp'
 const png=execFileSync('ffmpeg',['-hide_banner','-loglevel','error','-ss',String(at),'-i',path.join(out,movie),'-frames:v','1','-f','image2pipe','-c:v','png','pipe:1'],{maxBuffer:16*1024*1024});
 await sharp(png).webp({quality:91,effort:5}).toFile(path.join(out,poster));const metadata=await sharp(path.join(out,poster)).metadata();manifest.assets.push({file:poster,width:metadata.width,height:metadata.height,role:'Decoded poster frame from the corresponding edited demonstration',time:at});
 }
-for(const filename of['citrus-launch.vtt','wheel-workflow.vtt','video-trim.vtt']){
+for(const filename of['citrus-launch-10s.vtt','wheel-workflow.vtt','video-trim.vtt']){
 fs.copyFileSync(path.join(root,'launch-media/source/captions',filename),path.join(out,filename));
 const contents=fs.readFileSync(path.join(out,filename),'utf8');if(!contents.startsWith('WEBVTT\n'))throw new Error('Invalid scene description '+filename);manifest.assets.push({file:filename,language:'en',role:'Descriptive captions for silent edited demonstration'});
 }
 const decode=[];
-for(const filename of['citrus-launch.mp4','wheel-workflow.mp4','video-trim.mp4']){
+for(const filename of['citrus-launch-10s.mp4','wheel-workflow.mp4','video-trim.mp4']){
 execFileSync('ffmpeg',['-hide_banner','-loglevel','error','-i',path.join(out,filename),'-f','null','-'],{stdio:'pipe'});
 const probe=JSON.parse(execFileSync('ffprobe',['-v','error','-show_format','-show_streams','-of','json',path.join(out,filename)],{encoding:'utf8'}));
 if(probe.streams.some(stream=>stream.codec_type==='audio'))throw new Error('Unexpected audio in intentionally silent film');

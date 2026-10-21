@@ -18,7 +18,7 @@ The wheel stays compact. Menus use clear white surfaces. Photo adjustments, crop
 
 [![An edited Citrus product walkthrough with sample files](docs/launch/2026-10-21/media/wheel-workflow.gif)](https://citrous.app/#product-demo)
 
-*Edited product demonstration using sample files and exports of the actual Citrus interface. Composited wheel sequences are not a real-time Explorer recording or a performance benchmark. [Watch the launch film](https://citrous.app/assets/launch-v1/citrus-launch.mp4).*
+*Edited product demonstration using sample files and exports of the actual Citrus interface. Composited wheel sequences are not a real-time Explorer recording or a performance benchmark. [Watch the 10-second launch film](https://citrous.app/assets/launch-v1/citrus-launch-10s.mp4).*
 
 ## A useful set of tools
 

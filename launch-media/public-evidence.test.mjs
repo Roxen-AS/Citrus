@@ -33,7 +33,7 @@ test('verification summaries retain output facts without copying raw run or play
     image: { ReopenedFormat: 'Png', Width: 1672, Height: 941, Sha256: 'ghi', sessionId: 'private' },
     background: { ReopenedFormat: 'Png', Width: 1992, Height: 1261, Sha256: 'jkl' },
     outputFiles: [{ file: 'sample-image-output.png', sha256: 'ghi' }],
-    decode: [{ file: 'citrus-launch.mp4', fullDecode: 'Passed' }],
+    decode: [{ file: 'citrus-launch-10s.mp4', fullDecode: 'Passed' }],
   });
   assert.equal(summary.sourcePreservationVerified, true);
   assert.equal(summary.videoTrim.reopenedDurationSeconds, 5.3);

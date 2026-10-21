@@ -4,6 +4,29 @@
   "description": "Citrus launch artwork and edited demonstrations. Native UI pixels are unretouched; all sample sources owned and generated for this project.",
   "assets": [
     {
+      "file": "launch-10s-poster.webp",
+      "width": 1920,
+      "height": 1080,
+      "kind": "film",
+      "time": 0.6,
+      "bytes": 47188,
+      "sha256": "17883b6cc052327b89719f9cf14080b879e9e79142f88b2f194e75d6945b9569"
+    },
+    {
+      "file": "citrus-launch-10s.mp4",
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "durationSeconds": 10,
+      "audio": false,
+      "codec": "h264",
+      "probedDurationSeconds": 10,
+      "kind": "film",
+      "scope": "Edited demonstration using actual WPF/GPU render exports and actual processed playback frames; not real-time Explorer or performance footage",
+      "bytes": 788890,
+      "sha256": "c701296b64e97f2ff43bece3344d5c8a18a866f341d5bb69d0d060866eabc9b7"
+    },
+    {
       "file": "product-hero.webp",
       "width": 1920,
       "height": 1200,
@@ -38,29 +61,6 @@
       "time": 0,
       "bytes": 63808,
       "sha256": "d14c09401776697249a30106fcf48dbf9586d83fad927b3259ad06ec242e1a54"
-    },
-    {
-      "file": "launch-poster.webp",
-      "width": 1920,
-      "height": 1080,
-      "kind": "film",
-      "time": 5.5,
-      "bytes": 47104,
-      "sha256": "31001b2464b720a56d10bb300faea007223ff002f5b7b284ce7efa16091b0ff5"
-    },
-    {
-      "file": "citrus-launch.mp4",
-      "width": 1920,
-      "height": 1080,
-      "fps": 30,
-      "durationSeconds": 30,
-      "audio": false,
-      "codec": "h264",
-      "probedDurationSeconds": 30,
-      "kind": "film",
-      "scope": "Edited demonstration using actual WPF/GPU render exports and actual processed playback frames; not real-time Explorer or performance footage",
-      "bytes": 1517310,
-      "sha256": "e947e66c8d70961bdf58675656b1988dcd31e85ba3f02f7d76815a50505ab996"
     },
     {
       "file": "wheel-workflow.mp4",
@@ -120,13 +120,6 @@
       "sha256": "779ce6f27f63cb71a089763bdceb4267211df624c0a6cc3a0dc12a4a74bad904"
     },
     {
-      "file": "citrus-launch.vtt",
-      "language": "en",
-      "role": "Descriptive captions for silent edited demonstration",
-      "bytes": 661,
-      "sha256": "e9bfb379c0ae98496d2b4424d18755e8673768c467f3f7972a696bfaa258ae7f"
-    },
-    {
       "file": "wheel-workflow.vtt",
       "language": "en",
       "role": "Descriptive captions for silent edited demonstration",
@@ -143,8 +136,15 @@
     {
       "file": "provenance.json",
       "role": "Relative-path public production credits and qualifications",
-      "bytes": 2634,
-      "sha256": "8f3d018879ff87218b05e82a2c2eb407f99a9a69a3697753560a23ee3c4020aa"
+      "bytes": 2638,
+      "sha256": "90916da688963c7650f17e7d16f406762ed8b2a34de7f5e300b0f6f7b3f5adae"
+    },
+    {
+      "file": "citrus-launch-10s.vtt",
+      "language": "en",
+      "role": "Descriptive captions for silent edited demonstration",
+      "bytes": 257,
+      "sha256": "a3784077de7ca8b9b967dc947c372da1f147163ccdd962e6be2943a8d946fc84"
     }
   ]
 }
