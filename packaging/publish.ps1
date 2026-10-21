@@ -25,7 +25,7 @@ try {
         & $pythonCommand packaging/package.py prepare $payload --generated $generated
         if ($LASTEXITCODE) { throw 'Payload verification failed' }
     }
-    foreach ($name in @('identity.nsh', 'paths.nsh', 'install.nsh', 'uninstall.nsh')) {
+    foreach ($name in @('identity.nsh', 'version.nsh', 'paths.nsh', 'install.nsh', 'uninstall.nsh', 'verify.nsh')) {
         $includePath = Join-Path $generated $name
         if (-not (Test-Path -LiteralPath $includePath -PathType Leaf)) {
             throw "Missing generated NSIS include: $includePath (generated directory: $generated)"

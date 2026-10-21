@@ -4,9 +4,9 @@
 <p align="center"><strong>Convert files. Keep your flow.</strong></p>
 <p align="center">Local file conversion and focused editors for Windows.<br>Choose a task from a compact wheel or the workspace. Save a separate result.</p>
 
-<p align="center"><a href="https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1"><strong>Download the Windows preview →</strong></a> · <a href="docs/QUICKSTART.md">Quick start</a> · <a href="https://citrous.app">Website</a></p>
+<p align="center"><a href="https://github.com/Skytuhua/Citrus/releases"><strong>Download the Windows preview →</strong></a> · <a href="docs/QUICKSTART.md">Quick start</a> · <a href="https://citrous.app">Website</a></p>
 
-<p align="center">Windows x64 · v0.3.0-preview.1 · Unsigned preview · 1.30 GB download</p>
+<p align="center">Windows x64 · v0.3.0-preview.2 · Unsigned preview · 1.30 GB download</p>
 
 <p align="center"><a href="https://github.com/Skytuhua/Citrus/actions/workflows/ci.yml"><img src="https://github.com/Skytuhua/Citrus/actions/workflows/ci.yml/badge.svg?branch=main" alt="Source build and core contracts"></a> · <a href="LICENSE">MIT application license</a></p>
 
@@ -63,13 +63,15 @@ Drag trim or crop handles, scrub to a moment, and step through source frames.
 
 ## Install the preview
 
-1. Download **Citrus-Setup.exe** from the [v0.3.0-preview.1 release](https://github.com/Skytuhua/Citrus/releases/tag/v0.3.0-preview.1). Read the release notes and check the published **SHA256SUMS**.
+1. Download **Citrus-Setup.exe** from the [v0.3.0-preview.2 release](https://github.com/Skytuhua/Citrus/releases). Read the release notes and check the published **SHA256SUMS**.
 2. Verify that the release comes from the official Citrus repository before running the installer. It is **unsigned**, so Windows may report an unknown publisher. A matching checksum establishes consistency with the published file, not publisher identity or a guarantee of safety.
 3. Install for your Windows user, open Citrus and add a local file. Review the resulting copy, especially after lossy conversion or document reconstruction.
 
-Windows 11 x64 is recommended; the technical minimum is Windows 10 build 19041. No macOS, Linux or native ARM64 installer is supplied. The **1,302,313,670-byte** installer includes the runtime and offline engines; the expanded pack is approximately **3.1 GB**. See the [download page](https://citrous.app/download/) for release details.
+Windows 11 x64 is recommended; the technical minimum is Windows 10 build 19041. No macOS, Linux or native ARM64 installer is supplied. The complete installer includes the runtime and offline engines; the expanded pack is approximately **3.1 GB**. See the [download page](https://citrous.app/download/) for release details.
 
 Closing the launcher leaves Citrus in the tray. Choose **Quit** from the tray to exit before updating or uninstalling. [Installation and uninstall help](docs/QUICKSTART.md).
+
+Installed releases check for updates in the background and install verified new versions when Citrus is idle. Earlier previews need one manual upgrade to acquire the updater. [Automatic updates and controls](docs/AUTOMATIC-UPDATES.md).
 
 ## Local processing, separate outputs
 

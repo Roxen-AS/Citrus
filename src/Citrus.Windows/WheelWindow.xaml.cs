@@ -37,6 +37,7 @@ public partial class WheelWindow : Window
     internal Task GlassRetirementCompletion => glass.RetirementCompletion;
     internal Task DragRetirementCompletion => dragRetirement;
     internal bool MaterialPresentationPending => pendingMaterial;
+    internal bool IsInteractionActive => cancelDraining || preparing || session.IsConfirmed || acceptsEntry || outsideCapture is not null || pendingPlacement is not null;
     private long presentationEpoch;
     private long inputEpoch;
     private bool Motion => !reduceMotion && SystemParameters.ClientAreaAnimation && !SystemParameters.HighContrast;

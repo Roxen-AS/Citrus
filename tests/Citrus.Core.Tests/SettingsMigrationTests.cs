@@ -4,6 +4,15 @@ namespace Citrus.Core.Tests;
 public class SettingsMigrationTests
 {
     [Fact]
+    public void Automatic_updates_default_on_and_an_explicit_opt_out_survives_roundtrip()
+    {
+        var preference = typeof(CitrusSettings).GetProperty("AutomaticUpdates");
+        Assert.NotNull(preference);
+        Assert.Equal(true, preference.GetValue(JsonSerializer.Deserialize<CitrusSettings>("{}")));
+        var disabled = JsonSerializer.Deserialize<CitrusSettings>("{\"AutomaticUpdates\":false}")!;
+        Assert.Equal(false, preference.GetValue(JsonSerializer.Deserialize<CitrusSettings>(JsonSerializer.Serialize(disabled))));
+    }
+    [Fact]
     public void Legacy_preferences_keep_remaps_and_receive_independent_sound_motion_defaults()
     {
         var settings = JsonSerializer.Deserialize<CitrusSettings>("""{"Theme":2,"GesturesEnabled":false,"ShiftMode":2,"AltMode":0,"ControlMode":1}""")!;

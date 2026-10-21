@@ -9,6 +9,7 @@ import stat
 from pathlib import Path, PurePosixPath
 import shutil
 import tarfile
+import xml.etree.ElementTree as ET
 
 REPO = Path(__file__).resolve().parent.parent
 
@@ -171,7 +172,7 @@ def instructions(files, root):
         install += ['SetOutPath "$INSTDIR' + ('' if folder == '.' else '\\' + folder.replace('$','$$')) + '"', 'ClearErrors', 'File ' + quote(root / name), 'IfErrors 0 +2', 'Call Fail']
         if index == 0:
             # Only a separately compiled fault-test installer enables this boundary.
-            install += ['!ifdef CITRUS_TEST_FAIL_AFTER_FIRST_FILE', 'SetErrorLevel 25', 'Quit', '!endif']
+            install += ['!ifdef CITRUS_TEST_FAIL_AFTER_FIRST_FILE', 'SetErrorLevel 25', 'Quit', '!endif', '!ifdef CITRUS_TEST_ROLLBACK_AFTER_FIRST_FILE', 'Call Fail', '!endif']
         delete += ['ClearErrors', 'Delete "$INSTDIR\\' + relative.replace('$','$$') + '"', 'IfErrors 0 +2', 'StrCpy $DeleteFailed 1']
     # Check root, all directory ancestors and owned file paths for reparse points.
     for name in sorted(dirs | set(files), key=lambda n: (n.count('/'), n)):
@@ -180,12 +181,36 @@ def instructions(files, root):
         delete += ['RMDir "$INSTDIR\\' + name.replace('/', '\\').replace('$','$$') + '"']
     return '\n'.join(install)+'\n', '\n'.join(delete)+'\n', '\n'.join(checks)+'\n'
 
+def version_include():
+    properties = ET.parse(REPO / 'CitrusVersion.props').getroot()
+    version = properties.findtext('./PropertyGroup/Version', '')
+    file_version = properties.findtext('./PropertyGroup/FileVersion', '')
+    if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?', version):
+        raise ValueError('Invalid central release version')
+    if not re.fullmatch(r'[0-9]+(?:\.[0-9]+){3}', file_version) or any(int(part) > 65535 for part in file_version.split('.')):
+        raise ValueError('Invalid central Windows file version')
+    sdk = sha(REPO / 'packaging/notices/presentation/Windows-SDK-License.rtf')
+    return ('!define CITRUS_VERSION "' + version + '"\n'
+            '!define CITRUS_FILE_VERSION "' + file_version + '"\n'
+            '!define SDK_LICENSE_SHA256 "' + sdk + '"\n')
+
+def verification_instructions(files):
+    checks = []
+    for name, digest in sorted(files.items()):
+        safe(name)
+        if not re.fullmatch('[0-9a-f]{64}', digest):
+            raise ValueError('Invalid installed-byte verification hash')
+        literal = name.replace('/', '\\').replace('$', '$$')
+        checks += ['Push "$INSTDIR\\' + literal + '"', 'Call HashFile', 'Pop $0',
+                   'StrCmp $0 "' + digest + '" +2', 'Call Fail']
+    return '\n'.join(checks) + '\n'
+
 def verify(root):
     required = ['Citrus.Windows.exe','Citrus.Windows.dll','Citrus.Core.dll','Citrus.Conversion.dll',
         'Citrus.Windows.deps.json','Citrus.Windows.runtimeconfig.json','hostfxr.dll','hostpolicy.dll','coreclr.dll',
         'System.Private.CoreLib.dll','PresentationFramework.dll','PresentationNative_cor3.dll',
         'Magick.NET-Q8-x64.dll','Magick.NET.Core.dll','THIRD-PARTY-NOTICES.md','README.md','LICENSE',
-        'docs/operations.md','docs/QUICKSTART.md','docs/PREVIEW-NOTES.md']
+        'docs/operations.md','docs/QUICKSTART.md','docs/PREVIEW-NOTES.md','docs/AUTOMATIC-UPDATES.md']
     for name in required:
         if not (root / name).is_file() or not (root / name).stat().st_size: raise ValueError('Missing/empty package asset: ' + name)
     for name in ['image-backend.lock.json','media-lock.json','pdf-backend.lock.json','archive-backend.lock.json','presentation-backend.lock.json']:
@@ -216,7 +241,7 @@ def prepare(root, generated):
     shutil.copyfile(REPO / 'packaging/Distribution-README.md', root / 'README.md')
     for name in ['LICENSE','THIRD-PARTY-NOTICES.md']:
         shutil.copyfile(REPO / name, root / name)
-    for name in ['operations.md','QUICKSTART.md','PREVIEW-NOTES.md']:
+    for name in ['operations.md','QUICKSTART.md','PREVIEW-NOTES.md','AUTOMATIC-UPDATES.md']:
         shutil.copyfile(REPO / 'docs' / name, root / 'docs' / name)
     shutil.copyfile(REPO / 'packaging/image-backend.lock.json', root / 'image-backend.lock.json')
     shutil.copytree(REPO / 'packaging/notices', root / 'notices', dirs_exist_ok=True)
@@ -227,7 +252,8 @@ def prepare(root, generated):
     files['install-inventory.json'] = sha(root / 'install-inventory.json')
     install, delete, checks = instructions(files, root.resolve())
     generated.mkdir(parents=True, exist_ok=True)
-    for name, text in [('install.nsh',install),('uninstall.nsh',delete),('paths.nsh',checks)]:
+    for name, text in [('install.nsh',install),('uninstall.nsh',delete),('paths.nsh',checks),
+                       ('verify.nsh',verification_instructions(files)),('version.nsh',version_include())]:
         (generated / name).write_text(text, encoding='utf-8')
     (generated / 'identity.nsh').write_text('!define INVENTORY_HASH "' + files['install-inventory.json'] + '"\n')
     print('PASS generated embedded ownership for', len(files), 'files')
@@ -241,7 +267,8 @@ def verify_prepared(root, generated):
     files['install-inventory.json'] = inventory_hash
     install, delete, checks = instructions(files, root.resolve())
     expected = {'install.nsh': install, 'uninstall.nsh': delete, 'paths.nsh': checks,
-                'identity.nsh': '!define INVENTORY_HASH "' + inventory_hash + '"\n'}
+                'identity.nsh': '!define INVENTORY_HASH "' + inventory_hash + '"\n',
+                'verify.nsh': verification_instructions(files), 'version.nsh': version_include()}
     if generated.is_symlink(): raise ValueError('Linked generated include directory')
     for name, text in expected.items():
         path = generated / name

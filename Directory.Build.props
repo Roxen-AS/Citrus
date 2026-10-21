@@ -6,4 +6,5 @@
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)CitrusVersion.props" Condition="'$(MSBuildProjectName)' == 'Citrus.Windows'" />
 </Project>

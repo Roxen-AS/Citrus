@@ -1,6 +1,6 @@
 # 0.3 preview notes
 
-Citrus 0.3.0-preview.1 includes the compact wheel, white menus and focused image, media and PDF editors. The complete package bundles offline engines. Source registration, native control matching, performance and clean-machine acceptance are separate questions.
+Citrus 0.3.0-preview.2 adds automatic release updates and fixes black native corners around media editors. It retains the compact wheel, white menus and focused image, media and PDF editors. The complete package bundles offline engines. Source registration, native control matching, performance and clean-machine acceptance are separate questions. Earlier previews require [one manual upgrade](AUTOMATIC-UPDATES.md).
 
 ## Current boundaries
 

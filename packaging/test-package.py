@@ -36,7 +36,10 @@ class PackageTests(unittest.TestCase):
             (repo / 'LICENSE').write_bytes(license_bytes)
             (repo / 'THIRD-PARTY-NOTICES.md').write_text('Separate component notices.')
             (repo / 'packaging/image-backend.lock.json').write_text('{}')
-            for name in ['operations.md', 'QUICKSTART.md', 'PREVIEW-NOTES.md']:
+            (repo / 'CitrusVersion.props').write_bytes((package.REPO / 'CitrusVersion.props').read_bytes())
+            (repo / 'packaging/notices/presentation').mkdir()
+            (repo / 'packaging/notices/presentation/Windows-SDK-License.rtf').write_bytes((package.REPO / 'packaging/notices/presentation/Windows-SDK-License.rtf').read_bytes())
+            for name in ['operations.md', 'QUICKSTART.md', 'PREVIEW-NOTES.md', 'AUTOMATIC-UPDATES.md']:
                 (repo / 'docs' / name).write_text('Public product documentation.')
             for name in ['windows-acceptance.md', 'verification.md']:
                 (repo / 'docs' / name).write_text('Historical evidence must remain in the source repository.')
@@ -45,7 +48,7 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(guide, (payload / 'README.md').read_bytes())
             self.assertEqual(license_bytes, (payload / 'LICENSE').read_bytes())
             self.assertIn('LICENSE', json.loads((payload / 'install-inventory.json').read_text()))
-            for name in ['QUICKSTART.md', 'PREVIEW-NOTES.md']:
+            for name in ['QUICKSTART.md', 'PREVIEW-NOTES.md', 'AUTOMATIC-UPDATES.md']:
                 self.assertTrue((payload / 'docs' / name).is_file())
             self.assertFalse((payload / 'docs/windows-acceptance.md').exists())
             self.assertFalse((payload / 'docs/verification.md').exists())
@@ -111,7 +114,7 @@ class PackageTests(unittest.TestCase):
                          'Citrus.Windows.deps.json', 'Citrus.Windows.runtimeconfig.json', 'hostfxr.dll', 'hostpolicy.dll', 'coreclr.dll',
                          'System.Private.CoreLib.dll', 'PresentationFramework.dll', 'PresentationNative_cor3.dll',
                          'Magick.NET-Q8-x64.dll', 'Magick.NET.Core.dll', 'THIRD-PARTY-NOTICES.md', 'README.md', 'LICENSE',
-                         'docs/operations.md', 'docs/QUICKSTART.md', 'docs/PREVIEW-NOTES.md',
+                         'docs/operations.md', 'docs/QUICKSTART.md', 'docs/PREVIEW-NOTES.md', 'docs/AUTOMATIC-UPDATES.md',
                          'docs/windows-acceptance.md', 'docs/verification.md']:
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)

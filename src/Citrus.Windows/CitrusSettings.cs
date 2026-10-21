@@ -9,6 +9,7 @@ public sealed record CitrusSettings
     public bool ReduceMotion { get; init; }
     public bool ReduceTransparency { get; init; }
     public bool LaunchAtSignIn { get; init; }
+    public bool AutomaticUpdates { get; init; } = true;
     // Fresh installations start with the neutral light presentation; saved choices are retained.
     public ThemeChoice Theme { get; init; } = ThemeChoice.Light;
     public bool RevealCompletedOutputs { get; init; }
