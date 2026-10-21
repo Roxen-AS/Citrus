@@ -7,6 +7,7 @@ $dist = Join-Path $repo 'dist'
 $payload = Join-Path $dist 'Citrus-win-x64'
 $generated = Join-Path $dist 'nsis'
 $output = Join-Path $dist 'Citrus-Setup.exe'
+$installerScript = Join-Path $PSScriptRoot 'Citrus.nsi'
 Push-Location $repo
 try {
     $dotnetCommand = if ($env:DOTNET) { $env:DOTNET } else { 'dotnet' }
@@ -34,7 +35,7 @@ try {
     if ($Phase -ne 'Payload') {
         & $pythonCommand packaging/package.py verify-prepared $payload --generated $generated
         if ($LASTEXITCODE) { throw 'Prepared payload verification failed' }
-        & $nsisCommand /V3 "/DGENERATED=$generated" "/DOUTPUT=$output" packaging/Citrus.nsi
+        & $nsisCommand /V3 /NOCD "/DGENERATED=$generated" "/DOUTPUT=$output" $installerScript
         if ($LASTEXITCODE) { throw 'NSIS compilation failed' }
         & $pythonCommand packaging/package.py checksums $dist
         if ($LASTEXITCODE) { throw 'Checksums failed' }

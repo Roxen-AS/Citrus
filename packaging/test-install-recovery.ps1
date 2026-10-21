@@ -8,6 +8,7 @@ $registry = 'HKCU:\Software\Citrus'
 $setup = Join-Path $repo 'dist\Citrus-Setup.exe'
 $payload = Join-Path $repo 'dist\Citrus-win-x64'
 $generated = Join-Path $repo 'dist\nsis'
+$installerScript = Join-Path $PSScriptRoot 'Citrus.nsi'
 $nsisCommand = if ($env:MAKENSIS) { $env:MAKENSIS } else { 'makensis' }
 if (Test-Path $installRoot) { throw 'Use a disposable account without an existing Citrus directory.' }
 if (Test-Path $registry) { throw 'Use a disposable account without existing Citrus registration.' }
@@ -22,7 +23,7 @@ function Run-Expected([string] $Executable, [string] $Arguments, [int] $Expected
 }
 Push-Location $repo
 try {
-    & $nsisCommand /V2 "/DGENERATED=$generated" "/DOUTPUT=$faultSetup" /DCITRUS_TEST_FAIL_AFTER_FIRST_FILE packaging/Citrus.nsi
+    & $nsisCommand /V2 /NOCD "/DGENERATED=$generated" "/DOUTPUT=$faultSetup" /DCITRUS_TEST_FAIL_AFTER_FIRST_FILE $installerScript
     if ($LASTEXITCODE) { throw 'Fault-test NSIS compilation failed' }
 
     # Unrelated trees remain refused, even when the conflicting tree is small.
