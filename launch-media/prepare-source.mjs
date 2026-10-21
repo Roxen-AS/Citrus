@@ -1,0 +1,20 @@
+import {createRequire} from 'node:module';
+import fs from 'node:fs';
+import path from 'node:path';
+import {execFileSync} from 'node:child_process';
+import crypto from 'node:crypto';
+import {publicMotionReceipt} from './public-evidence.mjs';
+
+const root=path.resolve(import.meta.dirname,'..');
+const modules=process.env.CODEX_NODE_MODULES||path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules');
+const sharp=createRequire(path.join(modules,'_launch.cjs'))('sharp');
+const photo=path.join(root,'launch-media/source/citrus-garden.png');
+const output=path.join(root,'launch-media/source/citrus-garden-motion.mp4');
+const metadata=await sharp(photo).metadata();
+const args=['-hide_banner','-loglevel','error','-y','-loop','1','-i',photo,'-vf',"zoompan=z='1.03+0.00035*on':x='iw/2-(iw/zoom/2)+sin(on/120)*16':y='ih/2-(ih/zoom/2)':d=240:s=1280x720:fps=30",'-frames:v','240','-c:v','libx264','-preset','medium','-crf','18','-pix_fmt','yuv420p','-movflags','+faststart','-an',output];
+execFileSync('ffmpeg',args,{stdio:'inherit'});
+const hash=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+fs.writeFileSync(path.join(root,'launch-media/source/motion-source.json'),JSON.stringify(publicMotionReceipt({source:'citrus-garden.png',sourceSha256:hash(photo),sourceWidth:metadata.width,sourceHeight:metadata.height,output:'citrus-garden-motion.mp4',sha256:hash(output),width:1280,height:720,frames:240,fps:30,durationSeconds:8,audio:false,creation:'Original commissioned AI photo with an authored digital camera move. Not live camera footage, not a native4K source.',encoder:'System FFmpeg libx264; product engine pack unchanged',arguments:args}),null,2)+'\n');
+const docs=path.join(root,'docs/launch/2026-10-21/media');fs.mkdirSync(docs,{recursive:true});
+fs.copyFileSync(path.join(root,'launch-media/source/brand/logo-128.png'),path.join(docs,'citrus-mark.png'));
+console.log(JSON.stringify({photo:{width:metadata.width,height:metadata.height},output,sha256:hash(output)}));

@@ -1,0 +1,9 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "date": "2026-10-21",
+  "role": "Original AI-generated sample photograph used inside the actual Citrus editors; not a generated interface",
+  "source": "Built-in image generation; original receipt retained locally",
+  "asset": "citrus-garden.png",
+  "prompt": "Use case: photorealistic-natural. Asset type: original high-resolution sample photograph for Citrus Windows app product demonstrations and launch imagery. Primary request: a beautiful editorial photograph of one ripe orange still on a leafy citrus branch in a Mediterranean garden, warm limestone architecture and soft olive hills far behind it. Real fine peel pores, translucent fresh leaves, gentle morning sun, soft natural depth, quiet premium photographic color. Wide landscape composition, orange and branch on the right half, the left half a luminous soft garden view with enough real detail to demonstrate cropping and photo adjustments. Cream, leaf green and natural citrus orange echo the existing Citrus brand. Very detailed and credible rather than artificial plastic. No UI, no screens, no type, no watermark, no logo, no people. Compose as a useful photographic subject, not a generic background gradient. Landscape 16:9, ideally 2560x1440 or greater.",
+  "qualification": "Requested dimensions are not a claim about delivered dimensions. Read native PNG dimensions before composition. Preserve original pixels and record any derivatives."
+}

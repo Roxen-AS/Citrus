@@ -1,0 +1,19 @@
+# Citrus launch media authoring
+
+This is a reproducible edited product demonstration, not a live Explorer recording or a performance benchmark. Application controls, labels, windows, source preview and wheel contours come from the current production WPF visual trees. The wheel backing also uses the production Direct3D shader over an owned photographic source. No generated interface or bypass of native capture exclusion is used.
+
+The original commissioned photograph is retained in `source/citrus-garden.png`, with the exact built-in image-generation prompt in its companion JSON. Its native dimensions are 1672 × 941. The short source clip is an authored digital camera move over that still, not live camera footage. A 1920-pixel composition is not a claim that the photograph was generated at native 4K.
+
+## Reproduce
+
+1. Run `node launch-media/prepare-source.mjs` from the repository root. This uses installed FFmpeg to create the owned 8-second 1280 × 720 input clip. The app's pinned media engine pack is unchanged.
+2. Set `CITRUS_BUILD_LAUNCH_MEDIA=1`, absolute `CITRUS_LAUNCH_PHOTO`, `CITRUS_LAUNCH_VIDEO` and `CITRUS_LAUNCH_OUTPUT` (normally `launch-media/native`). Run the Windows test filter `FullyQualifiedName~LaunchMediaCaptureTests` with the repository's .NET SDK. This is an explicit authoring opt-in, not an ordinary native acceptance test.
+3. Run `node launch-media/render.mjs`. The compositor loads existing Playwright and Sharp from the bundled Node module directory, or `CODEX_NODE_MODULES`; a verified installed Chromium executable may be selected with `PLAYWRIGHT_CHROMIUM_EXECUTABLE`. It streams edited frames into installed FFmpeg, with no runtime website dependency. Use `--stills-only` to rebuild just the product images while preserving existing video records.
+
+The exact three Inter Display WOFF2 weights, their OFL notice, the approved mark and descriptive caption sources are included under `source/fonts/`, `source/brand/` and `source/captions/`. [The composition-input manifest](source/composition-assets.json) records their hashes and sizes. These copies are byte-identical to the approved launch inputs. The nested website repository is not an input dependency; `website/public/assets/launch-v1/` is created only as an export destination and can be generated in the public application checkout.
+
+The harness invokes actual supported editing/selection methods, checks that source hashes remain unchanged, exports real image and trim results, independently decodes/reopens them, and records exact output dimensions and hashes. Native UI exports are never repainted. The compositor adds only external stage layout, typographic captions, a diagrammatic cursor, shadows and paced edits.
+
+The film is silent by design and includes descriptive WebVTT tracks. No third-party soundtrack is used. The current website's approved brand-v3 mark remains separate from the real application's preserved icon. Original software and fonts retain their existing repository licenses; see the included [Inter OFL](../docs/launch/2026-10-21/media/licenses/Inter-OFL.txt) and the root license. The source photograph and brand artwork are original project commissions with retained generation records. Run `node launch-media/finalize.mjs` to write relative-only public verification summaries and font notices, then `node launch-media/inspect.mjs` for representative visual checks. Exact raw machine receipts are archived locally and are not copied into the public package.
+
+Raw WPF frames are generated locally under ignored `native/`. Public web exports live under `website/public/assets/launch-v1/`, with curated duplicates and provenance under `docs/launch/2026-10-21/media/`. All output demonstrations use owned sample files. No customer material or user desktop was captured.

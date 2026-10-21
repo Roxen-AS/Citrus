@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "date": "2026-10-21",
+  "scope": "Edited native-interface media authoring; not comprehensive release acceptance or a performance benchmark",
+  "nativeAuthoring": {
+    "test": "LaunchMediaCaptureTests.Owned_launch_samples_use_current_native_UI_and_reopened_engine_outputs",
+    "outcome": "Passed",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "renderer": "Current production WPF visual trees at 2x raster scale; wheel also uses current production D3D11 shader on WARP"
+  },
+  "sourcePreservationVerified": true,
+  "sourceHashes": {
+    "citrus-garden.png": "2946F37E87F4E79A93DE3340492CB021130DCB832FFA4421B28C7D9818E36998",
+    "citrus-garden-motion.mp4": "481D6BEEC3A455FB77053F641AE95A77FC54EE2B0E5F8160311990F7B340DE3D"
+  },
+  "capture": {
+    "desktopPixelsRead": false,
+    "captureExclusionChanged": false
+  },
+  "outputs": [
+    {
+      "file": "sample-image-output.png",
+      "bytes": 2712973,
+      "sha256": "9be63e36bf6b69fc8aa0630b7d74afbddef8b3dba6dbd7b5f23b499b5d11e560"
+    },
+    {
+      "file": "sample-background-output.png",
+      "bytes": 2865915,
+      "sha256": "2f14a4d59a681ef28aeba0f41e614bb07c365ec1b1a715127eb1987b910c3acd"
+    },
+    {
+      "file": "sample-converted-output.webp",
+      "bytes": 245482,
+      "sha256": "2af29d0cef4e5979ad3da5ef6b2769750f8349a8e8553b1eec3ee9fcb05625c2"
+    },
+    {
+      "file": "sample-video-trim-output.mp4",
+      "bytes": 2244378,
+      "sha256": "969fc9db28c9d1fd55f26ea76fe714ec182e9101e79fa33b8d8d7b7df39427dc"
+    }
+  ],
+  "reopenedImages": [
+    {
+      "file": "sample-image-output.png",
+      "format": "Png",
+      "width": 1672,
+      "height": 941,
+      "sha256": "9BE63E36BF6B69FC8AA0630B7D74AFBDDEF8B3DBA6DBD7B5F23B499B5D11E560"
+    },
+    {
+      "file": "sample-background-output.png",
+      "format": "Png",
+      "width": 1992,
+      "height": 1261,
+      "sha256": "2F14A4D59A681EF28AEBA0F41E614BB07C365EC1B1A715127EB1987B910C3ACD"
+    }
+  ],
+  "videoTrim": {
+    "inputDurationSeconds": 8,
+    "startSeconds": 1.2,
+    "endSeconds": 6.5,
+    "reopenedDurationSeconds": 5.3,
+    "width": 1280,
+    "height": 720,
+    "nativePlaybackFrames": 42
+  },
+  "webVideoDecode": [
+    {
+      "file": "citrus-launch.mp4",
+      "fullDecode": "Passed",
+      "width": 1920,
+      "height": 1080,
+      "durationSeconds": 30,
+      "codec": "h264",
+      "frameRate": "30/1"
+    },
+    {
+      "file": "wheel-workflow.mp4",
+      "fullDecode": "Passed",
+      "width": 1600,
+      "height": 1000,
+      "durationSeconds": 8,
+      "codec": "h264",
+      "frameRate": "30/1"
+    },
+    {
+      "file": "video-trim.mp4",
+      "fullDecode": "Passed",
+      "width": 1600,
+      "height": 1000,
+      "durationSeconds": 8,
+      "codec": "h264",
+      "frameRate": "30/1"
+    }
+  ],
+  "rawReceipts": "Preserved in a local authoring archive; excluded from public artifacts"
+}

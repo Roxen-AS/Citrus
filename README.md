@@ -35,7 +35,7 @@ Format and codec support depends on the actual file. PDF reconstruction and docu
 
 ### Make a small edit without losing the original
 
-![The actual Citrus photo editor with an original sample photograph](docs/launch/2026-10-21/media/image-editor.webp)
+![The actual Citrus Add BG editor and its saved sample image](docs/launch/2026-10-21/media/image-editor.webp)
 
 Adjust the photograph, compare the original and save a separate result. Add a background, padding and rounded corners when the image needs a little more room.
 

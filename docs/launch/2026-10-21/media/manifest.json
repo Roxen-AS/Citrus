@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "date": "2026-10-21",
+  "description": "Citrus launch artwork and edited demonstrations. Native UI pixels are unretouched; all sample sources owned and generated for this project.",
+  "assets": [
+    {
+      "file": "product-hero.webp",
+      "width": 1920,
+      "height": 1200,
+      "kind": "hero",
+      "time": 0,
+      "bytes": 199524,
+      "sha256": "66a2cb98b94824a9dadd07894d980d7f470785550de832447de34fcb5b0e8c04"
+    },
+    {
+      "file": "image-editor.webp",
+      "width": 1920,
+      "height": 1200,
+      "kind": "imageStill",
+      "time": 0,
+      "bytes": 188128,
+      "sha256": "0878b11ad111d00c9db52ee59d552affb2a508dec584811732da64ae971cb964"
+    },
+    {
+      "file": "video-editor.webp",
+      "width": 1920,
+      "height": 1200,
+      "kind": "videoStill",
+      "time": 0,
+      "bytes": 143502,
+      "sha256": "661fcfb279e9c0ee478a7237818a552e15d2c0af7671c6d2ee466dbadee41c14"
+    },
+    {
+      "file": "product-social.jpg",
+      "width": 1200,
+      "height": 630,
+      "kind": "social",
+      "time": 0,
+      "bytes": 63808,
+      "sha256": "d14c09401776697249a30106fcf48dbf9586d83fad927b3259ad06ec242e1a54"
+    },
+    {
+      "file": "launch-poster.webp",
+      "width": 1920,
+      "height": 1080,
+      "kind": "film",
+      "time": 5.5,
+      "bytes": 47104,
+      "sha256": "31001b2464b720a56d10bb300faea007223ff002f5b7b284ce7efa16091b0ff5"
+    },
+    {
+      "file": "citrus-launch.mp4",
+      "width": 1920,
+      "height": 1080,
+      "fps": 30,
+      "durationSeconds": 30,
+      "audio": false,
+      "codec": "h264",
+      "probedDurationSeconds": 30,
+      "kind": "film",
+      "scope": "Edited demonstration using actual WPF/GPU render exports and actual processed playback frames; not real-time Explorer or performance footage",
+      "bytes": 1517310,
+      "sha256": "e947e66c8d70961bdf58675656b1988dcd31e85ba3f02f7d76815a50505ab996"
+    },
+    {
+      "file": "wheel-workflow.mp4",
+      "width": 1600,
+      "height": 1000,
+      "fps": 30,
+      "durationSeconds": 8,
+      "audio": false,
+      "codec": "h264",
+      "probedDurationSeconds": 8,
+      "kind": "wheelScene",
+      "scope": "Edited demonstration using actual WPF/GPU render exports and actual processed playback frames; not real-time Explorer or performance footage",
+      "bytes": 95825,
+      "sha256": "48cc2927250527815620b6ec36c430de0a2186977a41492bb4542715f571398a"
+    },
+    {
+      "file": "video-trim.mp4",
+      "width": 1600,
+      "height": 1000,
+      "fps": 30,
+      "durationSeconds": 8,
+      "audio": false,
+      "codec": "h264",
+      "probedDurationSeconds": 8,
+      "kind": "trimScene",
+      "scope": "Edited demonstration using actual WPF/GPU render exports and actual processed playback frames; not real-time Explorer or performance footage",
+      "bytes": 373676,
+      "sha256": "bdfd665334301d602cb2d747f7de471327af2fb68b09ba782d513837efb8534b"
+    },
+    {
+      "file": "wheel-workflow.gif",
+      "width": 720,
+      "height": 450,
+      "frames": 96,
+      "fps": 12,
+      "durationSeconds": 8,
+      "scope": "Edited demonstration, same content as wheel-workflow.mp4",
+      "bytes": 151088,
+      "sha256": "15f3b1dca889fbe543be0d996a8204c1c61e4ebd7e3b326df8291250286c3dec"
+    },
+    {
+      "file": "wheel-workflow-poster.webp",
+      "width": 1600,
+      "height": 1000,
+      "role": "Decoded poster frame from the corresponding edited demonstration",
+      "time": 1.8,
+      "bytes": 36804,
+      "sha256": "d34f9302712fd87a8e5899174a99b5a9443e510d8b76fd35f30c892978e20509"
+    },
+    {
+      "file": "video-trim-poster.webp",
+      "width": 1600,
+      "height": 1000,
+      "role": "Decoded poster frame from the corresponding edited demonstration",
+      "time": 3.8,
+      "bytes": 108030,
+      "sha256": "779ce6f27f63cb71a089763bdceb4267211df624c0a6cc3a0dc12a4a74bad904"
+    },
+    {
+      "file": "citrus-launch.vtt",
+      "language": "en",
+      "role": "Descriptive captions for silent edited demonstration",
+      "bytes": 661,
+      "sha256": "e9bfb379c0ae98496d2b4424d18755e8673768c467f3f7972a696bfaa258ae7f"
+    },
+    {
+      "file": "wheel-workflow.vtt",
+      "language": "en",
+      "role": "Descriptive captions for silent edited demonstration",
+      "bytes": 345,
+      "sha256": "76874e3d329241f21afaead339460eccd7195d7e80ece103903d1fb0f42915e0"
+    },
+    {
+      "file": "video-trim.vtt",
+      "language": "en",
+      "role": "Descriptive captions for silent edited demonstration",
+      "bytes": 285,
+      "sha256": "897fb26479e8184b20bbcfaabd262d6ff4b727b81b82da22fff23523a096ee38"
+    },
+    {
+      "file": "provenance.json",
+      "role": "Relative-path public production credits and qualifications",
+      "bytes": 2634,
+      "sha256": "8f3d018879ff87218b05e82a2c2eb407f99a9a69a3697753560a23ee3c4020aa"
+    }
+  ]
+}

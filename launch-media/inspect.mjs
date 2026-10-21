@@ -1,0 +1,9 @@
+import fs from'node:fs';import path from'node:path';import{execFileSync}from'node:child_process';import{createRequire}from'node:module';
+const root=path.resolve(import.meta.dirname,'..'),modules=process.env.CODEX_NODE_MODULES||path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules'),sharp=createRequire(path.join(modules,'_launch.cjs'))('sharp');
+const out=path.join(root,'docs/launch/2026-10-21/media'),assets=path.join(root,'website/public/assets/launch-v1');
+const samples=[['citrus-launch.mp4',.5],['citrus-launch.mp4',5.5],['citrus-launch.mp4',12.5],['citrus-launch.mp4',20],['citrus-launch.mp4',27],['video-trim.mp4',5]];
+const tiles=[];
+for(let index=0;index<samples.length;index++){const[file,at]=samples[index],png=execFileSync('ffmpeg',['-hide_banner','-loglevel','error','-ss',String(at),'-i',path.join(assets,file),'-frames:v','1','-f','image2pipe','-c:v','png','pipe:1'],{maxBuffer:16*1024*1024});await sharp(png).png().toFile(path.join(out,'inspection-'+index+'.png'));const tile=await sharp(png).resize(640,400,{fit:'contain',background:'#f7f5f2'}).png().toBuffer();tiles.push({input:tile,left:index%3*640,top:Math.floor(index/3)*400});}
+await sharp({create:{width:1920,height:800,channels:3,background:'#f7f5f2'}}).composite(tiles).png().toFile(path.join(out,'film-contact-sheet.png'));
+const manifest=JSON.parse(fs.readFileSync(path.join(assets,'manifest.json'),'utf8'));const localPaths=/[A-Z]:[\\/]|AppData|codex-runtimes/.test(fs.readFileSync(path.join(assets,'manifest.json'),'utf8')+fs.readFileSync(path.join(assets,'provenance.json'),'utf8'));if(localPaths)throw new Error('Private local authoring path in public metadata');
+console.log(JSON.stringify({contactSheet:'docs/launch/2026-10-21/media/film-contact-sheet.png',samples,assetCount:manifest.assets.length,videoDecode:'Previously passed full-decode verification',publicLocalPaths:false},null,2));

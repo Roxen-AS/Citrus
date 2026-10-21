@@ -1,0 +1,3 @@
+# These source assets have SHA-256 receipts; preserve their exact bytes on Windows.
+source/captions/** -text
+source/fonts/Inter-OFL.txt -text

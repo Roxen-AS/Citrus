@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "date": "2026-10-21",
+  "credits": {
+    "product": "Citrus by Skytuhua",
+    "interface": "Actual current production WPF visual-tree exports. Wheel uses the production Direct3D11 shader and retained WPF controls over owned sample imagery.",
+    "photo": "Original AI-generated sample photograph commissioned for Citrus. A digital camera move over this still supplies the video editor input; it is not live camera footage.",
+    "brand": "Existing approved Citrus website brand-v3 mark, preserved separately from the real app icon.",
+    "typography": "Bundled Inter Display, SIL Open Font License1.1. Existing notices retained in the website font assets.",
+    "sound": "Intentionally silent. Descriptive English WebVTT files provided. No soundtrack or third-party audio."
+  },
+  "source": {
+    "file": "citrus-garden.png",
+    "nativeWidth": 1672,
+    "nativeHeight": 941,
+    "sha256": "2946f37e87f4e79a93de3340492cb021130dcb832ffa4421b28c7d9818e36998",
+    "generatedInterface": false
+  },
+  "production": {
+    "composition": "Original deterministic Canvas2D layout and authored motion, rendered with installed Chromium and encoded with system FFmpeg libx264.",
+    "qualification": "Edited product demonstrations and product images. Native UI structure/labels are not repainted. Not a live Explorer recording, native input benchmark, capture-to-scanout measurement or claim of native4K generation.",
+    "desktopCaptureUsed": false,
+    "captureExclusionChanged": false,
+    "softwareSource": "https://github.com/Skytuhua/Citrus",
+    "authoring": "launch-media/"
+  },
+  "verification": {
+    "sourceHashesUnchanged": true,
+    "imageOutputs": "Real image adjustment/background and PNG-to-WEBP engine outputs were independently reopened.",
+    "videoTrim": {
+      "inputDurationSeconds": 8,
+      "startSeconds": 1.2,
+      "endSeconds": 6.5,
+      "reopenedDurationSeconds": 5.3,
+      "width": 1280,
+      "height": 720
+    },
+    "webVideos": [
+      {
+        "file": "citrus-launch.mp4",
+        "fullDecode": "Passed",
+        "width": 1920,
+        "height": 1080,
+        "durationSeconds": 30,
+        "codec": "h264",
+        "frameRate": "30/1"
+      },
+      {
+        "file": "wheel-workflow.mp4",
+        "fullDecode": "Passed",
+        "width": 1600,
+        "height": 1000,
+        "durationSeconds": 8,
+        "codec": "h264",
+        "frameRate": "30/1"
+      },
+      {
+        "file": "video-trim.mp4",
+        "fullDecode": "Passed",
+        "width": 1600,
+        "height": 1000,
+        "durationSeconds": 8,
+        "codec": "h264",
+        "frameRate": "30/1"
+      }
+    ]
+  }
+}

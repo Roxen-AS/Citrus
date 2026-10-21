@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "description": "Exact approved composition inputs bundled with the public authoring source; no nested website repository is required.",
+  "assets": [
+    {
+      "file": "fonts/InterDisplay-Regular.woff2",
+      "role": "Inter Display 400",
+      "bytes": 108948,
+      "sha256": "3a9463a58c3e7ba1e3cd65b5dbff91a35c508ff78a104cd1121feff83efeb787"
+    },
+    {
+      "file": "fonts/InterDisplay-Medium.woff2",
+      "role": "Inter Display 500",
+      "bytes": 113476,
+      "sha256": "f1227907684853882ad00d7f97ce9f64bc17b89a2a291a7d4ec84fccfa442934"
+    },
+    {
+      "file": "fonts/InterDisplay-SemiBold.woff2",
+      "role": "Inter Display 600",
+      "bytes": 113772,
+      "sha256": "d9f63a82b826fb0117c92715c3a52a2d2247bc321bc39341420bf52d91e8277a"
+    },
+    {
+      "file": "fonts/Inter-OFL.txt",
+      "role": "SIL Open Font License 1.1",
+      "bytes": 4380,
+      "sha256": "262481e844521b326f5ecd053e59b98c8b2da78c8ee1bdbb6e8174305e54935a"
+    },
+    {
+      "file": "brand/logo-128.png",
+      "role": "Approved original Citrus website brand-v3 mark",
+      "bytes": 16260,
+      "sha256": "b3a5c04f79ec2f471504d84d22fbd2a6cf7e05899a598296035b28970007374e"
+    },
+    {
+      "file": "captions/citrus-launch.vtt",
+      "role": "Launch film descriptive captions",
+      "bytes": 661,
+      "sha256": "e9bfb379c0ae98496d2b4424d18755e8673768c467f3f7972a696bfaa258ae7f"
+    },
+    {
+      "file": "captions/wheel-workflow.vtt",
+      "role": "Wheel workflow descriptive captions",
+      "bytes": 345,
+      "sha256": "76874e3d329241f21afaead339460eccd7195d7e80ece103903d1fb0f42915e0"
+    },
+    {
+      "file": "captions/video-trim.vtt",
+      "role": "Video trim descriptive captions",
+      "bytes": 285,
+      "sha256": "897fb26479e8184b20bbcfaabd262d6ff4b727b81b82da22fff23523a096ee38"
+    }
+  ]
+}
