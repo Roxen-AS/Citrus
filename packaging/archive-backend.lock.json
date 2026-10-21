@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "package": {
+    "id": "SharpCompress",
+    "version": "0.50.5",
+    "license": "MIT",
+    "sourceCommit": "e4193af83b6ec8bdd5fb4f6ebffc2315dd3fc626",
+    "source": "https://github.com/adamhathcock/sharpcompress/tree/e4193af83b6ec8bdd5fb4f6ebffc2315dd3fc626",
+    "nupkg": "https://api.nuget.org/v3-flatcontainer/sharpcompress/0.50.5/sharpcompress.0.50.5.nupkg",
+    "nupkgSha256": "af0585a88897018b6e0bf34cc741d65f0c4eb676c3e807e77be1067a223c0229",
+    "runtimeAsset": "SharpCompress.dll",
+    "nativeAssets": [],
+    "net10Dependencies": [],
+    "runtimeAssetSha256": "fa67b31d7ab99f10336ba4eaf603bc223ce93d2600ffd31522f4855dfe1d5842"
+  },
+  "builtInReaders": [
+    "System.IO.Compression.ZipArchive",
+    "System.Formats.Tar.TarReader",
+    "System.IO.Compression.GZipStream"
+  ],
+  "releaseLimits": {
+    "entries": 100000,
+    "expandedBytes": 21474836480
+  },
+  "fixtureManifest": "tests/Citrus.Conversion.Tests/Fixtures/Archives/provenance.json"
+}

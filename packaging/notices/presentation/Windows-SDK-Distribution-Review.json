@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "checkedUtc": "2026-10-21T11:43:06.9198813Z",
+  "status": "RedistributionTermsRecorded",
+  "scope": "Unmodified Windows SDK app-local projection files; this record is source-based distribution compliance evidence, not legal counsel or stable-release acceptance.",
+  "officialLicenseUrl": "https://learn.microsoft.com/en-us/legal/windows-sdk/license",
+  "officialRedistUrl": "https://learn.microsoft.com/en-us/legal/windows-sdk/redist",
+  "listedPackage": "Microsoft.Windows.SDK.NET.Ref",
+  "packageVersion": "10.0.19041.57",
+  "listedFiles": [
+    "./lib/net8.0/Microsoft.Windows.SDK.NET.dll",
+    "./lib/net8.0//WinRT.Runtime.dll"
+  ],
+  "permission": "Official REDIST section Microsoft.Windows.SDK.NET.Ref permits listed unmodified files as part of programs enabling WinRT APIs, subject to the Windows SDK license.",
+  "conditions": [
+    "Distribute the listed binaries unmodified as part of a Windows application with significant primary functionality.",
+    "Preserve component copyright, trademark, patent and license notices.",
+    "Require external users/distributors to agree to protective Microsoft component terms.",
+    "Do not apply Microsoft SDK restrictions to separately licensed Citrus or other open-source components."
+  ],
+  "installerAgreement": "Interactive Microsoft component terms checkbox; silent setup requires /ACCEPTSDKTERMS=1 before ownership or file mutation.",
+  "licenseFile": "Windows-SDK-License.rtf",
+  "installedLicenseSource": "Windows Kits/10/Licenses/10.0.22621.0/sdk_license.rtf",
+  "licenseSha256": "0f4a26ac9dc50066f8a1bfeaaf3f092d1b9e4791df5487b9f3c31e7c3dc4d7f5",
+  "redistFile": "Windows-SDK-REDIST.html",
+  "redistSha256": "fcc873fb1bb9c45d02b78814515ee5d824ef851a8563692432b5c745b1d0fcfa"
+}

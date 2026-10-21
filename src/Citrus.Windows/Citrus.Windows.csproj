@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
+    <!-- Pinned SDK .NET projection; implicit package is audited in presentation-backend.lock.json. -->
+    <WindowsSdkPackageVersion>10.0.19041.57</WindowsSdkPackageVersion>
+    <Version>0.3.0-preview.1</Version>
+    <AssemblyVersion>0.3.0.0</AssemblyVersion>
+    <FileVersion>0.3.0.0</FileVersion>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- WPF owns startup/DPI; WinForms is used only for NotifyIcon. Manifest must precede every HWND. -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Resources/Citrus.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Citrus.Windows.Tests" />
+    <Content Include="../../packaging/presentation-backend.lock.json" Link="presentation-backend.lock.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Presentation-Notice.txt" Link="notices/Presentation-Notice.txt" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/presentation/**/*" Link="notices/presentation/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <ProjectReference Include="../Citrus.Conversion/Citrus.Conversion.csproj" />
+    <Resource Include="Resources/Citrus.ico" />
+    <EmbeddedResource Include="Presentation/StudioGlass.hlsl" />
+    <Content Include="../../docs/native-actions-settings.md" Link="docs/native-actions-settings.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/conversion-interface.md" Link="docs/conversion-interface.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Magick.NET-15.0.0-Notice.txt" Link="notices/Magick.NET-15.0.0-Notice.txt" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="RequireOfflineMediaForPublish" BeforeTargets="PrepareForPublish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <Error Condition="!Exists('../../packaging/media/win-x64/ffmpeg.exe') Or !Exists('../../packaging/media/win-x64/ffprobe.exe') Or !Exists('../../packaging/media/source/citrus-media-source.tar.gz')" Text="Offline media assets or corresponding source archive are missing. Run packaging/build-media.sh before publishing." />
+  </Target>
+</Project>

@@ -1,0 +1,48 @@
+Citrus Windows presentation projection dependencies
+
+Microsoft.Windows.SDK.NET.Ref 10.0.19041.57
+Copyright Microsoft Corporation. All rights reserved.
+NuGet: https://www.nuget.org/packages/Microsoft.Windows.SDK.NET.Ref/10.0.19041.57
+Declared license: https://aka.ms/WinSDKLicenseURL
+Exact upstream nuspec: presentation/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57.nuspec
+The SDK package supplies app-local Microsoft.Windows.SDK.NET.dll and WinRT.Runtime.dll.
+It is an implicit SDK download/reference and is audited by presentation-backend.lock.json.
+The official Windows SDK REDIST list explicitly permits these unmodified net8.0
+projection files as part of programs that call WinRT APIs, subject to the SDK terms:
+https://learn.microsoft.com/en-us/legal/windows-sdk/redist
+Full component terms: presentation/Windows-SDK-License.rtf
+Official REDIST snapshot: presentation/Windows-SDK-REDIST.html
+Exact source/hash review: presentation/Windows-SDK-Distribution-Review.json
+The installer requires agreement to the Microsoft component terms. Silent setup
+requires /ACCEPTSDKTERMS=1 after reviewing those terms; otherwise it exits 26.
+These Microsoft conditions apply to the Microsoft components only. Citrus and
+other open-source components retain their separate licenses and permissions.
+Source-based distribution evidence does not imply legal counsel or stable-release
+functional/performance acceptance. Preserve the notices and distribute only for Windows.
+Do not describe the entire Windows SDK projection package as MIT-licensed.
+
+WinRT.Runtime.dll 2.2.0.0 (file 2.2.0.48161), C#/WinRT
+MIT license: presentation/CsWinRT-2.2.0-LICENSE.txt
+Source: https://github.com/microsoft/CsWinRT/tree/8649ee3eeb2445ca2a36d80d878ef60b96a6c65d
+Release tag: 2.2.0.241111.1
+This component-specific source license does not replace the SDK package license.
+
+No Windows App SDK, WinUI framework, undocumented accent/composition API, or runtime
+backend download is included. Native Acrylic uses the operating system DWM API.
+
+Liquid Glass Studio optical renderer adaptation
+Copyright (c) 2024 Charles Yin
+MIT license: presentation/Liquid-Glass-Studio-LICENSE.txt
+Pinned source: https://github.com/iyinchao/liquid-glass-studio/tree/f7b28c36305a862f5cffed3ddd51511cf1204f56
+The native HLSL optical passes and StudioGlassMath adapt Studio's STEP9 refraction,
+Gaussian blur, background shadow, Fresnel and glare calculations. WPF geometry,
+desktop capture, native integration and interactions are Citrus implementations.
+The community renderer is not Apple's private implementation or an Apple product.
+
+GLSL Color Functions, inherited through Studio's color helpers
+Copyright (c) 2022 Adam Lastowka
+MIT license: presentation/GLSL-Color-Functions-LICENSE.txt
+Pinned source: https://github.com/Rachmanin0xFF/GLSL-Color-Functions/tree/13aee4701ab6b70670ed3d1b2955686108465107
+LCH / Lab / XYZ / sRGB conversions in StudioGlass.hlsl adapt these color functions.
+
+Vaso was inspected as an interaction reference. Its source is not included or copied.

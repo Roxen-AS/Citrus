@@ -1,0 +1,35 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:sys="clr-namespace:System;assembly=mscorlib">
+ <FontFamily x:Key="AppFont">Segoe UI Variable, Segoe UI</FontFamily>
+ <SolidColorBrush x:Key="WindowBackground" Color="#FAF8F6"/>
+ <SolidColorBrush x:Key="PanelBackground" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="InsetBackground" Color="#EEEAE5"/>
+ <SolidColorBrush x:Key="BorderBrush" Color="#DAD3CB"/>
+ <SolidColorBrush x:Key="PrimaryText" Color="#29231F"/>
+ <SolidColorBrush x:Key="SecondaryText" Color="#68605A"/>
+ <SolidColorBrush x:Key="Accent" Color="#FF620F"/>
+ <SolidColorBrush x:Key="ActionInk" Color="#29231F"/>
+ <SolidColorBrush x:Key="DecorativeOrange" Color="#FF7900"/>
+ <SolidColorBrush x:Key="AccentText" Color="#29231F"/>
+ <SolidColorBrush x:Key="ReferenceActionBackground" Color="#D34500"/>
+ <SolidColorBrush x:Key="ReferenceActionText" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="ControlBackground" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="ControlText" Color="#29231F"/>
+ <SolidColorBrush x:Key="WheelShell" Color="#FFEBEFEF"/>
+ <LinearGradientBrush x:Key="PetalBackground" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FFFFFF" Offset="0"/><GradientStop Color="#EFF2F2" Offset=".46"/><GradientStop Color="#E7EBEB" Offset="1"/></LinearGradientBrush>
+ <LinearGradientBrush x:Key="PetalRim" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FFFFFF" Offset="0"/><GradientStop Color="#C8CFD0" Offset="1"/></LinearGradientBrush>
+ <LinearGradientBrush x:Key="WheelHubBackground" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#FBFCFC" Offset="0"/><GradientStop Color="#FBFCFC" Offset=".46"/><GradientStop Color="#F8FAFA" Offset="1"/></LinearGradientBrush>
+ <LinearGradientBrush x:Key="WheelHubRim" StartPoint="0,0" EndPoint="0,1"><GradientStop Color="#C8CFD0" Offset="0"/><GradientStop Color="#FFFFFF" Offset="1"/></LinearGradientBrush>
+ <SolidColorBrush x:Key="SelectedPetal" Color="#FF5500"/>
+ <SolidColorBrush x:Key="SelectedPetalText" Color="#FFFFFF"/>
+ <SolidColorBrush x:Key="WheelText" Color="#000000"/>
+ <SolidColorBrush x:Key="WheelSecondaryText" Color="#748188"/>
+ <SolidColorBrush x:Key="CapsuleBackground" Color="#FFFFFF"/>
+ <DropShadowEffect x:Key="WheelCaptionShadow" Color="#000000" BlurRadius="12" ShadowDepth="2" Opacity="0.07"/>
+ <SolidColorBrush x:Key="SliderThumb" Color="#FFFFFF"/>
+ <sys:Double x:Key="TitleSize">28</sys:Double><sys:Double x:Key="EditorTitleSize">22</sys:Double><sys:Double x:Key="SectionSize">16</sys:Double><sys:Double x:Key="BodySize">14</sys:Double><sys:Double x:Key="MetadataSize">12</sys:Double>
+ <sys:Double x:Key="TextScaleFactor">1</sys:Double><sys:Double x:Key="TitleLeading">34</sys:Double><sys:Double x:Key="EditorLeading">28</sys:Double><sys:Double x:Key="SectionLeading">22</sys:Double><sys:Double x:Key="BodyLeading">20</sys:Double><sys:Double x:Key="MetadataLeading">16</sys:Double>
+ <CornerRadius x:Key="InputRadius">10</CornerRadius><CornerRadius x:Key="CardRadius">16</CornerRadius><CornerRadius x:Key="LargeRadius">24</CornerRadius>
+ <sys:Double x:Key="Space4">4</sys:Double><sys:Double x:Key="Space8">8</sys:Double><sys:Double x:Key="Space12">12</sys:Double><sys:Double x:Key="Space16">16</sys:Double><sys:Double x:Key="Space24">24</sys:Double><sys:Double x:Key="Space32">32</sys:Double><sys:Double x:Key="Space40">40</sys:Double>
+ <CornerRadius x:Key="PanelRadius">12</CornerRadius>
+ <Thickness x:Key="PagePadding">24</Thickness><Thickness x:Key="CardPadding">16</Thickness>
+</ResourceDictionary>

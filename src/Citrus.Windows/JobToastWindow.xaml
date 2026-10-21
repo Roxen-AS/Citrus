@@ -1,0 +1,11 @@
+<Window x:Class="Citrus.Windows.JobToastWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:p="clr-namespace:Citrus.Windows.Presentation"
+ Title="Citrus job status" Width="340" SizeToContent="Height" WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" ShowActivated="False" Topmost="True" Background="{DynamicResource PanelBackground}" Foreground="{DynamicResource PrimaryText}" FontFamily="{DynamicResource AppFont}" FontSize="{DynamicResource BodySize}" TextBlock.LineHeight="{DynamicResource BodyLeading}">
+ <p:MaterialSurface x:Name="Chrome" Role="Toast" CornerRadius="22">
+ <Border Background="Transparent" CornerRadius="22" Padding="20"><StackPanel>
+  <DockPanel><Button Click="Dismiss" Style="{DynamicResource IconButton}" Width="28" Height="28" Padding="8" DockPanel.Dock="Right" Margin="10,0,0,0" AutomationProperties.Name="Dismiss notification"><Path Data="M0,0 L8,8 M8,0 L0,8" Stroke="{DynamicResource PrimaryText}" StrokeThickness="1.5"/></Button><TextBlock x:Name="OperationTitle" Text="Citrus" FontSize="{DynamicResource BodySize}" FontWeight="SemiBold" VerticalAlignment="Center" TextWrapping="Wrap"/></DockPanel>
+  <TextBlock x:Name="Message" TextWrapping="Wrap" TextTrimming="WordEllipsis" MaxHeight="100" Margin="0,8,0,12" AutomationProperties.LiveSetting="Polite"/>
+  <ProgressBar x:Name="Progress" Height="4" IsIndeterminate="True" Margin="0,0,0,12" AutomationProperties.Name="Job progress"/>
+  <WrapPanel x:Name="ActionRow"><Button Content="View jobs" Click="ViewJobs" Style="{DynamicResource SecondaryButton}"/><Button x:Name="RevealButton" Content="Reveal" Click="Reveal" Visibility="Collapsed" Margin="8,0,0,0"/></WrapPanel>
+ </StackPanel></Border>
+ </p:MaterialSurface>
+</Window>

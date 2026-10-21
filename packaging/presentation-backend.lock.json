@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "dotnetSdk": "10.0.402",
+  "targetFramework": "net10.0-windows10.0.19041.0",
+  "supportedOSPlatformVersion": "10.0.19041.0",
+  "windowsSdkPackageVersion": "10.0.19041.57",
+  "implicitPackages": [
+    {
+      "id": "Microsoft.Windows.SDK.NET.Ref",
+      "version": "10.0.19041.57",
+      "reason": "SDK framework reference/download; omitted from NuGet packages.lock.json",
+      "nugetSource": "https://api.nuget.org/v3/index.json",
+      "nupkgSha512": "TI9FqukRZSFfSZ6fLh0cjO0X0OIAn5vZKGU/iNzINt3IZeK7o9Y1Dmtp+xwEv696XO1cHMB7aUqTjql3/KY9xg==",
+      "nupkgSha256": "90b18f2cf7d7a23f5b0bfe2b86d8dda45881481f677ce36eccaf6e9ab50b6b4b",
+      "nuspecSha256": "ab5229d56bc17be4f78440c326aa8376f0577c5121a7c0b5a70b7d2819c6cd9a",
+      "runtimeListSha256": "42a5438172736cb0f04fecae83f134f64e97b019ffbed26f78fb06c70a2e8359",
+      "dependencies": []
+    }
+  ],
+  "publishedAssemblies": {
+    "Microsoft.Windows.SDK.NET.dll": {
+      "packagePath": "lib/net8.0/Microsoft.Windows.SDK.NET.dll",
+      "sha256": "0ec371d93798852e36461c8adddbeadce0f963a04752f0b64e54fe19c1c834a7",
+      "assemblyVersion": "10.0.19041.38",
+      "fileVersion": "10.0.19041.55"
+    },
+    "WinRT.Runtime.dll": {
+      "packagePath": "lib/net8.0/WinRT.Runtime.dll",
+      "sha256": "bcf3a14e8712a90837fc5c0d8c8a24696af2bd7f74e9767597ec81ededfb23db",
+      "assemblyVersion": "2.2.0.0",
+      "fileVersion": "2.2.0.48161"
+    }
+  },
+  "excludedRuntimeProfiles": [
+    "Microsoft.Windows.UI.Xaml.dll"
+  ],
+  "noticeSha256": {
+    "Presentation-Notice.txt": "ad16f73563641888c2be757997484a31e18c6ccf7af59d8c161f485e9e907a5f",
+    "presentation/Liquid-Glass-Studio-LICENSE.txt": "fc2398f73fb001de6506ff9258276f41d0cc7642d1f1a41cbbfd791f346a68ef",
+    "presentation/GLSL-Color-Functions-LICENSE.txt": "07170a555896a4e6af22ee9712bd3e074428cd7303b926f02b7c813371fc510b",
+    "presentation/CsWinRT-2.2.0-LICENSE.txt": "9906940f61b1f0b533fa7d99baf55178b2808fbe113ea51dfbfad8572ccd5f2b",
+    "presentation/Microsoft.Windows.SDK.NET.Ref-10.0.19041.57.nuspec": "ab5229d56bc17be4f78440c326aa8376f0577c5121a7c0b5a70b7d2819c6cd9a",
+    "presentation/Windows-SDK-License.rtf": "0f4a26ac9dc50066f8a1bfeaaf3f092d1b9e4791df5487b9f3c31e7c3dc4d7f5",
+    "presentation/Windows-SDK-REDIST.html": "fcc873fb1bb9c45d02b78814515ee5d824ef851a8563692432b5c745b1d0fcfa",
+    "presentation/Windows-SDK-Distribution-Review.json": "8d568a14ee672c06986b6940e4709353748357c9619b3726c3a02cc9e3731578"
+  },
+  "sdkLicense": {
+    "declaredUrl": "https://aka.ms/WinSDKLicenseURL",
+    "officialLicenseUrl": "https://learn.microsoft.com/en-us/legal/windows-sdk/license",
+    "officialRedistUrl": "https://learn.microsoft.com/en-us/legal/windows-sdk/redist",
+    "status": "RedistributionTermsRecorded",
+    "scope": "Unmodified listed projection files used by this Windows application, subject to SDK terms, notices and explicit installer component agreement.",
+    "evidence": "notices/presentation/Windows-SDK-Distribution-Review.json",
+    "licenseFile": "notices/presentation/Windows-SDK-License.rtf",
+    "installerAgreement": "Microsoft component checkbox; /ACCEPTSDKTERMS=1 required for silent setup; separate open-source permissions preserved.",
+    "qualification": "Source-based distribution conditions recorded; not legal counsel or stable functional/performance acceptance."
+  },
+  "csWinRtSource": {
+    "tag": "2.2.0.241111.1",
+    "commit": "8649ee3eeb2445ca2a36d80d878ef60b96a6c65d"
+  },
+  "nativeEligibility": {
+    "wheelProductionDefault": false,
+    "status": "Native acrylic companion remains rejected after rectangular leakage; the layered wheel has an independent custom desktop-refraction path with opaque fallback",
+    "nativeImplementation": "WPF per-pixel alpha contours; supported DWM backdrop API retained for isolated diagnostics; undocumented accent interop removed"
+  },
+  "desktopRefraction": {
+    "implementation": "Shared Windows Graphics Capture monitor sessions / native D3D11 four-pass RGBA16F Studio optics; padded GPU ROI; final premultiplied BGRA region readback; reused WPF bitmap",
+    "dependencies": "Windows system DLLs only; no additional redistributable or NuGet dependency",
+    "sampleScope": "Visible admitted wheel or app-owned glass surface only; monitor texture remains GPU-only; only finished presentation region read back; no persistence or transmission",
+    "exclusion": "Reference-counted WDA_EXCLUDEFROMCAPTURE on participating owned HWNDs, checked setter/readback, compositor timestamp invalidation after affinity changes",
+    "borderless": "Unpackaged full-trust distribution only; RequestAccessAsync(Borderless) must return Allowed, cursor disabled, IsBorderRequired false before StartCapture",
+    "fallback": "Opaque contour on policy denial, unsupported capture layout, exclusion failure, protected content, device/access loss or missing first frame",
+    "qualification": "Owned native optical capability proof is recorded separately from pure renderer tests"
+  },
+  "opticalReference": {
+    "repository": "https://github.com/iyinchao/liquid-glass-studio",
+    "commit": "f7b28c36305a862f5cffed3ddd51511cf1204f56",
+    "license": "MIT; Charles Yin 2024",
+    "inheritedColorHelpers": "https://github.com/Rachmanin0xFF/GLSL-Color-Functions/tree/13aee4701ab6b70670ed3d1b2955686108465107",
+    "adaptations": "Exact Citrus contours; bounded shoulders and sampling; finite guards; DIP-stable normals; clamped lighting blend factors; final gamut conversion and premultiplication",
+    "behavioralReferenceOnly": "https://github.com/huozhi/vaso/tree/1b35ac17edfc6cd7c7da5121a9fdf92b72294bc9"
+  }
+}

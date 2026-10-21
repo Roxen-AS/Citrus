@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Citrus.Core/Citrus.Core.csproj" />
+    <PackageReference Include="Magick.NET-Q8-x64" Version="[15.0.0]" />
+    <PackageReference Include="SharpCompress" Version="[0.50.5]" />
+    <PackageReference Include="PDFsharp" Version="[6.2.4]" />
+    <PackageReference Include="SkiaSharp" Version="[4.150.1]" />
+    <PackageReference Include="PDFtoImage" Version="[5.4.0]" />
+    <PackageReference Include="PdfPig" Version="[0.1.16]" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="[3.5.1]" />
+    <PackageReference Include="Tabula" Version="[1.0.1]" />
+    <PackageReference Include="Tesseract" Version="[5.2.0]" />
+    <!-- Override PDFsharp's vulnerable minimum with the current .NET 10 security patch. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="[10.0.13]" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="../../packaging/archive-backend.lock.json" Link="archive-backend.lock.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Archive-Notice.txt" Link="notices/Archive-Notice.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/archive-licenses/*" Link="notices/archive-licenses/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/subtitle-archive-engines.md" Link="docs/subtitle-archive-engines.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/pdf-backend.lock.json" Link="pdf-backend.lock.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Image-Annotation-Notice.txt" Link="notices/Image-Annotation-Notice.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/PDF-Notice.txt" Link="notices/PDF-Notice.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/pdf-licenses/**/*" Link="notices/pdf-licenses/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/pdf-engine.md" Link="docs/pdf-engine.md" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/media/win-x64/*" Link="media/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/image/win-x64/**/*" Link="image/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/image/source/**/*" Link="source/image/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/image/heic-helper.cpp" Link="source/image/heic-helper.cpp" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/image/build-image-pack.ps1" Link="source/image/build-image-pack.ps1" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack/libreoffice/**/*" Exclude="../../packaging/feature-pack/libreoffice/**/__pycache__/**;../../packaging/feature-pack/libreoffice/**/*.pyc;../../packaging/feature-pack/libreoffice/**/*.msi" Link="feature-pack/libreoffice/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <!-- Upstream-pinned x64 CRT aliases: app/OCR and the isolated Office executable directory. -->
+    <Content Include="../../packaging/feature-pack/libreoffice/System64/*.dll" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack/libreoffice/System64/*.dll" Link="feature-pack/libreoffice/program/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack/pandoc/**/*" Link="feature-pack/pandoc/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack/tessdata/**/*" Link="feature-pack/tessdata/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack/source/**/*" Link="source/feature-pack/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack.lock.json" Link="feature-pack.lock.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack-runtime.sha256.json" Link="feature-pack-runtime.sha256.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/feature-pack/office-worker.py" Link="feature-pack/office-worker.py" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/build-feature-pack.ps1" Link="source/feature-pack/build-feature-pack.ps1" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/image-backend.lock.json" Link="image-backend.lock.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/feature-pack/**/*" Link="notices/feature-pack/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Image-Feature-Pack-Notice.txt" Link="notices/Image-Feature-Pack-Notice.txt" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Document-Feature-Pack-Notice.txt" Link="notices/Document-Feature-Pack-Notice.txt" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/image-licenses/*" Link="notices/image-licenses/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/media/source/*" Link="source/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/media-lock.json" Link="media-lock.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/media/sha256.json" Link="media-sha256.json" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/Media-Notice.txt" Link="notices/Media-Notice.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../packaging/notices/media-licenses/*" Link="notices/media-licenses/%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../docs/media-engine.md" Link="docs/media-engine.md" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="RequireOfflineMediaForWindowsPublish" BeforeTargets="PrepareForPublish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <Error Condition="!Exists('../../packaging/media/win-x64/ffmpeg.exe') Or !Exists('../../packaging/media/win-x64/ffprobe.exe') Or !Exists('../../packaging/media/source/citrus-media-source.tar.gz')" Text="Offline media assets or corresponding source archive are missing. Run packaging/build-media.sh before publishing." />
+  </Target>
+  <Target Name="RequireOfflineReferenceToolsForWindowsPublish" BeforeTargets="PrepareForPublish" Condition="'$(RuntimeIdentifier)' == 'win-x64'">
+    <Error Condition="!Exists('../../packaging/image/win-x64/heic/citrus-heic.exe') Or !Exists('../../packaging/image/win-x64/exiftool/exiftool.exe') Or !Exists('../../packaging/image-backend.lock.json')" Text="The offline image/metadata pack is incomplete. Run packaging/image/build-image-pack.ps1 before publishing." />
+    <Error Condition="!Exists('../../packaging/feature-pack/libreoffice/program/python.exe') Or !Exists('../../packaging/feature-pack/libreoffice/program/mergedlo.dll') Or !Exists('../../packaging/feature-pack/office-worker.py') Or !Exists('../../packaging/feature-pack/pandoc/pandoc-3.12.1/pandoc.exe') Or !Exists('../../packaging/feature-pack/tessdata/eng.traineddata') Or !Exists('../../packaging/feature-pack.lock.json') Or !Exists('../../packaging/feature-pack-runtime.sha256.json')" Text="The offline Office/EPUB/OCR feature pack is incomplete. Run packaging/build-feature-pack.ps1 before publishing." />
+  </Target>
+</Project>

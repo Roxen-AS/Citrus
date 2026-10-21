@@ -1,0 +1,14 @@
+{
+  "source/citrus-media-source.tar.gz": "dbc9ce8992f4edd3b0b10a422636cc60c00cc983198022eb156ed88e5d6999a0",
+  "win-x64/avcodec-63.dll": "968cebb4437cc120c1fa17b3eade3468d37720abe3357a857a2eba7be75bf6ec",
+  "win-x64/avdevice-63.dll": "5bf3a1c91fc7d5432caea7bdbfdb815d20a7f27648d223264433be87f61159fa",
+  "win-x64/avfilter-12.dll": "fa4b49576d7cd28dda9a218694850428aa57d81bb3d561e61ed798229ac04d1d",
+  "win-x64/avformat-63.dll": "de8dc9e2037e397084748249c3987c2ad64c8495ffc3665f654ee7f0b4d41367",
+  "win-x64/avutil-61.dll": "6260fc5aa7aa8da7d20074d51f9d7c919a2bd3105981f31cfaf6bcf070873ca8",
+  "win-x64/ffmpeg.exe": "3e3e73fac32b86c0f79613c7b89488edbf00c84f4bb81fcbcd6b1fbee1d62f11",
+  "win-x64/ffprobe.exe": "a74c036e49f91e7b4fee62be2b0bab7b424140758f62675c657dedd1c33376e1",
+  "win-x64/libmp3lame-0.dll": "caca610e9557dc5dcfca964f37b43464e031f0b256df137d47ab6396ec508a49",
+  "win-x64/libwinpthread-1.dll": "fc3cd567190f3f24e8201c2e1602f7d1f1e583a572efb7dbd8746d7928538e94",
+  "win-x64/swresample-7.dll": "466b51fcb18a13a6f304bb04e229769ba2a48c94f985746d077cb6e928a7dbb1",
+  "win-x64/swscale-10.dll": "12eb5c45183a9628b434ace869239f44502010e5333dc794c05568db120ca587"
+}

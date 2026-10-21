@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Installation and preview limitations
+    url: https://citrous.app/support/
+    about: Read the workflow and compatibility notes first.
+  - name: Report a security concern privately
+    url: https://github.com/Skytuhua/Citrus/security/advisories/new
+    about: Do not disclose vulnerability details or private samples in public issues.

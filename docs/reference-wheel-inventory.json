@@ -1,0 +1,832 @@
+[
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "PNG",
+    "operationId": "image.convert.png",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "WEBP",
+    "operationId": "image.convert.webp",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "HEIC",
+    "operationId": "image.convert.heic",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Convert",
+    "slot": 3,
+    "referenceLabel": "TIFF",
+    "operationId": "image.convert.tiff",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Convert",
+    "slot": 4,
+    "referenceLabel": "AVIF",
+    "operationId": "image.convert.avif",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Convert",
+    "slot": 5,
+    "referenceLabel": "BMP",
+    "operationId": "image.convert.bmp",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Convert",
+    "slot": 6,
+    "referenceLabel": "PDF",
+    "operationId": "images.pdf",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Tools",
+    "slot": 0,
+    "referenceLabel": "COMPRESS",
+    "operationId": "image.compress",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Tools",
+    "slot": 1,
+    "referenceLabel": "METADATA",
+    "operationId": "image.metadata",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Tools",
+    "slot": 2,
+    "referenceLabel": "EDIT",
+    "operationId": "image.editor",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Tools",
+    "slot": 3,
+    "referenceLabel": "ANNOTATE",
+    "operationId": "image.annotate",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Tools",
+    "slot": 4,
+    "referenceLabel": "ADD BG",
+    "operationId": "image.background",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Tools",
+    "slot": 5,
+    "referenceLabel": "CROP",
+    "operationId": "image.crop",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 1,
+    "family": "image",
+    "mode": "Tools",
+    "slot": 6,
+    "referenceLabel": "REDACT",
+    "operationId": "image.redact",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "MP4",
+    "operationId": "media.convert.mp4",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "MKV",
+    "operationId": "media.convert.mkv",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "WEBM",
+    "operationId": "media.convert.webm",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Convert",
+    "slot": 3,
+    "referenceLabel": "AVI",
+    "operationId": "media.convert.avi",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Convert",
+    "slot": 4,
+    "referenceLabel": "WMV",
+    "operationId": "media.convert.wmv",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Convert",
+    "slot": 5,
+    "referenceLabel": "GIF",
+    "operationId": "media.convert.gif",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Convert",
+    "slot": 6,
+    "referenceLabel": "MP3",
+    "operationId": "media.convert.mp3",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 0,
+    "referenceLabel": "COMPRESS",
+    "operationId": "video.compress",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 1,
+    "referenceLabel": "METADATA",
+    "operationId": "video.metadata",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 2,
+    "referenceLabel": "MUTE",
+    "operationId": "video.mute",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 3,
+    "referenceLabel": "TRIM",
+    "operationId": "video.trim",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 4,
+    "referenceLabel": "CROP",
+    "operationId": "video.crop",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 5,
+    "referenceLabel": "SPEED",
+    "operationId": "video.speed",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 6,
+    "referenceLabel": "SNAPSHOT",
+    "operationId": "video.snapshot",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 7,
+    "referenceLabel": "SPLIT",
+    "operationId": "video.split",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 2,
+    "family": "video",
+    "mode": "Tools",
+    "slot": 8,
+    "referenceLabel": "REDACT",
+    "operationId": "video.redact",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "M4A",
+    "operationId": "media.convert.m4a",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "WAV",
+    "operationId": "media.convert.wav",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "FLAC",
+    "operationId": "media.convert.flac",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Convert",
+    "slot": 3,
+    "referenceLabel": "OGG",
+    "operationId": "media.convert.ogg",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Convert",
+    "slot": 4,
+    "referenceLabel": "OPUS",
+    "operationId": "media.convert.opus",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Convert",
+    "slot": 5,
+    "referenceLabel": "AIFF",
+    "operationId": "media.convert.aiff",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Convert",
+    "slot": 6,
+    "referenceLabel": "WMA",
+    "operationId": "media.convert.wma",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Tools",
+    "slot": 0,
+    "referenceLabel": "COMPRESS",
+    "operationId": "audio.compress",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Tools",
+    "slot": 1,
+    "referenceLabel": "METADATA",
+    "operationId": "audio.metadata",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Tools",
+    "slot": 2,
+    "referenceLabel": "NORMALIZE",
+    "operationId": "audio.normalize",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Tools",
+    "slot": 3,
+    "referenceLabel": "VISUALIZE",
+    "operationId": "audio.visualizer",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Tools",
+    "slot": 4,
+    "referenceLabel": "TRIM",
+    "operationId": "audio.trim",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Tools",
+    "slot": 5,
+    "referenceLabel": "CHANNELS",
+    "operationId": "audio.channels",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 3,
+    "family": "audio",
+    "mode": "Tools",
+    "slot": 6,
+    "referenceLabel": "BLEEP",
+    "operationId": "audio.bleep",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "DOCX",
+    "operationId": "pdf.docx",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "PAGES",
+    "operationId": "pdf.docx",
+    "compatibilityNote": "Real DOCX compatible with Apple Pages; duplicate DOCX destinations collapsed",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "PPTX",
+    "operationId": "pdf.pptx",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 3,
+    "referenceLabel": "XLSX",
+    "operationId": "pdf.xlsx",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 4,
+    "referenceLabel": "JPG",
+    "operationId": "pdf.jpg",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 5,
+    "referenceLabel": "PNG",
+    "operationId": "pdf.images",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 6,
+    "referenceLabel": "EPUB",
+    "operationId": "pdf.epub",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 7,
+    "referenceLabel": "TXT",
+    "operationId": "pdf.text",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Convert",
+    "slot": 8,
+    "referenceLabel": "MD",
+    "operationId": "pdf.markdown",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Tools",
+    "slot": 0,
+    "referenceLabel": "COMPRESS",
+    "operationId": "pdf.compress",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Tools",
+    "slot": 1,
+    "referenceLabel": "METADATA",
+    "operationId": "pdf.metadata",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Tools",
+    "slot": 2,
+    "referenceLabel": "SPLIT",
+    "operationId": "pdf.split",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 4,
+    "family": "pdf",
+    "mode": "Tools",
+    "slot": 3,
+    "referenceLabel": "ORGANIZE",
+    "operationId": "pdf.organize",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "PAGES",
+    "operationId": "document.convert.docx",
+    "compatibilityNote": "Real DOCX compatible with Apple Pages; duplicate DOCX destinations collapsed",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "PDF",
+    "operationId": "document.convert.pdf",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "TXT",
+    "operationId": "document.convert.txt",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 3,
+    "referenceLabel": "MD",
+    "operationId": "document.convert.md",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 4,
+    "referenceLabel": "HTML",
+    "operationId": "document.convert.html",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 5,
+    "referenceLabel": "EPUB",
+    "operationId": "document.convert.epub",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 6,
+    "referenceLabel": "PNG",
+    "operationId": "document.convert.png",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 5,
+    "family": "document",
+    "mode": "Convert",
+    "slot": 7,
+    "referenceLabel": "JPG",
+    "operationId": "document.convert.jpg",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 6,
+    "family": "presentation",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "PDF",
+    "operationId": "presentation.convert.pdf",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 6,
+    "family": "presentation",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "JPG",
+    "operationId": "presentation.convert.jpg",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 6,
+    "family": "presentation",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "PNG",
+    "operationId": "presentation.convert.png",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 7,
+    "family": "spreadsheet",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "ODS",
+    "operationId": "spreadsheet.convert.ods",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 7,
+    "family": "spreadsheet",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "CSV",
+    "operationId": "spreadsheet.convert.csv",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 7,
+    "family": "spreadsheet",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "TSV",
+    "operationId": "spreadsheet.convert.tsv",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 7,
+    "family": "spreadsheet",
+    "mode": "Convert",
+    "slot": 3,
+    "referenceLabel": "PDF",
+    "operationId": "spreadsheet.convert.pdf",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 8,
+    "family": "epub",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "PDF",
+    "operationId": "epub.convert.pdf",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 8,
+    "family": "epub",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "DOCX",
+    "operationId": "epub.convert.docx",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 8,
+    "family": "epub",
+    "mode": "Convert",
+    "slot": 2,
+    "referenceLabel": "PAGES",
+    "operationId": "epub.convert.docx",
+    "compatibilityNote": "Real DOCX compatible with Apple Pages; duplicate DOCX destinations collapsed",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 8,
+    "family": "epub",
+    "mode": "Convert",
+    "slot": 3,
+    "referenceLabel": "TXT",
+    "operationId": "epub.convert.txt",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 8,
+    "family": "epub",
+    "mode": "Convert",
+    "slot": 4,
+    "referenceLabel": "MD",
+    "operationId": "epub.convert.md",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 8,
+    "family": "epub",
+    "mode": "Convert",
+    "slot": 5,
+    "referenceLabel": "HTML",
+    "operationId": "epub.convert.html",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 9,
+    "family": "subtitle",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "VTT",
+    "operationId": "subtitle.vtt",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 9,
+    "family": "subtitle",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "TXT",
+    "operationId": "subtitle.txt",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 10,
+    "family": "archive",
+    "mode": "Convert",
+    "slot": 0,
+    "referenceLabel": "TAR",
+    "operationId": "archive.tar",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 10,
+    "family": "archive",
+    "mode": "Convert",
+    "slot": 1,
+    "referenceLabel": "GZIP",
+    "operationId": "archive.gzip",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  },
+  {
+    "referenceImage": 10,
+    "family": "archive",
+    "mode": "Tools",
+    "slot": 0,
+    "referenceLabel": "EXTRACT",
+    "operationId": "archive.extract",
+    "compatibilityNote": "",
+    "nativeVisual": "pending"
+  }
+]

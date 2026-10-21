@@ -1,0 +1,27 @@
+--- a/include/libmp3lame.sym
++++ b/include/libmp3lame.sym
+@@ -182,24 +182,6 @@
+ lame_get_lametag_frame
+ lame_close
+ lame_encode_finish
+-hip_decode_init
+-hip_decode_init_gapless
+-hip_decode_exit
+-hip_set_errorf
+-hip_set_debugf
+-hip_set_msgf
+-hip_decode
+-hip_decode_headers
+-hip_decode1
+-hip_decode1_headers
+-hip_decode1_headersB
+-lame_decode_init
+-lame_decode
+-lame_decode_headers
+-lame_decode1
+-lame_decode1_headers
+-lame_decode1_headersB
+-lame_decode_exit
+ id3tag_genre_list
+ id3tag_init
+ id3tag_add_v2

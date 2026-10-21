@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "packages": [
+    {
+      "id": "PDFsharp",
+      "version": "6.2.4",
+      "license": "MIT",
+      "repository": "https://github.com/empira/PDFsharp",
+      "commit": "9c3863a71b12067ff36e68a92c1a1f260114e2d1",
+      "nupkgSha256": "5647882339b327cbf6da9ea3f882efb335f8d602e6fd45323adf9e78da53cf67"
+    },
+    {
+      "id": "PDFtoImage",
+      "version": "5.4.0",
+      "license": "MIT",
+      "repository": "https://github.com/sungaila/PDFtoImage",
+      "commit": "5948628cb2cf7d070c7fd28b1b4496db39e3afcd",
+      "nupkgSha256": "386096ddc60df7501f1c76742b3a06cedc635b06f67804a892d0d84a44b4ea6b"
+    },
+    {
+      "id": "PdfPig",
+      "version": "0.1.16",
+      "license": "Apache-2.0",
+      "repository": "https://github.com/UglyToad/PdfPig",
+      "commit": "a7bb35662bbbf405efddad50aedc9bcdcf515afc",
+      "nupkgSha256": "d67171846ea8c28f50359137065fec4514266d7a32b23eae6c5f2ebed8ffcfc4"
+    },
+    {
+      "id": "SkiaSharp (including native assets)",
+      "version": "4.150.1",
+      "license": "MIT plus bundled third-party notices",
+      "source": "https://github.com/mono/SkiaSharp",
+      "commit": "c3e4f4c20e1f23ab74d31a8838a5bd6dc55365f2",
+      "nupkgSha256": {
+        "SkiaSharp": "29d6bce5a0c4102cf9d6a0f726a50f39a1b71ed86ba77f01ca7eb325615ad4a0",
+        "SkiaSharp.NativeAssets.Win32": "1e1706e633bc0824ecc9b4f65cb35eedc866b1cdb52725e9d3ff4dc90d45befa"
+      }
+    },
+    {
+      "id": "bblanchon.PDFium (Win32/Linux/macOS)",
+      "version": "152.0.7961",
+      "license": "Apache-2.0 wrapper; native PDFium and third-party notices included",
+      "source": "https://github.com/bblanchon/pdfium-binaries/tree/chromium/7961",
+      "commit": "c6529b58791d142002f819beb46e370e668797d7",
+      "nativeSourceTag": "chromium/7961",
+      "nupkgSha256": {
+        "bblanchon.PDFium.Win32": "3a07bb1249b94a90de2102e807008f3656cc7e54346e7250da08c5f427267e7e"
+      }
+    },
+    {
+      "id": "System.Security.Cryptography.Pkcs",
+      "version": "10.0.13",
+      "license": "MIT",
+      "source": "https://github.com/dotnet/dotnet",
+      "reason": "Overrides vulnerable PDFsharp minimum 8.0.1; exact resolved integrity in packages.lock.json",
+      "commit": "4099f83977f4d29604a9aeb971fb0a7bc1d5f699",
+      "licenseSource": "https://raw.githubusercontent.com/dotnet/dotnet/4099f83977f4d29604a9aeb971fb0a7bc1d5f699/LICENSE.TXT",
+      "nupkgSha256": "54ed24578ead34b5b50d259084243432f11733e2754b8b196e799d3418d304a7"
+    },
+    {
+      "id": "microsoft.extensions.logging.abstractions",
+      "version": "8.0.3",
+      "license": "MIT",
+      "source": "https://github.com/dotnet/runtime",
+      "commit": "eba546b0f0d448e0176a2222548fd7a2fbf464c0",
+      "licenseSource": "https://raw.githubusercontent.com/dotnet/runtime/eba546b0f0d448e0176a2222548fd7a2fbf464c0/LICENSE.TXT",
+      "nupkgSha256": "e4c498d5a13051b4577a148f1d8c3470167215c507e2392069b75dc61322bb74"
+    },
+    {
+      "id": "microsoft.extensions.dependencyinjection.abstractions",
+      "version": "8.0.2",
+      "license": "MIT",
+      "source": "https://github.com/dotnet/runtime",
+      "commit": "81cabf2857a01351e5ab578947c7403a5b128ad1",
+      "licenseSource": "https://raw.githubusercontent.com/dotnet/runtime/81cabf2857a01351e5ab578947c7403a5b128ad1/LICENSE.TXT",
+      "nupkgSha256": "51f2df1100245f10da54f0bb7e813f277155117777d4fbbab902214e27372606"
+    }
+  ],
+  "pdfiumNoticeArchive": {
+    "url": "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium%2F7961/pdfium-win-x64.tgz",
+    "sha256": "88276459349b291c41f10422dad0210f007c04d919c8fa56472b6b7c6406adf4",
+    "licenseCollectionScript": "https://github.com/bblanchon/pdfium-binaries/blob/c6529b58791d142002f819beb46e370e668797d7/steps/08-licenses.sh"
+  },
+  "winX64NativeSha256": {
+    "pdfium.dll": "d3d9f4b7c9dabe3363f30779c5c3c715c47332749fa590e4b4a2b8b6780cb1c4",
+    "libSkiaSharp.dll": "c8770c219e0d3cd9bb119fad46f2d00ae1855b11315816e86e909e3332826212"
+  },
+  "noticeSha256": {
+    "PDFium-7961-LICENSE.txt": "8854f4388f1ca13b3ad9baa42e95f5546b4c0b17109c159256d3eca7be39b09b",
+    "PDFsharp-6.2.4-MIT.txt": "3c648a5072bd7f7386ca28687780489a708a57ed75f13927bc16dd3e34af3bf7",
+    "PDFtoImage-5.4.0-MIT.txt": "96689e585089de537595e7c70ac6774155785e09f0290ab84c0357341f80e689",
+    "PdfPig-0.1.16-Apache-2.0.txt": "4c510e162f896ea43b4b1cf1b743641d7c756f1004d0e5eaf0615b28b7ded409",
+    "PdfPig-0.1.16-NOTICES.txt": "d7a07a105f64d9240ed40a8ebe0c45658616c1660bf9fd8a36e2dbf3165f6e92",
+    "SkiaSharp-4.150.1-LICENSE.txt": "89101e35a8c66fd4d6dffc1763259161d35cb564c169714ec227a768c89f2938",
+    "SkiaSharp-4.150.1-THIRD-PARTY-NOTICES.txt": "21504c46c4c58aa64c1055bd2dcbc5f9a136b4b8c412ed3cc6740e22c5b127f5",
+    "pdfium-7961/abseil.txt": "f54fff0b905df5b3464527c652a30e903b172d6dcab4d89b5e6f105d5e4a4603",
+    "pdfium-7961/agg23.txt": "c110d3ea2ad77467ce0dcff7d3337e6c8be8049a5103f4b9bd5fd911a77972e5",
+    "pdfium-7961/fast_float.txt": "bf1b57355feca8fce77ee95f48002f8d4789fb71b30ec7599c06cda4901fbb2b",
+    "pdfium-7961/freetype.txt": "f4b133e25df1f86ad3ffea453aa0e613f0474f34778dbbb3e437e7b2724937d8",
+    "pdfium-7961/icu.txt": "93679f4389d53b6835d89843f251844fb9bc455b35bab036d3c8e7abe497a47a",
+    "pdfium-7961/lcms.txt": "7312b68c5b25e9bf2b828706fb4e29588f22705112f411fd42e1f7d84c3d139a",
+    "pdfium-7961/libjpeg_turbo.ijg": "db16a04128171879c60708d171b88d97345a2dd20f9bfc173680a4497c73f704",
+    "pdfium-7961/libjpeg_turbo.md": "be2b2b5ab168bce87bc3e31f2a5c5adba4b7f6e9e51d618e958d1d46972ebd95",
+    "pdfium-7961/libopenjpeg.txt": "c5ab0890a737c2dfa7ba675036554f6d17741d98629b0c2a145354d00617e6b2",
+    "pdfium-7961/libpng.txt": "452390433ba0f88aa3e2b122c647741b72a0c117cd6ed7a329b49785aecb5511",
+    "pdfium-7961/libtiff.txt": "92b72ba97e6c2749c2a94bc0ef646b47080217f1e772a482b33cf5a5f98a6506",
+    "pdfium-7961/llvm-libc.txt": "3b6226c32e168c83b891d8d6f0d3c29c2116dc3ef93dc93c307b54f279ecf383",
+    "pdfium-7961/pdfium.txt": "961eacd9633fff6d051db7208b755e9210e30efac7adec3e6a6d52798f0ccf0e",
+    "pdfium-7961/simdutf.txt": "c172a0ba936ff31230febb5dad869e25cb7c1a07480c7a381be8cf011bb52719",
+    "pdfium-7961/zlib.txt": "33fd641c9f3b0e0be64bc78fea9e94807674cdd70c48477599226cb8956565fe",
+    "System.Security.Cryptography.Pkcs-10.0.13-LICENSE.txt": "ae48df11a335dc1a615f4f938b69cba73bcf4485c4f97af49b38efb0f216353b",
+    "System.Security.Cryptography.Pkcs-10.0.13-THIRD-PARTY-NOTICES.txt": "6d15e10a101c6bfff2ab4429ed061bf76c456fc4b23ad6b03e0d0f8377148a21",
+    "microsoft.extensions.logging.abstractions-8.0.3-LICENSE.txt": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310",
+    "microsoft.extensions.dependencyinjection.abstractions-8.0.2-LICENSE.txt": "cfc21f5e8bd655ae997eec916138b707b1d290b83272c02a95c9f821b8c87310"
+  }
+}

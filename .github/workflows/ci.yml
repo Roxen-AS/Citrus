@@ -1,0 +1,34 @@
+name: Source build and core contracts
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: source-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  core:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.402
+      - name: Restore locked dependencies
+        run: dotnet restore Citrus.sln --locked-mode
+      - name: Build source
+        run: dotnet build Citrus.sln -c Release --no-restore -m:1
+      - name: Core contracts
+        run: dotnet test tests/Citrus.Core.Tests -c Release --no-build --no-restore --logger trx --results-directory TestResults/core
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: core-contract-results
+          path: TestResults/core
+          if-no-files-found: warn
+      - name: Qualification scope
+        run: Write-Output 'Source build and core contracts only. Offline engine acquisition, native workflows, output fidelity and installer qualification are separate release checks.'

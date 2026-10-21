@@ -1,0 +1,19 @@
+<Window x:Class="Citrus.Windows.ShelfWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:p="clr-namespace:Citrus.Windows.Presentation"
+ Title="Citrus floating shelf" Width="380" Height="290" MinWidth="320" MinHeight="230" Topmost="True" Background="{DynamicResource WindowBackground}" Foreground="{DynamicResource PrimaryText}" FontFamily="{DynamicResource AppFont}" FontSize="{DynamicResource BodySize}" TextBlock.LineHeight="{DynamicResource BodyLeading}">
+ <p:MaterialSurface x:Name="Chrome">
+ <DockPanel><p:ChromeHeader DockPanel.Dock="Top"><TextBlock Text="Floating shelf" FontSize="16" FontWeight="SemiBold"/></p:ChromeHeader>
+ <ScrollViewer x:Name="ShelfScroll" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+  <StackPanel Margin="18">
+
+   <TextBlock Text="Drag files out, or select and copy them." TextWrapping="Wrap" Margin="0,6,0,10"/>
+   <ListBox x:Name="References" MinHeight="120" MaxHeight="240" SelectionMode="Extended" HorizontalContentAlignment="Stretch" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Shelf file references" PreviewMouseLeftButtonDown="DragStarted" MouseMove="DragMoved" KeyDown="ShelfKeyDown">
+    <ListBox.ItemTemplate><DataTemplate><DockPanel Margin="4,6"><Path Data="{StaticResource Icon.File}" Width="22" Height="26" Stretch="Uniform" Stroke="{DynamicResource SecondaryText}" StrokeThickness="1.3" Margin="0,0,12,0"/><TextBlock Text="{Binding}" ToolTip="{Binding}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/></DockPanel></DataTemplate></ListBox.ItemTemplate>
+   </ListBox>
+   <WrapPanel Margin="0,10,0,0">
+    <Button x:Name="CopyReferences" Click="CopySelected" Margin="0,0,8,4"><TextBlock Text="Copy selected" TextWrapping="Wrap" TextAlignment="Center"/></Button>
+    <Button x:Name="RemoveReferences" Click="RemoveSelected" Margin="0,0,0,4" Style="{DynamicResource SecondaryButton}"><TextBlock Text="Remove references" TextWrapping="Wrap" TextAlignment="Center"/></Button>
+   </WrapPanel>
+  </StackPanel>
+ </ScrollViewer></DockPanel>
+ </p:MaterialSurface>
+</Window>

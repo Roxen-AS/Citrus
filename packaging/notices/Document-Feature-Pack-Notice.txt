@@ -1,0 +1,67 @@
+Offline document and PDF reconstruction feature pack
+
+LibreOffice 26.8.1.1
+Copyright 2000-2026 LibreOffice contributors. The Document Foundation.
+MPL-2.0 and the additional licenses/notices distributed in
+feature-pack/libreoffice/license.txt, LICENSE.html and NOTICE.
+The unmodified Windows runtime was administratively extracted from the
+official MSI; Citrus does not install it system-wide or alter PATH.
+Corresponding release source, dictionaries, help and translations are in
+source/feature-pack. Source build inputs and third-party references are
+included by the upstream release source and its download.lst.
+https://www.libreoffice.org/about-us/licenses/
+
+Pandoc 3.12.1
+Copyright John MacFarlane and contributors. GPL-2.0-or-later.
+Preserve feature-pack/pandoc/pandoc-3.12.1/COPYRIGHT.txt and COPYING.rtf.
+Unmodified release source is in source/feature-pack/pandoc-3.12.1.tar.gz.
+https://github.com/jgm/pandoc
+
+Tesseract 5.2.0 / Tesseract .NET 5.2.0
+Apache-2.0. Leptonica 1.82.0 uses its BSD-style license.
+The pinned NuGet package supplies the managed wrapper and Windows native
+libraries; packages.lock.json records package integrity. The Tesseract and
+Leptonica release sources are in source/feature-pack. The English OCR model
+is pinned to tessdata_fast commit 87416418657359cb625c412a48b6e1d6d41c29bd;
+retain feature-pack/tessdata/LICENSE (Apache-2.0).
+https://github.com/charlesw/tesseract
+https://github.com/tesseract-ocr/tesseract
+https://github.com/DanBloomberg/leptonica
+
+Microsoft Visual C++ runtime libraries (proprietary redistributable)
+The ten unmodified x64 CRT DLLs under feature-pack/libreoffice/System64 are
+from the pinned official LibreOffice MSI. Their exact upstream hashes are in
+feature-pack-runtime.sha256.json. Citrus also deploys identical app-local
+copies beside Citrus.Windows.exe (including OCR natives) and the isolated
+Office executables in feature-pack/libreoffice/program. These copies are
+covered by Microsoft's separate software license terms; they are not MPL or
+open-source Citrus components. The complete upstream Microsoft Visual C++
+Runtime Libraries license is retained in feature-pack/libreoffice/license.txt.
+No DLLs are copied from the user's Windows installation, no redistributable
+installer runs, and no system PATH or machine runtime installation changes.
+https://learn.microsoft.com/cpp/windows/redistributing-visual-cpp-files
+
+DocumentFormat.OpenXml 3.5.1: MIT; Copyright Microsoft Corporation.
+Tabula 1.0.1 / tabula-sharp: MIT; Copyright project contributors.
+PdfPig 0.1.16: Apache-2.0; existing PDF notices remain applicable.
+
+Exact asset versions, download URLs, SHA-256 digests and source inventory:
+feature-pack.lock.json. Runtime inventory: feature-pack-runtime.sha256.json.
+Acquisition and verification: build-feature-pack.ps1. Document parsing workers
+run in a Windows AppContainer with no network capabilities and private job
+staging. This implementation has no unrestricted execution fallback.
+The trusted office-worker.py binding is Citrus source under the repository's
+MIT license. Preserve that license with the application. Its SHA-256 is pinned
+in both the feature-pack lock and runtime catalog; build verification checks
+the worker as well as all upstream binary and source artifacts.
+
+The worker initializes the pinned LibreOfficeKit library. Calc uses hidden
+in-process UNO; Impress schedules its hidden export on Office's main loop.
+Neither path uses a network listener or an out-of-process UNO bridge. Windows
+AppContainer and Job Object ownership cover the entire native process tree.
+
+PDF reconstruction is best effort. It does not recover original Office
+formulas, proprietary fonts, arbitrary handwriting or perfect page semantics.
+OCR data is English. Mixed raster text is reconstructed where recoverable;
+artwork inside a replaced scanned region may need manual restoration.
+DOCX output marked Pages compatible is a genuine DOCX file, not a .pages file.

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "file": "Rar4.rar",
+      "bytes": 59998,
+      "sha256": "9d9c261e50d3a84ab11a3701c7a736057fc970e59ca365885a41f60270c1875e",
+      "sourceUrl": "https://raw.githubusercontent.com/adamhathcock/sharpcompress/e4193af83b6ec8bdd5fb4f6ebffc2315dd3fc626/tests/TestArchives/Archives/Rar4.rar",
+      "downloadSha256": "9d9c261e50d3a84ab11a3701c7a736057fc970e59ca365885a41f60270c1875e",
+      "downloadBytes": 59998,
+      "encoding": "binary",
+      "license": "MIT"
+    },
+    {
+      "file": "Rar5.rar",
+      "bytes": 60066,
+      "sha256": "3319de3e8a91a58d08d8a83f48ebae7e6b022c542b4a58775bab64f4063988a9",
+      "sourceUrl": "https://raw.githubusercontent.com/adamhathcock/sharpcompress/e4193af83b6ec8bdd5fb4f6ebffc2315dd3fc626/tests/TestArchives/Archives/Rar5.rar",
+      "downloadSha256": "3319de3e8a91a58d08d8a83f48ebae7e6b022c542b4a58775bab64f4063988a9",
+      "downloadBytes": 60066,
+      "encoding": "binary",
+      "license": "MIT"
+    },
+    {
+      "file": "test_read_format_rar.rar",
+      "bytes": 336,
+      "sha256": "d421b86f6290aefad61b2a36737253b2b30fe27c156bd95abfc230f24fe0307e",
+      "sourceUrl": "https://raw.githubusercontent.com/libarchive/libarchive/7f53fce04e4e672230f4eb80b219af17975e4f83/libarchive/test/test_read_format_rar.rar.uu",
+      "downloadSha256": "d1e75b4120995bce82fc4e72ebf8b80d18ea69fa34ac62de383b8393f92afa09",
+      "downloadBytes": 505,
+      "encoding": "uuencode (decoded to predetermined local filename)",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "file": "test_read_format_rar5_hardlink.rar",
+      "bytes": 122,
+      "sha256": "2a0494afad63dcf7a5522afd593bde0cb42f53744888397febf112c00853f3d0",
+      "sourceUrl": "https://raw.githubusercontent.com/libarchive/libarchive/7f53fce04e4e672230f4eb80b219af17975e4f83/libarchive/test/test_read_format_rar5_hardlink.rar.uu",
+      "downloadSha256": "9d69af7d15396bccb556f21e20080b7dd72a7648366400639bd696ce77c76812",
+      "downloadBytes": 221,
+      "encoding": "uuencode (decoded to predetermined local filename)",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "file": "test_read_format_rar5_symlink.rar",
+      "bytes": 190,
+      "sha256": "a7336968564786ea5ff106fff2f6ef8dfd8ad5ecca86fbd1db3d63ba42bcd29a",
+      "sourceUrl": "https://raw.githubusercontent.com/libarchive/libarchive/7f53fce04e4e672230f4eb80b219af17975e4f83/libarchive/test/test_read_format_rar5_symlink.rar.uu",
+      "downloadSha256": "7c159d88ca351a8324e2d85c9455d26e86e7df4c79f46ee3db9bfb5a89ffdd44",
+      "downloadBytes": 316,
+      "encoding": "uuencode (decoded to predetermined local filename)",
+      "license": "BSD-2-Clause"
+    }
+  ],
+  "notes": [
+    "EXE contents are test bytes only; never execute them.",
+    "SharpCompress-MIT.txt covers the SharpCompress fixtures.",
+    "libarchive-COPYING and companion test source header notices preserve libarchive provenance.",
+    "Expected payload SHA256s for both baseline archives were independently read from Rar4.rar using the system libarchive reader."
+  ],
+  "companionSources": [
+    {
+      "url": "https://raw.githubusercontent.com/libarchive/libarchive/7f53fce04e4e672230f4eb80b219af17975e4f83/libarchive/test/test_read_format_rar.c",
+      "sha256": "757dc2b0ce20696354ecdbff838b65315f3db30045b853b447f0b6936fb8d762"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/libarchive/libarchive/7f53fce04e4e672230f4eb80b219af17975e4f83/libarchive/test/test_read_format_rar5.c",
+      "sha256": "9fdbb83e939d0e2c1c25d88809a0368977d3ae09361724a9c937774225fd90d2"
+    },
+    {
+      "url": "https://raw.githubusercontent.com/libarchive/libarchive/7f53fce04e4e672230f4eb80b219af17975e4f83/COPYING",
+      "sha256": "30e556b3959e3985d66efefec5eaac51d4995053caa1d3cffe6eb916f146f229"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+ <SolidColorBrush x:Key="MaterialChromeTint" Color="#24FFFFFF"/>
+ <SolidColorBrush x:Key="MaterialShellTint" Color="#18FFFFFF"/>
+ <SolidColorBrush x:Key="MaterialSpecularTop" Color="#B3FFFFFF"/>
+ <SolidColorBrush x:Key="MaterialSpecularBottom" Color="#12000000"/>
+ <SolidColorBrush x:Key="MaterialInnerEdge" Color="#38FFFFFF"/>
+ <SolidColorBrush x:Key="MaterialOutline" Color="#26000000"/>
+ <SolidColorBrush x:Key="MaterialContentSurface" Color="#FFFFFF"/>
+ <LinearGradientBrush x:Key="MaterialDepth" StartPoint="0,0" EndPoint="1,1"><GradientStop Color="#B3FFFFFF" Offset="0"/><GradientStop Color="#00FFFFFF" Offset=".45"/><GradientStop Color="#12000000" Offset="1"/></LinearGradientBrush>
+</ResourceDictionary>

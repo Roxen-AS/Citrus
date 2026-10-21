@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "platform": "win-x64",
+  "isolatedExecution": "Windows AppContainer with zero capabilities and Job Object",
+  "components": [
+    {
+      "name": "LibreOffice",
+      "version": "26.8.1.1",
+      "license": "MPL-2.0 and included third-party notices",
+      "url": "https://download.documentfoundation.org/libreoffice/stable/26.8.1/win/x86_64/LibreOffice_26.8.1_Win_x86-64.msi",
+      "archive": "downloads/LibreOffice_26.8.1_Win_x86-64.msi",
+      "sha256": "c6298b10cfa1748bcbedad94c62ce771e240e5021bfd6d7a967cd571b04b5312",
+      "runtime": "libreoffice",
+      "notices": "libreoffice/license.txt"
+    },
+    {
+      "name": "Pandoc",
+      "version": "3.12.1",
+      "license": "GPL-2.0-or-later and included notices",
+      "url": "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-windows-x86_64.zip",
+      "archive": "downloads/pandoc-3.12.1-windows-x86_64.zip",
+      "sha256": "6ef431cb20b2c24a0371fc19200dc49d452be54b1b5c9239f3462841ef53e587",
+      "runtime": "pandoc/pandoc-3.12.1",
+      "notices": "pandoc/pandoc-3.12.1/COPYRIGHT.txt"
+    },
+    {
+      "name": "English OCR data",
+      "version": "tessdata_fast@87416418657359cb625c412a48b6e1d6d41c29bd",
+      "license": "Apache-2.0",
+      "url": "https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/87416418657359cb625c412a48b6e1d6d41c29bd/eng.traineddata",
+      "archive": "tessdata/eng.traineddata",
+      "sha256": "7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2",
+      "runtime": "tessdata",
+      "notices": "tessdata/LICENSE"
+    },
+    {
+      "name": "Tesseract .NET and native engine",
+      "version": "5.2.0",
+      "license": "Apache-2.0 and included notices",
+      "distribution": "Pinned NuGet Tesseract 5.2.0 with x64 tesseract50.dll and leptonica-1.82.0.dll; packages.lock.json records package integrity",
+      "nativeSource": "source/tesseract-5.2.0.tar.gz",
+      "leptonicaSource": "source/leptonica-1.82.0.tar.gz"
+    }
+  ],
+  "sources": [
+    {
+      "file": "source/leptonica-1.82.0.tar.gz",
+      "sha256": "40fa9ac1e815b91e0fa73f0737e60c9eec433a95fa123f95f2573dd3127dd669",
+      "bytes": 13115749
+    },
+    {
+      "file": "source/libreoffice-26.8.1.1.tar.xz",
+      "sha256": "296ba78e7ab0d381b94c3d6342f4ebb2320ee5097ca58781b9b744cab90b9785",
+      "bytes": 302435508
+    },
+    {
+      "file": "source/libreoffice-dictionaries-26.8.1.1.tar.xz",
+      "sha256": "ce366c50178f5bdf6df1c6df4a0146899cf27a0017734190d00d90f0c5acac61",
+      "bytes": 62319860
+    },
+    {
+      "file": "source/libreoffice-help-26.8.1.1.tar.xz",
+      "sha256": "f1de4054194e8718f699ddf2b269165613c8dd07c10c55b32968c977f0c6234f",
+      "bytes": 53513324
+    },
+    {
+      "file": "source/libreoffice-translations-26.8.1.1.tar.xz",
+      "sha256": "789519befa409d7eec24043cea41ddd318d9f1212f555d8b28d4982e35693bfc",
+      "bytes": 236160656
+    },
+    {
+      "file": "source/pandoc-3.12.1.tar.gz",
+      "sha256": "cf9b3725b90e471aa70c99ac3b351adcb6e40cd904d36fcbb0f70d712e135686",
+      "bytes": 9184297
+    },
+    {
+      "file": "source/tesseract-5.2.0.tar.gz",
+      "sha256": "eba4deb2f92a3f89a6623812074af8c53b772079525b3c263aa70bbf7b748b3c",
+      "bytes": 1913462
+    }
+  ],
+  "workers": [
+    "office-worker.py"
+  ],
+  "trustedWorkers": [
+    {
+      "file": "office-worker.py",
+      "sha256": "178c63be93f889048095d21e8d190d948a9b2fbb19ee8a23ca1d82d44cd05018",
+      "license": "MIT (Citrus repository LICENSE)",
+      "binding": "Pinned LibreOfficeKit stable ABI and in-process UNO; no remote bridge"
+    }
+  ]
+}
