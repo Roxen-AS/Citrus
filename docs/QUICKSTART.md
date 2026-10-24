@@ -27,7 +27,7 @@ When using **Ctrl → Files** (or the keyboard-accessible operation picker in Ho
 | **Float on shelf** | Gathers items into a topmost floating reference window without copying disk storage. | Stage files from multiple locations to drag or copy together later; removing a shelf entry only discards the reference, never the underlying file. |
 | **Move originals…** | Prompts for an explicit destination folder and relocates the original files. | Relocate files to an archive or project folder. Unlike conversion or editing actions, this modifies the location of your original source files. |
 
-Canceling the destination folder picker leaves originals unchanged. Once a native move has begun, however, closing or quitting Citrus will wait for active operations and worker cleanup to complete safely rather than forcibly interrupting them; if an error occurs mid-transfer, already-relocated items remain at the destination and the remaining items are reported.
+Canceling the destination folder picker leaves originals unchanged. Closing Home leaves Citrus running. Quit waits for an in-progress move and worker cleanup instead of interrupting it. If a move fails partway through, already-relocated items remain at the destination, and the error reports known completed destinations.
 
 ### Examples
 
